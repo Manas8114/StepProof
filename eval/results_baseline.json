@@ -14,7 +14,7 @@
       "tail_frac": 0.1,
       "state_conf": 0.7
     },
-    "avg_latency_s": 0.1,
+    "avg_latency_s": 0.0,
     "review_rate": 0.222,
     "strict": {
       "tp": 4,
