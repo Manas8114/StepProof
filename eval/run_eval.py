@@ -4,9 +4,9 @@
 Manifest: {"procedure": "eval/procedure.json", "clips": [{"video": "...", "expected": {"s1": "pass", "s2": "fail"}, "tags": ["missing_part"]}]}
 Positive class = defect (expected 'fail'). Reports strict (pred fail) and escalated (pred fail or review) precision/recall.
 
-Offline: STEPPROOF_PROVIDER=mock is not available in this revision. For a fully offline run,
-populate the disk cache (SAM wire text + Muse JSON) via scripts.make_dataset or a prior live run,
-then set PROVIDER_MODE=replay — the real providers read only from cache and never call the network."""
+Offline: STEPPROOF_PROVIDER=mock switches get_providers() to the deterministic dataset
+providers (clips + sidecars from scripts.make_dataset, never for reported metrics);
+PROVIDER_MODE=replay makes the real providers serve the disk cache without any network."""
 from __future__ import annotations
 import argparse, json, time
 from pathlib import Path
@@ -37,11 +37,6 @@ def prf(tp: int, fp: int, fn: int):
     return p, r
 
 
-def providers():
-    if os.environ.get("STEPPROOF_PROVIDER") == "mock":
-        from stepproof.providers.mock import MockSam, MockMuse
-        return MockSam(), MockMuse()
-    return get_providers()
 
 
 def run_manifest(man: dict, mode: str, seg, vis, limit: int = 0, params: Params | None = None):
@@ -83,7 +78,6 @@ def run_manifest(man: dict, mode: str, seg, vis, limit: int = 0, params: Params 
 
 
 def main() -> None:
-    import cv2  # noqa: needed for sample_frames above at module scope
     ap = argparse.ArgumentParser()
     ap.add_argument("--manifest", required=True)
     ap.add_argument("--mode", choices=["pipeline", "baseline"], default="pipeline")
@@ -96,7 +90,7 @@ def main() -> None:
     man = json.loads(Path(a.manifest).read_text())
     kw = {k: v for k, v in (("min_conf", a.min_conf), ("review_conf", a.review_conf), ("stable_frames", a.stable_frames)) if v is not None}
     params = Params(**kw) if kw else None
-    seg, vis = providers()
+    seg, vis = get_providers()
     summary, _ = run_manifest(man, a.mode, seg, vis, limit=a.limit, params=params)
     print(json.dumps(summary, indent=2))
     print("wrote", f"eval/results_{a.mode}.json")

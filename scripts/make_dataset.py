@@ -22,7 +22,7 @@ end to end offline, but its numbers must never be presented as measured model
 performance. See the README "Known limits / dataset" note.
 """
 from __future__ import annotations
-import argparse, json, os, random
+import argparse, json, os
 from pathlib import Path
 import cv2
 import numpy as np
@@ -62,10 +62,10 @@ def draw_concept(frame, concept):
 def write_clip(path: Path, presence: dict[str, list[int]], base_noise: int = 0):
     """Write an MJPG clip (H.264 requires a re-encode step; MJPG keeps this dependency-free)."""
     vw = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"MJPG"), FPS, (W, H))
-    rng = random.Random(base_noise)
+    rng = np.random.RandomState(base_noise % 2**31)  # deterministic texture per clip
     for f in range(N):
         frame = np.full((H, W, 3), 240, np.uint8)
-        frame = frame + rng.randint(0, 12, frame.shape).astype(np.uint8)  # tiny stable texture
+        frame = (frame.astype(np.int16) + rng.randint(0, 12, frame.shape)).astype(np.uint8)  # tiny stable texture
         for concept, present in presence.items():
             if f in present:
                 draw_concept(frame, concept)
@@ -122,7 +122,7 @@ def main(out: str = "data") -> None:
         sc = sidecar(concepts, baseline, expected, tags)
         write_clip(clips / tag_file, presence, base_noise=hash(tag_file) % 1000)
         (clips / tag_file.replace(".mp4", ".dets.json")).write_text(json.dumps(sc, indent=2))
-        manifest_clips.append({"video": str(clips / tag_file), "procedure": f"data/procedures/{proc}",
+        manifest_clips.append({"video": (clips / tag_file).as_posix(), "procedure": f"data/procedures/{proc}",
                                "expected": expected, "tags": tags})
 
     # procedure 1 clips

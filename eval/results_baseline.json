@@ -1,0 +1,198 @@
+{
+  "summary": {
+    "mode": "baseline",
+    "clips": 7,
+    "step_checks": 18,
+    "models": {
+      "segmentation": "mock-sam (synthetic, offline)",
+      "reasoning": "mock-muse (synthetic, offline)"
+    },
+    "params": {
+      "min_conf": 0.5,
+      "review_conf": 0.7,
+      "stable_frames": 5,
+      "tail_frac": 0.1,
+      "state_conf": 0.7
+    },
+    "avg_latency_s": 0.1,
+    "review_rate": 0.222,
+    "strict": {
+      "tp": 4,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.8
+    },
+    "escalated": {
+      "tp": 4,
+      "fp": 4,
+      "fn": 1,
+      "precision": 0.5,
+      "recall": 0.8
+    }
+  },
+  "rows": [
+    {
+      "clip": "p1_ok.mp4",
+      "step": "s1",
+      "expected": "pass",
+      "pred": "pass",
+      "tags": [
+        "correct"
+      ]
+    },
+    {
+      "clip": "p1_ok.mp4",
+      "step": "s2",
+      "expected": "pass",
+      "pred": "pass",
+      "tags": [
+        "correct"
+      ]
+    },
+    {
+      "clip": "p1_ok.mp4",
+      "step": "s3",
+      "expected": "pass",
+      "pred": "pass",
+      "tags": [
+        "correct"
+      ]
+    },
+    {
+      "clip": "p1_missing_connector.mp4",
+      "step": "s1",
+      "expected": "fail",
+      "pred": "fail",
+      "tags": [
+        "missing_part"
+      ]
+    },
+    {
+      "clip": "p1_missing_connector.mp4",
+      "step": "s2",
+      "expected": "review",
+      "pred": "review",
+      "tags": [
+        "missing_part"
+      ]
+    },
+    {
+      "clip": "p1_missing_connector.mp4",
+      "step": "s3",
+      "expected": "pass",
+      "pred": "pass",
+      "tags": [
+        "missing_part"
+      ]
+    },
+    {
+      "clip": "p1_wrong_order.mp4",
+      "step": "s1",
+      "expected": "pass",
+      "pred": "pass",
+      "tags": [
+        "wrong_order"
+      ]
+    },
+    {
+      "clip": "p1_wrong_order.mp4",
+      "step": "s2",
+      "expected": "fail",
+      "pred": "pass",
+      "tags": [
+        "wrong_order"
+      ]
+    },
+    {
+      "clip": "p1_wrong_order.mp4",
+      "step": "s3",
+      "expected": "pass",
+      "pred": "pass",
+      "tags": [
+        "wrong_order"
+      ]
+    },
+    {
+      "clip": "p1_low_conf.mp4",
+      "step": "s1",
+      "expected": "review",
+      "pred": "review",
+      "tags": [
+        "ambiguous"
+      ]
+    },
+    {
+      "clip": "p1_low_conf.mp4",
+      "step": "s2",
+      "expected": "fail",
+      "pred": "fail",
+      "tags": [
+        "ambiguous"
+      ]
+    },
+    {
+      "clip": "p1_low_conf.mp4",
+      "step": "s3",
+      "expected": "fail",
+      "pred": "fail",
+      "tags": [
+        "ambiguous"
+      ]
+    },
+    {
+      "clip": "p2_ok.mp4",
+      "step": "s1",
+      "expected": "pass",
+      "pred": "pass",
+      "tags": [
+        "correct"
+      ]
+    },
+    {
+      "clip": "p2_ok.mp4",
+      "step": "s2",
+      "expected": "pass",
+      "pred": "review",
+      "tags": [
+        "correct"
+      ]
+    },
+    {
+      "clip": "p2_missing_latch.mp4",
+      "step": "s1",
+      "expected": "pass",
+      "pred": "pass",
+      "tags": [
+        "missing_part"
+      ]
+    },
+    {
+      "clip": "p2_missing_latch.mp4",
+      "step": "s2",
+      "expected": "fail",
+      "pred": "fail",
+      "tags": [
+        "missing_part"
+      ]
+    },
+    {
+      "clip": "p2_flicker.mp4",
+      "step": "s1",
+      "expected": "review",
+      "pred": "review",
+      "tags": [
+        "ambiguous"
+      ]
+    },
+    {
+      "clip": "p2_flicker.mp4",
+      "step": "s2",
+      "expected": "review",
+      "pred": "pass",
+      "tags": [
+        "ambiguous"
+      ]
+    }
+  ]
+}
