@@ -9,6 +9,7 @@ providers (clips + sidecars from scripts.make_dataset, never for reported metric
 PROVIDER_MODE=replay makes the real providers serve the disk cache without any network."""
 from __future__ import annotations
 import argparse, json, time
+
 from pathlib import Path
 import cv2
 from stepproof import config as cfg
