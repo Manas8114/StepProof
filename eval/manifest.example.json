@@ -1,0 +1,8 @@
+{
+  "procedure": "eval/procedure.example.json",
+  "clips": [
+    {"video": "eval/clips/ok_01.mp4", "expected": {"s1": "pass", "s2": "pass"}, "tags": ["correct"]},
+    {"video": "eval/clips/missing_connector_01.mp4", "expected": {"s1": "fail", "s2": "pass"}, "tags": ["missing_part"]},
+    {"video": "eval/clips/wrong_order_01.mp4", "expected": {"s1": "pass", "s2": "fail"}, "tags": ["wrong_order"]}
+  ]
+}

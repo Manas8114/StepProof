@@ -1,0 +1,4 @@
+{"name": "Connector then cover", "steps": [
+  {"id": "s1", "description": "Place the red connector on the board", "concept": "red connector", "min_count": 1},
+  {"id": "s2", "description": "Close the black cover after the connector is placed", "concept": "black cover", "after": ["s1"], "state_question": "Is the black cover fully closed over the board?"}
+]}

@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StepProof</title>
+<style>
+:root{--paper:#EEF2F0;--surface:#fff;--ink:#12302A;--muted:#566B65;--line:#C6D3CE;--pass:#1B7A4B;--fail:#B3261E;--review:#9A6200;--focus:#1F5FBF}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif}
+header{padding:20px 28px 8px}
+h1{margin:0;font-size:26px;letter-spacing:-.01em}
+header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+#models{display:block;margin-top:6px;font-size:12px;color:var(--muted)}
+main{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:24px;padding:16px 28px 48px;align-items:start}
+@media(max-width:860px){main{grid-template-columns:1fr}}
+section{min-width:0}
+h2{font-size:16px;margin:20px 0 8px}
+h2:first-child{margin-top:0}
+textarea,input[type=file]{width:100%;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font:inherit;color:inherit}
+button{font:inherit;padding:8px 14px;border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;margin-top:8px}
+button.ghost{background:transparent;color:var(--ink)}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+#steps{padding-left:20px;margin:10px 0}
+#steps li{margin:8px 0}
+.pill{display:inline-block;padding:0 8px;border:1px solid var(--line);border-radius:10px;font-size:13px;background:var(--surface)}
+.muted{color:var(--muted);font-size:13px}
+#warn{color:var(--review);font-size:13px;margin-top:6px}
+.stage{position:relative;background:#000;border-radius:6px;overflow:hidden}
+.stage video{display:block;width:100%;height:auto}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.banner{padding:12px 16px;border-radius:6px;color:#fff;font-weight:600;margin-bottom:12px}
+.banner.pass{background:var(--pass)}.banner.fail{background:var(--fail)}.banner.review{background:var(--review)}
+#lanes{margin:12px 0;display:grid;gap:6px}
+.lane{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 10px}
+.lane .name{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lane svg{width:100%;height:30px;display:block}
+ul#cards{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--line);border-radius:6px;padding:12px 14px}
+.card.pass{border-left-color:var(--pass)}.card.fail{border-left-color:var(--fail)}.card.review{border-left-color:var(--review)}
+.card h3{margin:0 0 4px;font-size:15px}
+.chip{font-size:13px;font-weight:600;margin-right:8px}
+.chip.pass{color:var(--pass)}.chip.fail{color:var(--fail)}.chip.review{color:var(--review)}
+.card img{max-width:220px;border-radius:4px;border:1px solid var(--line);cursor:pointer;margin:6px 8px 0 0}
+.card ul{margin:6px 0;padding-left:18px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>StepProof</h1>
+  <p>Describe a procedure in plain words. Get video-backed proof that each step happened, and happened in order.</p>
+  <span id="models"></span>
+</header>
+<main>
+  <section id="setup" aria-label="Set up">
+    <h2>Procedure</h2>
+    <textarea id="text" rows="5" aria-label="Procedure description" placeholder="Place the red connector on the board. Then close the black cover."></textarea>
+    <button id="compile">Compile steps</button>
+    <div id="warn"></div>
+    <ol id="steps"></ol>
+    <button id="save" class="ghost" hidden>Save procedure</button>
+    <h2>Clip</h2>
+    <input type="file" id="file" accept="video/mp4,video/quicktime" aria-label="Video clip">
+    <p class="muted">MP4 or MOV, H.264/H.265. Fixed camera works best.</p>
+    <button id="run" disabled>Run inspection</button>
+    <p id="status" role="status" class="muted"></p>
+  </section>
+  <section id="result" hidden aria-label="Result">
+    <div id="overall" class="banner"></div>
+    <div class="stage"><video id="vid" controls playsinline></video><canvas id="cv"></canvas></div>
+    <div id="lanes"></div>
+    <ul id="cards"></ul>
+  </section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const h = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); kids.flat().forEach(k => e.append(k)); return e; };
+const api = async (p, o) => { const r = await fetch(p, o); if (!r.ok) throw new Error((await r.text()).slice(0, 400)); return r.json(); };
+let spec = null, procId = null, report = null, iid = null;
+const COLORS = ['#2E8B57', '#C77814', '#B43C3C', '#3C5AC8', '#8C3CA0'];
+const LABEL = { pass: 'Verified', fail: 'Failed', review: 'Needs review' };
+
+api('/api/health').then(m => $('#models').textContent = `Segmentation: ${m.segmentation}. Reasoning: ${m.reasoning}. Mode: ${m.mode}.`).catch(() => {});
+
+$('#compile').onclick = async () => {
+  $('#warn').textContent = ''; $('#compile').disabled = true;
+  try {
+    const r = await api('/api/procedures/compile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: $('#text').value }) });
+    spec = r.spec; procId = null; $('#warn').textContent = r.warnings.join(' ');
+    const ol = $('#steps'); ol.replaceChildren(...spec.steps.map(s => h('li', {}, s.description, h('br'),
+      h('span', { className: 'pill', textContent: s.concept }), ' ',
+      h('span', { className: 'muted', textContent: `count ${s.min_count}${s.max_count != null ? '–' + s.max_count : '+'}${s.after.length ? ' · after ' + s.after.join(', ') : ''}${s.state_question ? ' · ' + s.state_question : ''}` }))));
+    $('#save').hidden = false; $('#run').disabled = true;
+  } catch (e) { $('#warn').textContent = e.message; }
+  $('#compile').disabled = false;
+};
+$('#save').onclick = async () => { procId = (await api('/api/procedures', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec) })).id; $('#status').textContent = 'Procedure saved.'; sync(); };
+$('#file').onchange = sync;
+const sync = () => $('#run').disabled = !(procId && $('#file').files.length);
+
+$('#run').onclick = async () => {
+  const fd = new FormData(); fd.append('procedure_id', procId); fd.append('file', $('#file').files[0]);
+  $('#run').disabled = true; $('#result').hidden = true;
+  try {
+    iid = (await api('/api/inspections', { method: 'POST', body: fd })).id;
+    for (;;) {
+      const r = await api('/api/inspections/' + iid);
+      $('#status').textContent = r.status === 'error' ? 'Failed: ' + r.detail : r.detail || r.status;
+      if (r.status === 'done') { report = r.report; render(); break; }
+      if (r.status === 'error') break;
+      await new Promise(res => setTimeout(res, 1500));
+    }
+  } catch (e) { $('#status').textContent = e.message; }
+  sync();
+};
+
+const reviewed = id => (report.reviews || []).find(r => r.step_id === id);
+const effective = r => reviewed(r.step_id)?.verdict ?? r.verdict;
+
+function render() {
+  const eff = report.results.map(effective);
+  const all = eff.includes('fail') ? 'fail' : eff.includes('review') ? 'review' : 'pass';
+  const b = $('#overall'); b.className = 'banner ' + all;
+  b.textContent = all === 'pass' ? 'All steps verified' : all === 'fail' ? 'Defects found' : 'Needs human review';
+  const v = $('#vid'); v.src = '/media/' + report.video; $('#result').hidden = false;
+  const dur = report.n_frames / report.fps, concepts = Object.keys(report.counts);
+  $('#lanes').replaceChildren(...report.procedure.steps.map(s => {
+    const r = report.results.find(x => x.step_id === s.id), c = report.counts[s.concept] || [], mx = Math.max(1, ...c);
+    const pts = c.map((n, i) => `${(i / Math.max(1, c.length - 1) * 100).toFixed(1)},${(28 - n / mx * 26).toFixed(1)}`).join(' ');
+    const mark = r.first_time_s != null ? `<line x1="${(r.first_time_s / dur * 100).toFixed(1)}" x2="${(r.first_time_s / dur * 100).toFixed(1)}" y1="0" y2="30" stroke="var(--${r.verdict})" stroke-width="2" vector-effect="non-scaling-stroke"/>` : '';
+    const svg = h('div'); svg.innerHTML = `<svg viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#8aa09a" stroke-width="1.5" vector-effect="non-scaling-stroke" points="${pts}"/>${mark}</svg>`;
+    const lane = h('div', { className: 'lane', tabIndex: 0, title: 'Jump to this step', onclick: () => { if (r.first_time_s != null) v.currentTime = r.first_time_s; } }, h('span', { className: 'name', textContent: s.concept }), svg);
+    lane.onkeydown = e => { if (e.key === 'Enter') lane.click(); };
+    return lane;
+  }));
+  $('#cards').replaceChildren(...report.procedure.steps.map(s => {
+    const r = report.results.find(x => x.step_id === s.id), ev = effective(r), rv = reviewed(r.step_id);
+    const imgs = [r.evidence_image && ['Evidence', r.evidence_image, r.first_time_s], r.state_image && ['State check', r.state_image, null]].filter(Boolean)
+      .map(([alt, f, t]) => h('img', { src: `/evidence/${report.inspection_id}/${f}`, alt, title: alt, onclick: () => { if (t != null) v.currentTime = t; } }));
+    const card = h('li', { className: 'card ' + ev },
+      h('h3', {}, h('span', { className: 'chip ' + ev, textContent: LABEL[ev] }), s.description),
+      r.first_time_s != null ? h('div', { className: 'muted', textContent: `First satisfied at ${r.first_time_s}s${r.min_conf != null ? ` · detector confidence ${r.min_conf.toFixed(2)}` : ''}` }) : '',
+      r.reasons.length ? h('ul', {}, r.reasons.map(t => h('li', { textContent: t }))) : '',
+      r.state ? h('div', { className: 'muted', textContent: `Muse Spark: ${r.state.answer} (${r.state.confidence.toFixed(2)}). ${r.state.rationale}` }) : '',
+      h('div', {}, imgs),
+      rv ? h('div', { className: 'muted', textContent: `Reviewer decision: ${rv.verdict}` }) : '');
+    if (r.verdict === 'review' && !rv) card.append(...['pass', 'fail'].map(x => h('button', { className: 'ghost', textContent: x === 'pass' ? 'Confirm pass' : 'Confirm fail',
+      onclick: async () => { await api(`/api/inspections/${iid}/review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ step_id: r.step_id, verdict: x }) }); (report.reviews ||= []).push({ step_id: r.step_id, verdict: x }); render(); } })));
+    return card;
+  }));
+  draw();
+}
+
+const cv = $('#cv'), ctx = cv.getContext('2d');
+function nearest(frames, f) { let lo = 0, hi = frames.length - 1, ans = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (frames[m] <= f) { ans = m; lo = m + 1; } else hi = m - 1; } return ans < 0 ? null : frames[ans]; }
+function draw() {
+  if (!report) return;
+  const v = $('#vid'); cv.width = v.clientWidth; cv.height = v.clientHeight;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  const f = Math.floor(v.currentTime * report.fps), sx = cv.width / report.width, sy = cv.height / report.height;
+  Object.entries(report.overlay).forEach(([concept, byFrame], i) => {
+    const keys = Object.keys(byFrame).map(Number).sort((a, b) => a - b), k = nearest(keys, f);
+    if (k == null || f - k > report.stride * 1.5) return;
+    ctx.strokeStyle = ctx.fillStyle = COLORS[i % COLORS.length]; ctx.lineWidth = 2; ctx.font = '13px system-ui';
+    byFrame[k].forEach(([x1, y1, x2, y2]) => { ctx.strokeRect(x1 * sx, y1 * sy, (x2 - x1) * sx, (y2 - y1) * sy); ctx.fillText(concept, x1 * sx + 2, Math.max(12, y1 * sy - 4)); });
+  });
+}
+(function loop() { draw(); requestAnimationFrame(loop); })();
+</script>
+</body>
+</html>
