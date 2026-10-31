@@ -110,14 +110,14 @@ def main(out: str = "data") -> None:
     manifest_clips = []
 
     def add(tag_file, proc, presence, expected, baseline, tags, obj_ids=None, confs=None):
-        confs = confs or {}
+        confs, obj_ids = confs or {}, obj_ids or {}
         concepts = {}
         for c, present in presence.items():
             d = {"present_frames": present}
             if c in confs:
                 d["conf"] = confs[c]
-            if obj_ids:
-                d["obj_ids"] = obj_ids
+            if c in obj_ids:
+                d["obj_ids"] = obj_ids[c]
             concepts[c] = d
         sc = sidecar(concepts, baseline, expected, tags)
         write_clip(clips / tag_file, presence, base_noise=hash(tag_file) % 1000)
@@ -130,17 +130,17 @@ def main(out: str = "data") -> None:
         presence={"red connector": _frames(20, 99), "black cover": _frames(40, 99), "silver screw": _frames(60, 99)},
         expected={"s1": "pass", "s2": "pass", "s3": "pass"},
         baseline={"s1": "pass", "s2": "pass", "s3": "pass"},
-        tags=["correct"], obj_ids=[1, 2])
+        tags=["correct"], obj_ids={"silver screw": [1, 2]})
     add("p1_missing_connector.mp4", "board.json",
         presence={"red connector": [], "black cover": _frames(40, 99), "silver screw": _frames(60, 99)},
         expected={"s1": "fail", "s2": "review", "s3": "pass"},
         baseline={"s1": "fail", "s2": "uncertain", "s3": "pass"},
-        tags=["missing_part"], obj_ids=[1, 2])
+        tags=["missing_part"], obj_ids={"silver screw": [1, 2]})
     add("p1_wrong_order.mp4", "board.json",
         presence={"red connector": _frames(50, 99), "black cover": _frames(20, 99), "silver screw": _frames(60, 99)},
         expected={"s1": "pass", "s2": "fail", "s3": "pass"},
         baseline={"s1": "pass", "s2": "pass", "s3": "pass"},
-        tags=["wrong_order"], obj_ids=[1, 2])
+        tags=["wrong_order"], obj_ids={"silver screw": [1, 2]})
     add("p1_low_conf.mp4", "board.json",
         presence={"red connector": _frames(20, 99), "black cover": [], "silver screw": []},
         expected={"s1": "review", "s2": "fail", "s3": "fail"},
