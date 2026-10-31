@@ -28,6 +28,15 @@ See `eval/manifest.example.json`. Report failures, not just wins.
 ## Reproducible demo
 Raw SAM text and Muse JSON are cached under `data/cache`. `PROVIDER_MODE=replay` serves the demo from cache with no network. Cached results are real API outputs from earlier runs.
 
+## Offline synthetic dataset (no API key, no network)
+When the Meta Model API is unreachable, a fully synthetic dataset lets the whole system run offline and deterministically:
+```bash
+python -m scripts.make_dataset                       # writes data/clips, data/procedures, data/manifest, mock config
+STEPPROOF_PROVIDER=mock STEPPROOF_DATA=data python -m eval.run_eval --manifest data/manifest/manifest.json --mode pipeline
+STEPPROOF_PROVIDER=mock STEPPROOF_DATA=data python -m eval.run_eval --manifest data/manifest/manifest.json --mode baseline
+```
+Each clip is a short MJPG video with coloured parts on authored schedules, plus a `<clip>.dets.json` sidecar holding ground-truth detections (concept -> present frames, box, confidence, object ids), the Muse-alone baseline verdicts and the expected per-step verdicts. `MockSam`/`MockMuse` serve these sidecars; the pipeline, rules engine, API and UI are exercised exactly as in live mode. **The dataset is synthetic - its numbers demonstrate mechanics, not measured model performance, and must never be reported as such.**
+
 ## Disclosure
 `/api/health` and every report list the exact models and hosts used. If the Muse Spark endpoint is replaced by a gateway (`VISION_BASE_URL`), say so in your submission. SAM has no fallback in this repo.
 
