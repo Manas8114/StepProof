@@ -11,11 +11,11 @@ from ..schemas import ProcedureSpec, StateCheck
 COMPILE_SYSTEM = """You convert a plain-English description of a manual procedure into a verification spec for a video checker.
 Rules:
 - Every step must be checkable by LOOKING at the video from outside.
-- `concept` is a SHORT CONCRETE NOUN PHRASE naming ONE visible object type (e.g. 'red connector', 'silver screw'). Never a verb phrase, list, question or negation.
-- Use min_count/max_count for how many must be visible at the same time.
-- Express ordering ONLY through `after` (ids of earlier steps). ids are s1, s2, ...
+- `concept` is a SHORT CONCRETE NOUN PHRASE (max 5 words) naming ONE visible object type (e.g. 'red connector', 'silver screw'). Never a verb phrase, list, question or negation.
+- Use min_count/max_count for how many must be visible at the same time (min_count 0 is valid: 'no <x> present').
+- Express ordering ONLY through `after` (ids of earlier steps).
+- A step counts as DONE when its concept is still visible in the video's final frames. `persist` stays true unless the object is legitimately removed or covered afterwards (used-up tools, packaging) — set persist=false only in that case.
 - Use `state_question` ONLY when the step depends on a state that presence/count cannot show (e.g. 'Is the lid closed?'); phrase it as a yes/no question about the visible scene.
-- persist=false only for things legitimately removed or covered later (tools, packaging).
 - Do not invent steps the user did not describe."""
 
 STATE_SYSTEM = """You verify one visible state in an image. Answer ONLY from what is visible.

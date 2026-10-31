@@ -34,6 +34,7 @@ def count_series(dets: list[Detection], n_frames: int, min_conf: float):
 
 
 def first_stable(ok: list[bool], k: int) -> Optional[int]:
+    """Earliest frame of any run of `k` consecutive satisfied frames."""
     run = 0
     for i, v in enumerate(ok):
         run = run + 1 if v else 0
@@ -60,7 +61,7 @@ def evaluate(
     params: Params = Params(),
 ) -> list[StepResult]:
     k = max(1, min(params.stable_frames, n_frames))
-    done: dict[str, StepResult] = {}
+    tail = max(k, int(n_frames * params.tail_frac))
     out: list[StepResult] = []
     for step in spec.steps:
         counts, confs = count_series(dets_by_concept.get(step.concept, []), n_frames, params.min_conf)
@@ -69,36 +70,25 @@ def evaluate(
         r = StepResult(step_id=step.id, verdict="pass")
         first = first_stable(ok, k)
         rng = f"[{step.min_count}, {step.max_count if step.max_count is not None else 'inf'}]"
-        if not any(ok):
-            r.verdict = "fail"
-            r.reasons.append(f"'{step.concept}' never seen with count in {rng} (max seen: {max(counts, default=0)}).")
-        elif first is None:
-            r.verdict = "review"
-            r.reasons.append(f"Detection of '{step.concept}' flickers; never stable for {k} frames.")
+        if first is None:
+            _bump(r, "fail" if not any(ok) else "review")
+            r.reasons.append(
+                f"'{step.concept}' never seen with count in {rng} (max seen: {max(counts, default=0)})."
+                if not any(ok) else
+                f"Detection of '{step.concept}' flickers; never stable for {k} frames.")
         else:
-            r.first_frame, r.evidence_frame = first, first
+            r.first_frame = first
+            r.evidence_frame = first
             r.first_time_s = round(first / fps, 2) if fps else None
             fc = confs.get(first, [])
             r.min_conf = min(fc) if fc else None
             r.count_at_end = counts[-1]
-            tail = ok[-max(k, int(n_frames * params.tail_frac)):]
-            if step.persist and sum(tail) < len(tail) / 2:
-                r.verdict = "fail"
-                r.reasons.append(f"Not satisfied at the end of the video (count at end: {counts[-1]}).")
+            if step.persist and sum(ok[-tail:]) < len(ok[-tail:]) / 2:
+                _bump(r, "fail")
+                r.reasons.append(f"Not held to the end of the video (count at end: {counts[-1]}, range {rng}).")
             if r.min_conf is not None and r.min_conf < params.review_conf:
                 _bump(r, "review")
                 r.reasons.append(f"Low detector confidence ({r.min_conf:.2f}).")
-            for dep in step.after:
-                d = done.get(dep)
-                if d is None or d.first_frame is None:
-                    _bump(r, "review")
-                    r.reasons.append(f"Prerequisite {dep} never satisfied; order cannot be verified.")
-                elif first < d.first_frame:
-                    _bump(r, "fail")
-                    r.reasons.append(f"Occurred before prerequisite {dep} ({r.first_time_s}s < {d.first_time_s}s).")
-                elif first == d.first_frame:
-                    _bump(r, "review")
-                    r.reasons.append(f"Simultaneous with prerequisite {dep}; order cannot be proven.")
             if step.state_question and state_fn and r.verdict != "fail":
                 last_ok = max(i for i, v in enumerate(ok) if v)
                 sc = state_fn(step, last_ok)
@@ -110,6 +100,20 @@ def evaluate(
                     elif sc.answer == "uncertain" or sc.confidence < params.state_conf:
                         _bump(r, "review")
                         r.reasons.append(f"State check uncertain: {sc.rationale}")
-        done[step.id] = r
         out.append(r)
+    by_id = {r.step_id: r for r in out}
+    for r in out:  # ordering is cross-step: check after all steps are scored
+        step = next(s for s in spec.steps if s.id == r.step_id)
+        for dep in step.after:
+            d = by_id.get(dep)
+            if d is None or d.first_frame is None:
+                _bump(r, "review")
+                r.reasons.append(f"Prerequisite {dep} never satisfied; order cannot be verified.")
+                continue
+            if r.first_frame is None or r.first_frame < d.first_frame:
+                _bump(r, "fail")
+                r.reasons.append(f"Occurred before prerequisite {dep} ({r.first_time_s}s < {d.first_time_s}s).")
+            elif r.first_frame == d.first_frame:
+                _bump(r, "review")
+                r.reasons.append(f"Simultaneous with prerequisite {dep}; order cannot be proven.")
     return out

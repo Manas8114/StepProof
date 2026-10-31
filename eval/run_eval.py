@@ -2,7 +2,11 @@
   python -m eval.run_eval --manifest eval/manifest.json --mode pipeline
   python -m eval.run_eval --manifest eval/manifest.json --mode baseline     (Muse Spark alone, 8 sampled frames)
 Manifest: {"procedure": "eval/procedure.json", "clips": [{"video": "...", "expected": {"s1": "pass", "s2": "fail"}, "tags": ["missing_part"]}]}
-Positive class = defect (expected 'fail'). Reports strict (pred fail) and escalated (pred fail or review) precision/recall."""
+Positive class = defect (expected 'fail'). Reports strict (pred fail) and escalated (pred fail or review) precision/recall.
+
+Offline: STEPPROOF_PROVIDER=mock is not available in this revision. For a fully offline run,
+populate the disk cache (SAM wire text + Muse JSON) via scripts.make_dataset or a prior live run,
+then set PROVIDER_MODE=replay — the real providers read only from cache and never call the network."""
 from __future__ import annotations
 import argparse, json, time
 from pathlib import Path
@@ -10,6 +14,7 @@ import cv2
 from stepproof import config as cfg
 from stepproof.pipeline import run_inspection
 from stepproof.providers import get_providers
+from stepproof.rules import Params
 from stepproof.schemas import ProcedureSpec
 from stepproof.video import probe, read_frame
 
@@ -32,25 +37,30 @@ def prf(tp: int, fp: int, fn: int):
     return p, r
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--manifest", required=True)
-    ap.add_argument("--mode", choices=["pipeline", "baseline"], default="pipeline")
-    ap.add_argument("--limit", type=int, default=0)
-    a = ap.parse_args()
-    man = json.loads(Path(a.manifest).read_text())
-    spec = ProcedureSpec.model_validate_json(Path(man["procedure"]).read_text())
-    seg, vis = get_providers()
+def providers():
+    if os.environ.get("STEPPROOF_PROVIDER") == "mock":
+        from stepproof.providers.mock import MockSam, MockMuse
+        return MockSam(), MockMuse()
+    return get_providers()
+
+
+def run_manifest(man: dict, mode: str, seg, vis, limit: int = 0, params: Params | None = None):
+    spec_cache: dict[str, ProcedureSpec] = {}
+    def spec_for(clip: dict) -> ProcedureSpec:
+        p = clip.get("procedure", man["procedure"])
+        return spec_cache.setdefault(p, ProcedureSpec.model_validate_json(Path(p).read_text()))
     rows, lat = [], []
-    clips = man["clips"][: a.limit or None]
+    clips = man["clips"][: limit or None]
     for i, clip in enumerate(clips):
+        spec = spec_for(clip)
         v = Path(clip["video"])
         t0 = time.time()
-        if a.mode == "pipeline":
-            rep = run_inspection(v, spec, seg, vis, f"eval-{i}")
+        if mode == "pipeline":
+            rep = run_inspection(v, spec, seg, vis, f"eval-{i}", params=params or Params())
             pred = {r.step_id: r.verdict for r in rep.results}
         else:
-            pred = vis.baseline_verdicts(spec, sample_frames(v, cfg.DATA_DIR / "eval_frames"))
+            # sample frames next to the clip so offline (mock) sidecars can be found
+            pred = vis.baseline_verdicts(spec, sample_frames(v, v.parent))
         lat.append(time.time() - t0)
         for sid, exp in clip["expected"].items():
             rows.append({"clip": v.name, "step": sid, "expected": exp, "pred": pred.get(sid, "review"), "tags": clip.get("tags", [])})
@@ -59,17 +69,37 @@ def main() -> None:
         fp = sum(1 for r in rows if r["expected"] != "fail" and flag(r["pred"]))
         fn = sum(1 for r in rows if r["expected"] == "fail" and not flag(r["pred"]))
         return tp, fp, fn
-    summary = {"mode": a.mode, "clips": len(clips), "step_checks": len(rows), "models": {"segmentation": seg.name, "reasoning": vis.name},
+    summary = {"mode": mode, "clips": len(clips), "step_checks": len(rows), "models": {"segmentation": seg.name, "reasoning": vis.name},
+               "params": vars(params or Params()),
                "avg_latency_s": round(sum(lat) / max(1, len(lat)), 1),
                "review_rate": round(sum(r["pred"] == "review" for r in rows) / max(1, len(rows)), 3)}
     for label, flag in (("strict", lambda p: p == "fail"), ("escalated", lambda p: p in ("fail", "review"))):
         tp, fp, fn = count(flag)
         p, r = prf(tp, fp, fn)
         summary[label] = {"tp": tp, "fp": fp, "fn": fn, "precision": p, "recall": r}
-    out = Path("eval") / f"results_{a.mode}.json"
+    out = Path("eval") / f"results_{mode}.json"
     out.write_text(json.dumps({"summary": summary, "rows": rows}, indent=2))
+    return summary, rows
+
+
+def main() -> None:
+    import cv2  # noqa: needed for sample_frames above at module scope
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--manifest", required=True)
+    ap.add_argument("--mode", choices=["pipeline", "baseline"], default="pipeline")
+    ap.add_argument("--limit", type=int, default=0)
+    p = ap.add_argument_group("calibration (tune on dev clips only)")
+    p.add_argument("--min-conf", type=float, default=None)
+    p.add_argument("--review-conf", type=float, default=None)
+    p.add_argument("--stable-frames", type=int, default=None)
+    a = ap.parse_args()
+    man = json.loads(Path(a.manifest).read_text())
+    kw = {k: v for k, v in (("min_conf", a.min_conf), ("review_conf", a.review_conf), ("stable_frames", a.stable_frames)) if v is not None}
+    params = Params(**kw) if kw else None
+    seg, vis = providers()
+    summary, _ = run_manifest(man, a.mode, seg, vis, limit=a.limit, params=params)
     print(json.dumps(summary, indent=2))
-    print("wrote", out)
+    print("wrote", f"eval/results_{a.mode}.json")
 
 
 if __name__ == "__main__":
