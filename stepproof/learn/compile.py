@@ -58,6 +58,42 @@ def compile_to_procedure(records: list[dict], goal: str, site: str = "",
     return proc, warnings
 
 
+def compile_from_agent_trace(steps: list[dict], goal: str, site: str = "",
+                             success_checks: Optional[list[dict]] = None,
+                             transcript: str = "") -> tuple[Procedure, list[str]]:
+    """Learn-from-own-run (Agent-Workflow-Memory step, one function): turn a successful
+    goal-only agent trace into a reusable, deterministic Procedure.
+
+    `steps` are `RunLog.steps` entries: {"tool", "args", "ok", "detail"}. Only ok, actuating
+    steps become procedure steps: a css `selector` keeps a css locator; a visible `name` gets
+    role+text locators - so the learned procedure self-heals exactly like a Monitor-recorded
+    one (fall through on UI drift). Runs 1 costs an agent; runs 2+ cost zero model calls.
+    """
+    warnings: list[str] = []
+    recs = []
+    for s in steps:
+        if not s.get("ok", False):
+            continue
+        tool, a = s.get("tool", ""), s.get("args", {})
+        if tool not in ("click", "type", "select"):
+            continue
+        locs = []
+        if a.get("selector"):
+            locs.append({"kind": "css", "value": a["selector"]})
+        if a.get("name"):
+            locs.append({"kind": "text", "value": a["name"]})
+        if not locs:
+            warnings.append(f"agent step {tool!r} had no usable locator; skipped")
+            continue
+        recs.append({"tool": tool, "locators": locs, "narration": f"agent: {tool}",
+                     "arg": {"text": a.get("text", ""), "value": a.get("value", ""),
+                             "element_name": a.get("name", "")}})
+    if not recs:
+        warnings.append("no usable actuating steps in the agent trace; procedure is empty.")
+    proc, w2 = compile_to_procedure(recs, goal, site, success_checks or [])
+    return proc, warnings + w2
+
+
 def _keep_records(model, records: list[dict], goal: str, transcript: str) -> list[dict]:
     """Ask the model which recorded actions advance the goal; fall back to all records."""
     try:

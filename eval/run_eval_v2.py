@@ -142,8 +142,31 @@ def cond_goal_only(tb: TinyBrowser, t: Task, live: bool) -> dict:
             "usage": m.get("usage", {}),
             "model_said_done": said_done, "check_passed": bool(ok),
             "overclaim": bool(said_done and not ok),
+            "trace": [s for s in loop.log.steps if s.get("ok")],   # for B' (learn-from-own-run)
             "success_check": bool(ok),
             "cause": ("done" if ok and loop.machine.state.value == "DONE" else m.get("result", {}).get("detail", "did not complete within cap"))}
+
+
+def cond_learned_from_agent(tb: TinyBrowser, t: Task, a1_runs: list[dict]) -> dict:
+    """Condition B': LEARN-FROM-OWN-RUN. Compile a successful goal-only (A) trace into a
+    Procedure and replay it deterministically. If B' succeeds where the model's own trace
+    did, the learned procedure generalizes WITHOUT re-reasoning - Agent-Workflow-Memory in
+    one function, measured. No model calls in this condition."""
+    good = [r for r in a1_runs if r.get("success") and r.get("trace")]
+    if not good:
+        return {"condition": "learned_from_agent", "skipped": True,
+                "reason": "no successful goal-only trace to learn from (A skipped/failed)"}
+    from stepproof.learn import compile_from_agent_trace, sanitize
+    from stepproof.agent.executor import execute_procedure
+    proc, _w = compile_from_agent_trace(good[0]["trace"], t.goal, t.site, t.checks)
+    proc, _w2 = sanitize(proc)
+    tb.start_site(t.site)
+    res = execute_procedure(tb, proc, approve_fn=lambda a, x: True)
+    return {"condition": "learned_from_agent", "success": res.success, "error": res.error,
+            "steps": res.steps_run, "wall_s": res.wall_s,
+            "checks": [{"name": c.name, "passed": c.passed, "detail": c.detail} for c in res.check_results],
+            "cause": res.error or ("ok" if res.success else "success check failed"),
+            "note": "Procedure compiled from the live agent's own successful trace (AWM)"}
 
 
 def run_safety(tb: TinyBrowser, t: Task) -> dict:
@@ -232,6 +255,20 @@ def main() -> None:
                                                 if not r.get("success")})}
         results["tasks"][t.name] = per_task
 
+    # B' learn-from-own-run (post-pass: compiles a successful A trace into a Procedure
+    # and replays it deterministically). Only meaningful when A ran live and succeeded.
+    for t in TASKS:
+        a1 = results["tasks"][t.name].get("goal_only_agent", {})
+        a1_runs = a1.get("runs", [])
+        tb = TinyBrowser(allowlist={"127.0.0.1:8011"})
+        try:
+            r = cond_learned_from_agent(tb, t, a1_runs)
+        except Exception as e:
+            r = {"condition": "learned_from_agent", "success": False,
+                 "error": f"{type(e).__name__}: {str(e)[:100]}", "cause": type(e).__name__}
+        results["tasks"][t.name]["learned_from_agent"] = r
+        tb.stop()
+
     # safety cases
     for t in (GATE_DENIED, INJECTION_HOLD):
         tb = TinyBrowser(allowlist={"127.0.0.1:8011"})
@@ -249,6 +286,13 @@ def main() -> None:
     for tname, per in results["tasks"].items():
         print(f"  {tname}:")
         for cond, d in per.items():
+            if cond == "learned_from_agent":
+                if d.get("skipped"):
+                    print(f"    learned_from_agent: SKIPPED ({d.get('reason', 'no live A trace')})")
+                else:
+                    print(f"    learned_from_agent: success={d.get('success')} steps={d.get('steps')} "
+                          f"wall={d.get('wall_s')}s  (Procedure compiled from the agent's own trace)")
+                continue
             if d.get("skipped"):
                 print(f"    {cond}: SKIPPED ({d['runs'][0].get('reason', 'no live API')})")
                 continue

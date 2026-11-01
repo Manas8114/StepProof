@@ -255,6 +255,33 @@ def test_coach_detects_redundant_navigation(site_server):
     assert any(d["what"] in ("repeated action", "redundant navigation", "backtrack") for d in dets)
 
 
+def test_compile_from_agent_trace_builds_procedure(site_server):
+    """AWM step: a successful goal-only trace compiles into a reusable, self-healing
+    Procedure - css args keep a css locator, name args get role+text locators."""
+    from stepproof.learn.compile import compile_from_agent_trace, sanitize
+    from stepproof.agent.executor import execute_procedure
+    from stepproof.browser import TinyBrowser
+    steps = [
+        {"tool": "type", "args": {"selector": "#vendor", "text": "Acme"}, "ok": True},
+        {"tool": "type", "args": {"selector": "#amount", "text": "42"}, "ok": True},
+        {"tool": "select", "args": {"selector": "#category", "value": "office"}, "ok": True},
+        {"tool": "click", "args": {"name": "Submit claim"}, "ok": True},
+        {"tool": "wait", "args": {"ms": 100}, "ok": True},   # non-action steps are skipped
+    ]
+    proc, _w = compile_from_agent_trace(steps, "File an expense claim", site_server,
+                                         [{"kind": "text_visible", "spec": {"text": "Claim filed"}}])
+    proc, _ = sanitize(proc)
+    assert [s.action for s in proc.steps] == ["type", "type", "select", "click"]
+    assert proc.steps[0].locators and proc.steps[0].locators[0].kind == "css"
+    assert proc.steps[3].locators[0].kind == "text" and proc.steps[3].locators[0].value == "Submit claim"
+    # and it actually runs (the learned procedure replays the agent's own success)
+    tb = TinyBrowser(allowlist={"127.0.0.1:8011"})
+    tb.start_site(site_server + "/expense/")
+    res = execute_procedure(tb, proc, approve_fn=lambda a, x: True)
+    assert res.success, res.error
+    tb.stop()
+
+
 def test_pass_k_metric():
     """tau-bench pass^k: all-k-trials-success probability = (per-task success rate)**k."""
     from eval.run_eval_v2 import pass_k
