@@ -72,7 +72,7 @@ Status 2026-10-31 (end of day): live API access is confirmed and working (B1-B3 
 | # | Item | Status |
 |---|---|---|
 | W1 | `/brag` plan + storyboard + share copy | DONE - `brag-output/brag-plan.md`, `brag-output/share-copy.txt` |
-| W2 | Rendered `.mp4` | **BLOCKED** - `npx hyperframes` not available in this environment; render with `cd brag-output && npx hyperframes check && npx hyperframes render` where the tool exists |
+| W2 | Rendered `.mp4` | DONE - `brag-output/brag.mp4` (20 s, 1920x1080@30, music + 2 SFX, idle thumbnail = PASS poster baked as frame 0) from `brag-output/composition/` (`npx hyperframes check` passed, 0 errors); poster `brag-output/brag.jpg` |
 
 ## X. v2 honesty guardrails
 | # | Rule |

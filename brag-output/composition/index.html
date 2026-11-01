@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --paper: #0f1416;
+        --panel: #182124;
+        --line: #2b383c;
+        --ink: #e7ecec;
+        --mut: #8fa3a0;
+        --ok: #3fb97f;
+        --acc: #4aa3ff;
+        --font-display: "Inter", "Segoe UI", system-ui, sans-serif;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px; height: 1080px; overflow: hidden;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--font-display);
+      }
+      #root { position: relative; width: 100%; height: 100%; }
+      .scene { position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; opacity: 0; }
+      .clip { will-change: transform, opacity; }
+
+      /* ambient grid glow */
+      #glow {
+        position: absolute; inset: 0; pointer-events: none;
+        background:
+          radial-gradient(900px 520px at 50% 42%, rgba(74,163,255,0.14), transparent 70%),
+          radial-gradient(700px 500px at 78% 78%, rgba(63,185,127,0.08), transparent 70%);
+      }
+
+      /* Scene 1 — hook */
+      #s1 h1 { font-size: 96px; font-weight: 600; letter-spacing: -0.03em; }
+      #s1 h1 em { color: var(--acc); font-style: normal; }
+
+      /* Scene 2 — beat chips */
+      .line { font-size: 40px; color: var(--mut); letter-spacing: 0.14em; font-weight: 600;
+        text-transform: uppercase; margin-bottom: 44px; }
+      .chips { display: flex; gap: 26px; }
+      .chip { border: 1px solid var(--line); background: var(--panel);
+        padding: 22px 40px; border-radius: 12px; font-size: 34px; font-weight: 600; }
+      .chip .k { display: block; font-size: 16px; letter-spacing: 0.12em; color: var(--mut);
+        text-transform: uppercase; margin-bottom: 6px; }
+
+      /* Scene 3 — approval gate card */
+      .card { width: 900px; background: var(--panel); border: 1px solid var(--line);
+        border-radius: 16px; padding: 48px 52px; }
+      .card .tag { font-size: 18px; letter-spacing: 0.14em; text-transform: uppercase;
+        color: var(--acc); font-weight: 600; }
+      .card h2 { font-size: 46px; font-weight: 600; margin: 14px 0 28px; }
+      .row { display: flex; gap: 20px; }
+      .btn { border-radius: 10px; padding: 18px 44px; font-size: 28px; font-weight: 700; }
+      .btn.allow { background: var(--acc); color: #04121e; position: relative; }
+      .btn.deny { border: 1px solid var(--line); color: var(--ink); }
+      #cursor { position: absolute; left: 600px; top: 548px; font-size: 44px; opacity: 0; }
+      .approved { margin-top: 26px; color: var(--ok); font-size: 26px; font-weight: 600; opacity: 0; }
+
+      /* Scene 4 — takeover badge */
+      .badge { font-size: 30px; font-weight: 700; letter-spacing: 0.06em;
+        padding: 14px 30px; border-radius: 999px; }
+      .badge.human { background: rgba(224,161,60,0.16); color: #e0a13c; border: 1px solid rgba(224,161,60,0.4); }
+      .badge.run { background: rgba(63,185,127,0.16); color: var(--ok); border: 1px solid rgba(63,185,127,0.4); }
+      .sub { margin-top: 30px; font-size: 44px; font-weight: 600; }
+      .sub em { color: var(--acc); font-style: normal; }
+      #bh, #br { opacity: 0; }
+
+      /* Scene 5 — PASS proof */
+      .pass { font-size: 120px; font-weight: 700; color: var(--ok); letter-spacing: -0.02em; }
+      .proof { margin-top: 26px; font-size: 40px; font-weight: 600; }
+      .proof em { color: var(--acc); font-style: normal; }
+      .checks { display: flex; gap: 18px; margin-top: 40px; }
+      .checks span { font-size: 22px; color: var(--ok); border: 1px solid rgba(63,185,127,0.35);
+        background: rgba(63,185,127,0.08); padding: 10px 20px; border-radius: 10px; font-weight: 600; }
+
+      /* Scene 6 — outro */
+      #s6 .mark { font-size: 110px; font-weight: 700; letter-spacing: -0.03em; }
+      #s6 .mark em { color: var(--acc); font-style: normal; }
+      #s6 .punch { margin-top: 22px; font-size: 46px; font-weight: 600; color: var(--ink); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="20"
+         data-width="1920" data-height="1080" data-fps="30">
+      <div id="glow"></div>
+
+      <!-- music -->
+      <audio id="music" data-timeline-role="music" data-start="0" data-duration="20"
+             data-track-index="0" src="assets/music/happy-beats-business-moves-vol-9-by-ende-dot-app.mp3"></audio>
+      <!-- SFX -->
+      <audio id="sfx-click" data-start="7.4" data-duration="0.5" data-track-index="2" src="assets/sfx/click.ogg"></audio>
+      <audio id="sfx-done" data-start="13.4" data-duration="0.6" data-track-index="2" src="assets/sfx/done.ogg"></audio>
+
+      <!-- Scene 1: HOOK 0-2.5 -->
+      <div class="scene" id="s1">
+        <h1 class="clip" data-start="0.2" data-duration="2.3" data-track-index="1">Learns from you.<br/><em>Does it better.</em></h1>
+      </div>
+
+      <!-- Scene 2: REVEAL 2.5-5.5 -->
+      <div class="scene" id="s2">
+        <div class="line clip" data-start="2.5" data-duration="3.0">Learn · Execute · Verify</div>
+        <div class="chips">
+          <div class="chip clip" data-start="2.6" data-duration="2.9" data-track-index="1"><span class="k">Beat 1</span>Learn</div>
+          <div class="chip clip" data-start="2.9" data-duration="2.6" data-track-index="1"><span class="k">Beat 2</span>Approve</div>
+          <div class="chip clip" data-start="3.2" data-duration="2.3" data-track-index="1"><span class="k">Beat 3</span>Takeover</div>
+          <div class="chip clip" data-start="3.5" data-duration="2.0" data-track-index="1"><span class="k">Beat 4</span>Prove</div>
+        </div>
+      </div>
+
+      <!-- Scene 3: HIGHLIGHT 1 approval gate 5.5-9.5 -->
+      <div class="scene" id="s3">
+        <div class="card">
+          <div class="tag clip" data-start="5.6" data-duration="3.9">TOUR · BEAT 2 — approval gate</div>
+          <h2 class="clip" data-start="5.9" data-duration="3.6">Submit is irreversible — allow?</h2>
+          <div class="row">
+            <div class="btn allow clip" id="allow" data-start="6.2" data-duration="3.3">Allow</div>
+            <div class="btn deny clip" data-start="6.2" data-duration="3.3">Deny</div>
+          </div>
+          <div id="cursor" data-start="7.0" data-duration="2.5">↖</div>
+          <div class="approved" id="approved" data-start="7.4" data-duration="2.1">✓ approved</div>
+        </div>
+      </div>
+
+      <!-- Scene 4: HIGHLIGHT 2 takeover 9.5-13.5 -->
+      <div class="scene" id="s4">
+        <div class="badge human" id="bh">PAUSED_HUMAN — you take the wheel</div>
+        <div class="badge run" id="br" style="position:absolute;margin-top:2px">RUNNING — handed back</div>
+        <div class="sub clip" data-start="10.1" data-duration="3.4">The human drives a step, <em>then hands it back.</em></div>
+      </div>
+
+      <!-- Scene 5: HIGHLIGHT 3 prove 13.5-17 -->
+      <div class="scene" id="s5">
+        <div class="pass clip" data-start="13.5" data-duration="3.5">PASS</div>
+        <div class="proof clip" data-start="13.8" data-duration="3.2">Claim filed · <em>EXP-3496</em></div>
+        <div class="checks">
+          <span class="clip" data-start="14.1" data-duration="2.9" data-track-index="1">url</span>
+          <span class="clip" data-start="14.3" data-duration="2.7" data-track-index="1">text</span>
+          <span class="clip" data-start="14.5" data-duration="2.5" data-track-index="1">element</span>
+          <span class="clip" data-start="14.7" data-duration="2.3" data-track-index="1">value</span>
+        </div>
+      </div>
+
+      <!-- Scene 6: OUTRO 17-20 -->
+      <div class="scene" id="s6">
+        <div class="mark clip" data-start="17.0" data-duration="3.0">Step<em>Proof</em></div>
+        <div class="punch clip" data-start="17.5" data-duration="2.5">Models perceive, code decides.</div>
+      </div>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+
+      const show = (id, at) => tl.fromTo("#" + id, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.05 }, at);
+      const hide = (id, at) => tl.to("#" + id, { autoAlpha: 0, duration: 0.4 }, at);
+
+      // Scenes crossfade on the .scene wrapper so each beat replaces the last.
+      [["s1", 0.0, 2.5], ["s2", 2.5, 5.5], ["s3", 5.5, 9.5],
+       ["s4", 9.5, 13.5], ["s5", 13.5, 17.0], ["s6", 17.0, 20.0]]
+        .forEach(([id, s, e]) => { show(id, s); if (e < 20) hide(id, e - 0.4); });
+
+      // Scene 1 hook
+      tl.fromTo("#s1 h1", { autoAlpha: 0, y: 18, filter: "blur(8px)" },
+                 { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.5, ease: "power3.out" }, 0.2);
+      // Scene 2 line + chips
+      tl.fromTo("#s2 .line", { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.4 }, 2.5);
+      tl.fromTo("#s2 .chip", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.35,
+                 stagger: 0.25, ease: "power3.out" }, 2.6);
+      // Scene 3 card + cursor + allow press + approved
+      tl.fromTo("#s3 .card", { autoAlpha: 0, scale: 0.97 }, { autoAlpha: 1, scale: 1, duration: 0.4 }, 5.6);
+      tl.fromTo("#cursor", { autoAlpha: 0, x: -40, y: -40 },
+                 { autoAlpha: 1, x: 0, y: 0, duration: 0.5, ease: "power2.out" }, 7.0);
+      // beat-locked: 7.4s (cursor lands -> click)
+      tl.to("#allow", { scale: 0.94, duration: 0.1, yoyo: true, repeat: 1, ease: "power2.inOut" }, 7.4);
+      tl.to("#cursor", { opacity: 0, duration: 0.25 }, 7.5);
+tl.fromTo("#approved", { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.3 }, 7.55);
+      // Scene 4 badge flip (pause -> running)
+      tl.fromTo("#bh", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.4 }, 9.6);
+      tl.to("#bh", { opacity: 0, duration: 0.3 }, 12.3);
+      tl.fromTo("#br", { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.3 }, 12.4);
+      tl.fromTo("#s4 .sub", { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4 }, 10.1);
+      // Scene 5 PASS
+      tl.fromTo("#s5 .pass", { autoAlpha: 0, scale: 0.8 }, { autoAlpha: 1, scale: 1, duration: 0.45,
+                 ease: "back.out(1.4)" }, 13.5);
+      tl.fromTo("#s5 .proof", { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4 }, 13.8);
+      tl.fromTo("#s5 .checks span", { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.3,
+                 stagger: 0.15 }, 14.1);
+      // Scene 6 outro
+      tl.fromTo("#s6 .mark", { autoAlpha: 0, scale: 0.95 }, { autoAlpha: 1, scale: 1, duration: 0.5 }, 17.0);
+      tl.fromTo("#s6 .punch", { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4 }, 17.5);
+
+      // music bed treatment: fade in over the hook, rise of energy is carried by the cut,
+// fade out under the outro so the final SFX + logo land clean
+tl.fromTo("#music", { volume: 0 }, { volume: 0.8, duration: 0.8, ease: "power1.in" }, 0.0);
+tl.to("#music", { volume: 0, duration: 1.5, ease: "power1.out" }, 18.5);
+tl.to("#sfx-done", { volume: 0.5, duration: 0.05 }, 13.4);
+
+tl.seek(0);
+    </script>
+  </body>
+</html>

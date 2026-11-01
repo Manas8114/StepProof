@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
+
+# hyperframes build artifacts (keep the source + assets + final outputs only)
+brag-output/composition/.hyperframes/
+brag-output/composition/renders/

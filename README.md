@@ -77,8 +77,13 @@ optional.
 uvicorn stepproof.api_v2:app --port 8011   # open http://localhost:8011 -> Tour tab -> Run guided tour
 ```
   Unattended/scripted: `python -m scripts.run_tour` (writes `data/tour_runs/<date>.json`).
-- Launch video: the `/brag` skill produced `brag-output/brag-plan.md` (storyboard) and
-  `brag-output/share-copy.txt`. Render the `.mp4` with: `cd brag-output && npx hyperframes check && npx hyperframes render`.
+- **Launch video: rendered.** `brag-output/brag.mp4` (20 s, 1920x1080@30, music + SFX, idle
+  thumbnail = the baked PASS poster) with `brag-output/brag.jpg` as its frame-0 poster. Built
+  from the `/brag` plan: `brag-output/brag-plan.md` (storyboard), `composition-brief.md`,
+  and `share-copy.txt` (the caption). Re-render any time with:
+```bash
+cd brag-output/composition && npx hyperframes check && npx hyperframes render
+```
 
 ## Vision self-heal (timeboxed experiment - CUT, reported honestly)
 When every recorded DOM locator for a step fails, a visual fallback can re-locate the target

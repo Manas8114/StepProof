@@ -20,6 +20,8 @@ Read in this order:
 | `data/tour_runs/<date>.json` | dated, replayable guided-tour recordings |
 | `brag-output/brag-plan.md` | the `/brag` launch-video plan + storyboard |
 | `brag-output/share-copy.txt` | the launch-video share copy |
+| `brag-output/brag.mp4` + `brag.jpg` | **the rendered launch video** (20 s) with its baked frame-0 poster |
+| `brag-output/composition/` | the Hyperframes composition (re-render with `npx hyperframes check && npx hyperframes render`) |
 
 ## One-line project summary
 StepProof v2 is a browser "procedure companion": **learn** a task by watching, **do** it with the
