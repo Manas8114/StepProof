@@ -264,6 +264,23 @@ def test_pass_k_metric():
     assert round(pass_k([True, False, True, False], 2), 6) == 0.5 ** 2  # p=0.5, k=2 -> 0.25
 
 
+def test_goal_only_reports_overclaim(site_server, monkeypatch):
+    """WebArena-style accuracy accounting: model claims done (finish summary) but the
+    deterministic check says no -> overclaim=True. The model's 'done' is never the verdict."""
+    import eval.run_eval_v2 as ev
+    from stepproof.agent.model import ScriptedModel, Action
+    from stepproof.browser import TinyBrowser
+    # a 'model' that claims completion without doing the task (leaves the form unfilled)
+    monkeypatch.setattr("stepproof.agent.model.MuseAgentModel",
+                       lambda: ScriptedModel([Action("finish", {"summary": "claimed done but did nothing"})]))
+    tb = TinyBrowser(allowlist={"127.0.0.1:8011"})
+    r = ev.cond_goal_only(tb, ev.TASKS[0], live=True)
+    assert r["model_said_done"] is True
+    assert r["check_passed"] is False
+    assert r["overclaim"] is True
+    tb.stop()
+
+
 def test_model_accumulates_usage():
     """Every live model call's token usage is accumulated so the report can emit
     per-run and cumulative-over-N token counts (the 'cheaper' claim, measured)."""

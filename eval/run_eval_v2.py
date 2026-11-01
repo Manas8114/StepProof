@@ -133,9 +133,15 @@ def cond_goal_only(tb: TinyBrowser, t: Task, live: bool) -> dict:
         time.sleep(1)
     m = loop.log.metrics()
     ok, _ = all_pass(tb, t.checks)
+    # overclaim tracking (WebArena-style: the model's "done" is NOT the verdict - the
+    # deterministic check is). overclaim = model finished claiming success, check disagrees.
+    said_done = (loop.machine.state.value == "DONE" and bool(loop.log.result.get("summary")))
     return {"condition": "goal_only_agent", "success": bool(ok and loop.machine.state.value == "DONE"),
             "state": loop.machine.state.value, "error": loop.log.result.get("detail", ""),
             "steps": m["steps"], "wall_s": m["wall_s"], "model_calls": m["model_calls"],
+            "usage": m.get("usage", {}),
+            "model_said_done": said_done, "check_passed": bool(ok),
+            "overclaim": bool(said_done and not ok),
             "success_check": bool(ok),
             "cause": ("done" if ok and loop.machine.state.value == "DONE" else m.get("result", {}).get("detail", "did not complete within cap"))}
 
@@ -205,10 +211,19 @@ def main() -> None:
             active = [r for r in runs if not r.get("skipped")]
             ok = sum(1 for r in active if r.get("success"))
             _flags = [bool(r.get("success")) for r in active]
+            _overclaims = sum(1 for r in active if r.get("overclaim"))
+            _usage = {
+                "input_tokens": sum(r.get("usage", {}).get("input_tokens", 0) for r in active),
+                "output_tokens": sum(r.get("usage", {}).get("output_tokens", 0) for r in active),
+                "calls": sum(r.get("usage", {}).get("calls", 0) for r in active),
+            }
+            _usage["total_tokens"] = _usage["input_tokens"] + _usage["output_tokens"]
             per_task[cond] = {"runs": runs, "skipped": any(r.get("skipped") for r in runs),
                               "success": ok, "of": len(active),
                               "pass_at_1": round(sum(_flags) / max(1, len(_flags)), 3),
                               "pass_pow_5": round(pass_k(_flags, 5), 3),
+                              "overclaims": _overclaims if any("overclaim" in r for r in active) else None,
+                              "usage": _usage,
                               "avg_steps": round(sum(r.get("steps", 0) for r in active) / max(1, len(active)), 1),
                               "avg_wall_s": round(sum(r.get("wall_s", 0) for r in active) / max(1, len(active)), 1),
                               "avg_model_calls": (round(sum(r.get("model_calls", 0) for r in active) / max(1, len(active)), 1)
@@ -237,9 +252,11 @@ def main() -> None:
             if d.get("skipped"):
                 print(f"    {cond}: SKIPPED ({d['runs'][0].get('reason', 'no live API')})")
                 continue
+            _u = d.get("usage", {})
             print(f"    {cond}: {d['success']}/{d['of']} success, pass@1={d['pass_at_1']}, "
                   f"pass^5={d['pass_pow_5']}, avg_steps={d['avg_steps']}, "
                   f"avg_wall={d['avg_wall_s']}s{', model_calls=' + str(d['avg_model_calls']) if d['avg_model_calls'] is not None else ''}, "
+                  f"overclaims={d.get('overclaims')}, tokens_over_N={_u.get('total_tokens') if _u else 0}, "
                   f"causes={d['causes'][:2]}")
     print("wrote eval/results_v2.json")
     httpd.shutdown()
