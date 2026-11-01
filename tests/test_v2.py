@@ -218,6 +218,21 @@ def test_self_healing_falls_through_locators(site_server):
     tb.stop()
 
 
+def test_observe_excludes_password_values(site_server):
+    """Credentials are out of scope by construction: a password field's value must never
+    reach the model as the element's name."""
+    from stepproof.browser import TinyBrowser
+    tb = TinyBrowser(allowlist={"127.0.0.1:8011"})
+    tb.start_site(site_server + "/expense/")
+    tb.act("eval", {"expr": ("(()=>{const i=document.createElement('input');i.type='password';"
+                             "i.value='secret';i.id='pw';document.body.appendChild(i);return 1;})()")})
+    obs = tb.observe()
+    pw = next((e for e in obs["elements"] if e.get("id") == "pw"), None)
+    assert pw is not None, "password input must be observed (as a field)"
+    assert pw.get("name", "") != "secret", "password value must not be exposed as element name"
+    tb.stop()
+
+
 def test_injection_page_text_cannot_change_goal(site_server):
     """Hostile page text must not override the goal/allowlist: navigation stays on the allowlist."""
     tb = _browser(site_server)

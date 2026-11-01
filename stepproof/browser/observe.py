@@ -25,7 +25,10 @@ _OBSERVE_JS = """
     else if (t === 'input') { role = (el.type === 'checkbox' || el.type === 'radio') ? el.type : 'textbox'; }
     else role = 'textbox';
     if (t === 'input') kind = el.type; else kind = t;
-    let name = (el.getAttribute('aria-label') || el.getAttribute('title')
+    // credentials are out of scope by construction: a password field is observed as a
+    // field (role/kind/box) but its value never becomes the element name the model sees
+    let name = (t === 'input' && el.type === 'password') ? ''
+                : (el.getAttribute('aria-label') || el.getAttribute('title')
                 || (t === 'input' || t === 'select' ? el.value || '' : (el.textContent || '').trim().slice(0, 60))
                 || el.id || '').trim();
     name = name.slice(0, 60);

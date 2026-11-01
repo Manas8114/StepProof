@@ -115,6 +115,9 @@ class TinyBrowser:
         p = self._page
         if op == "goto":
             p.goto(str(arg), wait_until="load")
+            # keep passwords out of screenshots on the NEW document too (the initial
+            # style tag lives on about:blank only): the model never sees a typed credential
+            p.add_style_tag(content="input[type=password]{display:none!important}")
             return {"ok": True, "url": p.url}
         if op == "shot":
             shot = p.screenshot(type="jpeg", quality=_SHOT_Q)
