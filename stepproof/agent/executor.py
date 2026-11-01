@@ -4,6 +4,7 @@ The model is NOT in this path except an optional vision self-heal step.
 Approval gates and budgets are still enforced via the same safety helpers."""
 from __future__ import annotations
 import json, time
+from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
@@ -89,8 +90,16 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
         res.steps_run += 1
         BUS.publish("exec_step", {"step": step.id, "ok": bool(worked)})
 
-    # deterministic success checks (code, never the model)
-    ok, cresults = checks.all_pass(tb, proc.success_check_specs())
+    # deterministic success checks (code, never the model); every verdict gets a
+    # before/after evidence screenshot from the live page
+    def _shoot(tag: str) -> str:
+        import time
+        d = "media"
+        Path(d).mkdir(exist_ok=True)
+        p = Path(d) / f"{tag}_{int(time.time()*1000)}.jpg"
+        tb.act("screenshot", str(p))
+        return str(p) if p.exists() else ""
+    ok, cresults = checks.all_pass(tb, proc.success_check_specs(), shoot=_shoot, prefix=proc.goal[:12].replace(" ", "_"))
     res.check_results = cresults
     res.success = bool(ok and not res.error)
     res.wall_s = round(time.time() - t0, 2)

@@ -1,0 +1,5 @@
+[ok]   models.list: ['muse-wonder-1.0', 'sam-3.1', 'muse-spark-1.3-contributor', 'muse-voice-transcribe-1.0', 'muse-spark-1.3', 'muse-image-1.0', 'muse-spark-1.2-contributor', 'muse-spark-1.2', 'muse-spark-1.1']
+[ok]   muse compile: [{'id': 'put_red_connector', 'description': 'Put the red connector on the board', 'concept': 'red connector', 'min_count': 1, 'max_count': None, 'after': [], 'state_question': 'Is the red connector on the board?', 'persist': False}, {'id': 'close_black_cover', 'description': 'Close the black cover', 'concept': 'black cover', 'min_count': 1, 'max_count': None, 'after': ['put_red_connector'], 'state_question': 'Is the black cover closed?', 'persist': True}]
+[ok]   muse image: answer='yes' confidence=1.0 rationale='Two solid colored rectangles are clearly visible on the light background: a red rectangle on the left and a black rectangle on the right.'
+[ok]   sam image 'red connector': 0 detection(s)
+ALL OK

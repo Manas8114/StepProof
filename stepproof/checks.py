@@ -6,10 +6,10 @@ from __future__ import annotations
 
 
 class CheckResult:
-    __slots__ = ("name", "passed", "detail")
+    __slots__ = ("name", "passed", "detail", "evidence")
 
-    def __init__(self, name: str, passed: bool, detail: str = "") -> None:
-        self.name, self.passed, self.detail = name, passed, detail
+    def __init__(self, name: str, passed: bool, detail: str = "", evidence: str = "") -> None:
+        self.name, self.passed, self.detail, self.evidence = name, passed, detail, evidence
 
 
 def _js(tb, sel: str, prop: str) -> object:
@@ -66,7 +66,14 @@ def run_check(tb, check: dict) -> CheckResult:
     return fn(tb, check.get("spec", {}))   # each runner reads the nested spec
 
 
-def all_pass(tb, checks: list[dict]) -> tuple[bool, list[CheckResult]]:
-    """The run passes only when ALL checks pass (conjunctive)."""
-    results = [run_check(tb, c) for c in checks]
+def all_pass(tb, checks: list[dict], shoot=None, prefix: str = "check") -> tuple[bool, list[CheckResult]]:
+    """The run passes only when ALL checks pass (conjunctive).
+    With `shoot(tag)->path` supplied, every verdict links to an evidence screenshot
+    (master-prompt requirement: verdicts + evidence)."""
+    results = []
+    for i, c in enumerate(checks):
+        r = run_check(tb, c)
+        if shoot is not None:
+            r.evidence = shoot(f"{prefix}_{i}_{'pass' if r.passed else 'fail'}_{r.name}")
+        results.append(r)
     return all(r.passed for r in results), results

@@ -1,0 +1,151 @@
+{
+  "label": "live Muse Spark agent run on expense demo site",
+  "date": "2026-11-01",
+  "model": "muse-spark-1.3 (agent)",
+  "goal": "File an expense claim: type vendor 'Acme', amount 42, choose category office, then click submit. Done when you see 'Claim filed'.",
+  "disclosures": [
+    "approval gate answered by an auto-approving supervisor (sandbox; a person clicks Allow in the UI)",
+    "deterministic success check is code, not the model"
+  ],
+  "state": "RUNNING",
+  "metrics": {
+    "start": 1793535361.851698,
+    "steps": 3,
+    "wall_s": 270.12,
+    "model_calls": 4,
+    "takeovers": 0,
+    "approvals": 0,
+    "backtracks": 0,
+    "idle_s": 0.0,
+    "result": {},
+    "actions": [
+      "type",
+      "type",
+      "select"
+    ]
+  },
+  "success_check_passed": false,
+  "checks": [
+    {
+      "name": "text_visible",
+      "passed": false,
+      "detail": "body contains 'claim filed': False"
+    }
+  ],
+  "final_summary": "",
+  "trace": [
+    {
+      "ts": 1793535367.82,
+      "type": "action",
+      "data": {
+        "name": "type",
+        "arg": {
+          "selector": "input[name=\"vendor\"]",
+          "text": "Acme"
+        },
+        "step_url": "http://127.0.0.1:8011/expense/"
+      }
+    },
+    {
+      "ts": 1793535367.863,
+      "type": "action_done",
+      "data": {
+        "name": "type",
+        "ok": true,
+        "detail": "typed into input[name=\"vendor\"]",
+        "url": "http://127.0.0.1:8011/expense/"
+      }
+    },
+    {
+      "ts": 1793535367.863,
+      "type": "action",
+      "data": {
+        "tool": "type",
+        "ok": true,
+        "detail": "typed into input[name=\"vendor\"]"
+      }
+    },
+    {
+      "ts": 1793535369.894,
+      "type": "decision",
+      "data": {
+        "tool": "type",
+        "args": {
+          "selector": "input[name=\"amount\"]",
+          "text": "42"
+        }
+      }
+    },
+    {
+      "ts": 1793535369.91,
+      "type": "action_done",
+      "data": {
+        "name": "type",
+        "ok": true,
+        "detail": "typed into input[name=\"amount\"]",
+        "url": "http://127.0.0.1:8011/expense/"
+      }
+    },
+    {
+      "ts": 1793535369.91,
+      "type": "action",
+      "data": {
+        "tool": "type",
+        "ok": true,
+        "detail": "typed into input[name=\"amount\"]"
+      }
+    },
+    {
+      "ts": 1793535372.983,
+      "type": "decision",
+      "data": {
+        "tool": "select",
+        "args": {
+          "selector": "select[name=\"category\"]",
+          "value": "office"
+        }
+      }
+    },
+    {
+      "ts": 1793535372.996,
+      "type": "action_done",
+      "data": {
+        "name": "select",
+        "ok": true,
+        "detail": "selected office in select[name=\"category\"]",
+        "url": "http://127.0.0.1:8011/expense/"
+      }
+    },
+    {
+      "ts": 1793535372.996,
+      "type": "action",
+      "data": {
+        "tool": "select",
+        "ok": true,
+        "detail": "selected office in select[name=\"category\"]"
+      }
+    },
+    {
+      "ts": 1793535373.998,
+      "type": "decision",
+      "data": {
+        "tool": "click",
+        "args": {
+          "name": "Submit claim"
+        }
+      }
+    },
+    {
+      "ts": 1793535373.998,
+      "type": "approval_gate",
+      "data": {
+        "tool": "click",
+        "irreversible": false,
+        "external": true,
+        "args": {
+          "name": "Submit claim"
+        }
+      }
+    }
+  ]
+}

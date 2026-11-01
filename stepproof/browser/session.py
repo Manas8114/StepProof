@@ -146,6 +146,9 @@ class TinyBrowser:
             return {"ok": True}
         if op == "eval":
             return p.evaluate(str(arg["expr"]))
+        if op == "screenshot":
+            p.screenshot(path=str(arg), type="jpeg", quality=75)
+            return str(arg)
         if op == "fclick":
             p.mouse.click(*arg)
             return {"ok": True}
