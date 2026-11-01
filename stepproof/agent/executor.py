@@ -93,10 +93,13 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
     # deterministic success checks (code, never the model); every verdict gets a
     # before/after evidence screenshot from the live page
     def _shoot(tag: str) -> str:
+        """Evidence screenshots go to the stable EVIDENCE dir (data/evidence), not a
+        CWD-relative 'media/' - which is how demo_sites/media + stray media/ got polluted."""
         import time
-        d = "media"
-        Path(d).mkdir(exist_ok=True)
-        p = Path(d) / f"{tag}_{int(time.time()*1000)}.jpg"
+        from .. import config as _cfg
+        d = _cfg.EVIDENCE
+        d.mkdir(parents=True, exist_ok=True)
+        p = d / f"{tag}_{int(time.time()*1000)}.jpg"
         tb.act("screenshot", str(p))
         return str(p) if p.exists() else ""
     ok, cresults = checks.all_pass(tb, proc.success_check_specs(), shoot=_shoot, prefix=proc.goal[:12].replace(" ", "_"))

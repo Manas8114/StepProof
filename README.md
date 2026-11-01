@@ -6,10 +6,11 @@ Describe a manual procedure in plain English. StepProof compiles it into a check
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+python -m playwright install chromium   # one-time: download the browser the tiny browser drives
 cp .env.example .env            # add MODEL_API_KEY
 python -m scripts.smoke_test path/to/image.jpg "red connector"   # access check, run this first
 uvicorn stepproof.api:app --reload                               # http://localhost:8000
-pytest -q                                                        # 14 offline tests
+pytest -q                                                        # offline tests (v1 pipeline + wire + rules)
 ```
 
 ## How a verdict is made

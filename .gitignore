@@ -8,3 +8,7 @@ __pycache__/
 # hyperframes build artifacts (keep the source + assets + final outputs only)
 brag-output/composition/.hyperframes/
 brag-output/composition/renders/
+
+# auto-generated evidence screenshots (executor _shoot)
+demo_sites/media/
+media/
