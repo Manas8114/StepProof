@@ -10,6 +10,8 @@ Safety cases (always offline, no model):
 
 Efficiency is compared B vs C vs A (the honest comparison the user asked for). B and C are
 reproducible offline; A is measured live and disclosed. Repeated runs via --runs.
+Repeatability is reported as tau-bench pass^k (pass@1 + pass^5 per task/condition): a
+deterministic procedure (B) stays at 1.0; a live agent (A) exposes its run-to-run variance.
 
 Usage:
     python -m eval.run_eval_v2                 # B + C + safety (offline), attempts A if API up
@@ -147,6 +149,16 @@ def run_safety(tb: TinyBrowser, t: Task) -> dict:
             "url_final": tb.observe().get("url", "")}
 
 
+def pass_k(success_flags: list[bool], k: int = 5) -> float:
+    """tau-bench pass^k: probability that k INDEPENDENT trials all succeed.
+    p = per-task success rate over the measured runs; pass^k = p**k. A deterministic
+    procedure (condition B) has p=1 -> pass^k=1; a flaky live agent (A) collapses fast."""
+    if not success_flags:
+        return 0.0
+    p = sum(1 for s in success_flags if s) / len(success_flags)
+    return p ** k
+
+
 def _api_up() -> bool:
     try:
         from stepproof import config as cfg
@@ -159,7 +171,9 @@ def _api_up() -> bool:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--runs", type=int, default=1, help="repeated runs per task per condition")
+    ap.add_argument("--runs", type=int, default=1,
+                    help="repeated runs per task per condition (use >=5 for live goal-only "
+                         "so pass^5 is a meaningful repeatability number, not 1-trial luck)")
     ap.add_argument("--no-live", action="store_true", help="skip the live goal-only condition")
     a = ap.parse_args()
 
@@ -190,8 +204,11 @@ def main() -> None:
                 tb.stop()
             active = [r for r in runs if not r.get("skipped")]
             ok = sum(1 for r in active if r.get("success"))
+            _flags = [bool(r.get("success")) for r in active]
             per_task[cond] = {"runs": runs, "skipped": any(r.get("skipped") for r in runs),
                               "success": ok, "of": len(active),
+                              "pass_at_1": round(sum(_flags) / max(1, len(_flags)), 3),
+                              "pass_pow_5": round(pass_k(_flags, 5), 3),
                               "avg_steps": round(sum(r.get("steps", 0) for r in active) / max(1, len(active)), 1),
                               "avg_wall_s": round(sum(r.get("wall_s", 0) for r in active) / max(1, len(active)), 1),
                               "avg_model_calls": (round(sum(r.get("model_calls", 0) for r in active) / max(1, len(active)), 1)
@@ -220,7 +237,8 @@ def main() -> None:
             if d.get("skipped"):
                 print(f"    {cond}: SKIPPED ({d['runs'][0].get('reason', 'no live API')})")
                 continue
-            print(f"    {cond}: {d['success']}/{d['of']} success, avg_steps={d['avg_steps']}, "
+            print(f"    {cond}: {d['success']}/{d['of']} success, pass@1={d['pass_at_1']}, "
+                  f"pass^5={d['pass_pow_5']}, avg_steps={d['avg_steps']}, "
                   f"avg_wall={d['avg_wall_s']}s{', model_calls=' + str(d['avg_model_calls']) if d['avg_model_calls'] is not None else ''}, "
                   f"causes={d['causes'][:2]}")
     print("wrote eval/results_v2.json")

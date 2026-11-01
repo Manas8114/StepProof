@@ -255,6 +255,15 @@ def test_coach_detects_redundant_navigation(site_server):
     assert any(d["what"] in ("repeated action", "redundant navigation", "backtrack") for d in dets)
 
 
+def test_pass_k_metric():
+    """tau-bench pass^k: all-k-trials-success probability = (per-task success rate)**k."""
+    from eval.run_eval_v2 import pass_k
+    assert pass_k([True, True, True, True, True], 5) == 1.0
+    assert abs(pass_k([True, True, True, True, True, True, True, True, False, False], 5) - 0.8 ** 5) < 1e-9
+    assert pass_k([], 5) == 0.0
+    assert round(pass_k([True, False, True, False], 2), 6) == 0.5 ** 2  # p=0.5, k=2 -> 0.25
+
+
 def test_model_accumulates_usage():
     """Every live model call's token usage is accumulated so the report can emit
     per-run and cumulative-over-N token counts (the 'cheaper' claim, measured)."""
