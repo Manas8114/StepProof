@@ -333,6 +333,24 @@ def test_tour_runs_all_four_beats_and_records_dated_trace(site_server, tmp_path)
     tb.stop()
 
 
+def test_unattended_tour_is_fully_offline(site_server):
+    """'unattended' means scripted/offline: the takeover beat must not need a live model
+    (model=None stands in for 'API unreachable'), every beat completes, and the recorded
+    trace shows no failed beat - so the dated replay artifact is clean + deterministic."""
+    from demo.tour import Tour
+    from stepproof.browser import TinyBrowser
+    from stepproof.learn import Recorder
+    from stepproof.agent.executor import execute_procedure
+    tb = TinyBrowser(allowlist={"127.0.0.1:8011"})
+    tour = Tour(tb, None, Recorder(tb), execute_procedure,
+                mode="unattended", site_base=site_server)   # None = no live model available
+    trace = tour.run()
+    tko = next(r for r in trace["records"] if r["step"] == "takeover+resume")
+    assert tko["detail"]["state"] == "DONE", tko
+    assert all(r["success"] for r in trace["records"]), [r for r in trace["records"] if not r["success"]]
+    tb.stop()
+
+
 def test_replay_labels_recorded_tour(site_server):
     from demo import replay
     from stepproof.events import BUS

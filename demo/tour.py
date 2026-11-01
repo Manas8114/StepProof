@@ -11,7 +11,9 @@ Beats (all real, no fake events):
   4 PROVE   - coach compare (learned vs human-demo) + injection hold on the hostile page
 
 `mode="interactive"` waits for a real human to click the approval/takeover controls;
-`mode="unattended"` stands in for the human and labels itself so the trace stays honest.
+`mode="unattended"` stands in for the human and labels itself so the trace stays honest -
+and is FULLY OFFLINE: the takeover beat's agent runs on a scripted stand-in (no live model
+calls), so the recorded trace is clean and deterministic without the API.
 Replay: `replay(path)` streams a recorded tour back with a dated "REPLAY" label, no network.
 """
 from __future__ import annotations
@@ -33,6 +35,22 @@ class Tour:
                  mode: str = "interactive", site_base: str = "http://127.0.0.1:8011") -> None:
         self.tb, self.model, self.recorder, self.executor = browser, model, recorder, executor
         self.mode = mode
+        # unattended = fully offline: the takeover beat's agent is a scripted stand-in, so
+        # the showcase never stalls on the live API and the recorded trace stays clean.
+        # Interactive mode keeps the live model (a real takeover is the point of that mode).
+        if self.mode == "unattended":
+            from stepproof.agent.model import ScriptedModel, Action
+            # type the SKU, then WAIT out the operator's window (the beat pauses the agent,
+            # the operator types the qty, hands back), then finalise. The wait keeps the
+            # restock honest (uses the operator-entered qty, not the default).
+            self._takeover_model = ScriptedModel([
+                Action("type", {"selector": "#sku", "text": "WS-1042"}),
+                Action("wait", {"ms": 1000}),
+                Action("click", {"name": "Restock"}),
+                Action("finish", {"summary": "restocked WS-1042 (qty entered by operator)"}),
+            ])
+        else:
+            self._takeover_model = model
         self.site = site_base
         self.records: list[dict] = []
         self._beats: list[str] = []
@@ -113,7 +131,8 @@ class Tour:
         self._mark("takeover")
         self.tb.start_site(self.site + "/inventory/")
         from stepproof.agent.loop import AgentLoop, Budgets
-        loop = AgentLoop(self.tb, self.model, Budgets(max_steps=8, max_wall_s=60, max_model_calls=10))
+        loop = AgentLoop(self.tb, self._takeover_model,
+                         Budgets(max_steps=8, max_wall_s=60, max_model_calls=10))
         # answer the sub-agent's own approval gates / asks so it can finish (labeled "auto" in trace)
         def _auto_answerafter(loop):
             # survive the whole takeover: answer the sub-agent's gates/asks, but stay idle
