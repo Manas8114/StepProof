@@ -57,7 +57,8 @@ class AgentLoop:
     """Runs one task. Call `run()` and poll `.machine.state`; control via `pause()`,
     `resume()`, `approve()`, `answer_human()`, `kill()`."""
 
-    def __init__(self, browser, model, budgets: Budgets = Budgets()) -> None:
+    def __init__(self, browser, model, budgets: Budgets = Budgets(),
+                 max_consec_errors: int = 4) -> None:
         self.browser = browser
         self.model = model
         self.budgets = budgets
@@ -70,6 +71,9 @@ class AgentLoop:
         self._pending_approval: Optional[Action] = None
         self._pending_decision: threading.Event = threading.Event()
         self._running = False
+        # circuit breaker: consecutive model-decision errors that stop the run cleanly
+        self._consec_errors = 0
+        self._max_consec_errors = max_consec_errors
 
     # ---- control surface (called from the API/UI) ----
 
@@ -142,10 +146,16 @@ class AgentLoop:
             try:
                 act = self.model.decide(self.goal, elements_text(obs), shot, self.history)
                 self.log.model_calls += 1
+                self._consec_errors = 0
             except Exception as e:
+                self._consec_errors += 1
                 BUS.publish("decision_error", {"error": f"{type(e).__name__}: {str(e)[:160]}"})
-                self._stop("ERROR", {"error": "model call failed", "detail": str(e)[:200]})
-                return
+                if self._consec_errors >= self._max_consec_errors:
+                    self._stop("ERROR", {"error": "model circuit breaker",
+                                          "detail": f"{self._consec_errors} consecutive failures: {str(e)[:120]}"})
+                    return
+                time.sleep(1.0)  # bounded pause, then the next iteration retries
+                continue
             if act is None:
                 act = Action("finish", {"summary": "model returned no action"})
             BUS.publish("decision", {"tool": act.tool, "args": act.args})
@@ -167,6 +177,14 @@ class AgentLoop:
                     continue
 
             result = execute_action(self.browser, act.tool, act.args)
+            # action recovery: if the actuation missed (element not settled / gone), re-observe
+            # and retry once - a code-level self-heal, reported transparently
+            if not result.ok and act.tool in ("click", "type", "select"):
+                self.browser.observe()
+                r2 = execute_action(self.browser, act.tool, act.args)
+                if r2.ok:
+                    r2.detail = "recovered on retry: " + r2.detail
+                    result = r2
             rec = {"tool": act.tool, "args": act.args, "ok": result.ok, "detail": result.detail}
             self.history.append(rec)
             self.log.steps.append(rec)          # so metrics().actions reports the agent's own actions

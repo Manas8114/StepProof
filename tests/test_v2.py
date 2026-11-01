@@ -188,3 +188,34 @@ def test_voice_phrases_short_lines(site_server):
     from stepproof.coach import phrase
     line = phrase("suggestion", "You could skip the duplicate navigation step and save one step of work on this form")
     assert len(line.spoken.split()) <= 12 and line.text  # spoken is trimmed, text is full
+
+
+def test_circuit_breaker_stops_cleanly(site_server):
+    from stepproof.agent.loop import AgentLoop
+    from stepproof.browser import TinyBrowser
+
+    class BoomModel:
+        name = "boom"
+        def __init__(self):
+            self.calls = 0
+        def decide(self, goal, obs_text, screenshot, history, extra=None):
+            self.calls += 1
+            raise RuntimeError("simulated 429")
+        def suggest(self, m, g):
+            return {"what": "", "why": "x", "expected_saving": "0", "risk": "low", "apply": ""}
+
+    tb = TinyBrowser(allowlist={"127.0.0.1:8011"})
+    tb.start_site(site_server + "/expense/")
+    m = BoomModel()
+    loop = AgentLoop(tb, m, max_consec_errors=3)
+    loop.start("will fail")
+    for _ in range(60):
+        if loop.machine.state.value == "ERROR":
+            break
+        time.sleep(0.1)
+    # stops clean at the breaker (not a hang), with the breaker named as the cause
+    assert loop.machine.state.value == "ERROR"
+    assert "circuit breaker" in str(loop.log.result.get("error", "")) + str(loop.log.result.get("detail", ""))
+    assert m.calls >= 3          # it did retry the bounded number of times
+    assert m.calls <= 4          # and stopped rather than looping forever
+    tb.stop()
