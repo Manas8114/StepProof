@@ -120,6 +120,33 @@ def browser_shot():
     return {"screenshot": _browser.take_screenshot(), "url": _browser.url, "title": _browser.title}
 
 
+class PointIn(BaseModel):
+    x: int = 0
+    y: int = 0
+
+
+@app.get("/api/v2/browser/element-at")
+def element_at(x: int = 0, y: int = 0):
+    """The interactive element at a screenshot coordinate (for Monitor recording):
+    returns multi-locators so a recorded action can be replayed with self-healing."""
+    obs = _browser.observe()
+    best = None
+    for el in obs.get("elements", []):
+        if el.get("visible") and el["x"] <= x < el["x"] + el["w"] and el["y"] <= y < el["y"] + el["h"]:
+            if best is None or el["w"] * el["h"] < best["w"] * best["h"]:
+                best = el
+    out = {"id": None, "locators": []}
+    if best:
+        if best.get("id"):
+            out["locators"].append({"kind": "css", "value": "#" + best["id"]})
+        name = str(best.get("name", "")).strip()
+        role = best.get("role", "")
+        if name:
+            out["locators"].append({"kind": "role", "value": f"{role} {name}"})
+            out["locators"].append({"kind": "text", "value": name})
+    return out
+
+
 @app.post("/api/v2/browser/input")
 def browser_input(body: InputIn):
     """Human takeover: forward input to the live page (PAUSED_HUMAN; harmless otherwise)."""
@@ -267,4 +294,4 @@ def voice_say(body: VoiceIn):
 
 @app.get("/")
 def index():
-    return FileResponse(BASE / "stepproof" / "static" / "index.html")
+    return FileResponse(BASE / "stepproof" / "static" / "index_v2.html")

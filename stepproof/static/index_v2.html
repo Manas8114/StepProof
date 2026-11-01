@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StepProof v2 — Learn · Execute · Verify</title>
+<style>
+:root{--paper:#0f1416;--panel:#182124;--line:#2b383c;--ink:#e7ecec;--mut:#8fa3a0;
+      --ok:#3fb97f;--warn:#e0a13c;--err:#e0616b;--acc:#4aa3ff;--focus:#4aa3ff}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);
+  font:14px/1.5 ui-sans-serif,system-ui,"Segoe UI",sans-serif}
+header{padding:14px 20px 8px;border-bottom:1px solid var(--line)}
+h1{margin:0;font-size:19px}header p{margin:3px 0 0;color:var(--mut);font-size:13px}
+#hmodel{color:var(--mut);font-size:12px}
+main{display:grid;grid-template-columns:300px 1fr 320px;gap:12px;padding:12px 16px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 8px}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{flex:1;padding:7px;border:1px solid var(--line);background:transparent;color:var(--mut);
+  border-radius:7px;cursor:pointer;font:inherit}
+.tabs button.on{background:var(--acc);color:#04121e;border-color:var(--acc);font-weight:700}
+button{cursor:pointer}textarea,input,select{width:100%;background:#0c1113;border:1px solid var(--line);
+  color:var(--ink);border-radius:6px;padding:8px;font:inherit}
+label{display:block;color:var(--mut);font-size:12px;margin:8px 0 3px}
+#stage{position:relative;background:#000;border-radius:8px;overflow:hidden;aspect-ratio:1024/640}
+#stage img{width:100%;height:100%;object-fit:contain;display:block}
+#stage .chip{position:absolute;top:8px;left:8px;background:#0009;padding:3px 8px;border-radius:6px;font-size:11px}
+#state{position:absolute;top:8px;right:8px;padding:3px 9px;border-radius:6px;font-weight:700;font-size:12px}
+.state-RUNNING{background:var(--ok)} .state-PLANNING{background:var(--acc)}
+.state-PAUSED_HUMAN{background:var(--warn)} .state-AWAITING_APPROVAL{background:var(--warn)}
+.state-DONE{background:var(--ok)} .state-ERROR{background:var(--err)}
+.state-IDLE{background:#555}
+.mono{font:12px/1.5 ui-monospace,monospace}
+.evt{border-left:2px solid var(--line);padding:3px 8px;margin:3px 0;font-size:12px}
+.evt b{color:var(--acc)}
+#events{max-height:360px;overflow:auto}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.btnrow button{background:#223034;border:1px solid var(--line);color:var(--ink);padding:6px 10px;border-radius:6px}
+.btnrow button.primary{background:var(--acc);color:#04121e;font-weight:700;border-color:var(--acc)}
+.btnrow button.danger{background:var(--err);color:#04121e;border-color:var(--err);font-weight:700}
+.gate{background:#2a2216;border:1px solid var(--warn);border-radius:8px;padding:9px;margin:8px 0}
+.gate .q{font-weight:700;margin-bottom:6px}
+.meter{height:8px;background:#0c1113;border-radius:4px;overflow:hidden;margin:3px 0}
+.meter div{height:100%;background:var(--acc)}
+.sugg{border:1px solid var(--line);border-radius:8px;padding:9px;margin:7px 0}
+.sugg .w{font-weight:700}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;background:#0c1113;border:1px solid var(--line)}
+.row{display:flex;justify-content:space-between;margin:4px 0}
+.hide{display:none}
+.note{color:var(--mut);font-size:12px}
+input[type=range]{accent-color:var(--acc)}
+</style>
+</head>
+<body>
+<header>
+  <h1>StepProof <span style="color:var(--acc)">v2</span> · Learn · Execute · Verify</h1>
+  <p>Watches you do a task, does it better with you in charge, and proves the outcome. <span id="hmodel"></span></p>
+</header>
+<main>
+  <!-- LEFT: control + modes -->
+  <div class="col">
+    <div class="tabs" id="tabs">
+      <button data-m="monitor" class="on">Monitor</button>
+      <button data-m="execute">Execute</button>
+      <button data-m="coach">Coach</button>
+    </div>
+
+    <div id="m-monitor">
+      <h2>Monitor (learn)</h2>
+      <label>Site</label><select id="msite">
+        <option value="/site/expense">Expense claim</option>
+        <option value="/site/inventory">Inventory ledger</option>
+      </select>
+      <button class="btnrow" style="padding:6px 10px;background:#223034;border:1px solid var(--line);color:var(--ink);border-radius:6px;width:100%;margin-top:8px" id="mrec" style="width:100%">● Start recording</button>
+      <p class="note">Click the browser below to record actions. Narrate each step (optional):</p>
+      <label>Narration</label><input id="mnar" placeholder="why are you doing this step?">
+      <label>Goal (compile into a Procedure)</label><input id="mgoal" placeholder="e.g. File an Acme office expense of $42">
+      <div class="btnrow"><button class="primary" id="mcompile">Compile → Procedure</button><button id="msave">Save</button><button id="mrun">Run learned</button></div>
+      <p class="note" id="msaved"></p>
+    </div>
+
+    <div id="m-execute" class="hide">
+      <h2>Execute (do)</h2>
+      <label>Goal (typed or spoken)</label><input id="xgoal" placeholder="Restock WS-1042 by 5, then confirm">
+      <label>Site</label><select id="xsite">
+        <option value="/site/expense">Expense claim</option>
+        <option value="/site/inventory">Inventory ledger</option>
+        <option value="/site/hostile">Hostile page (injection test)</option>
+      </select>
+      <div class="btnrow"><button class="primary" id="xstart">Start agent</button>
+        <button id="xpause">Pause / take over</button>
+        <button id="xresume">Hand back</button>
+        <button class="danger" id="xkill">Kill switch</button></div>
+      <label>Spoken goal (push-to-talk)</label>
+      <div class="btnrow"><button id="xppt">🎙 Record goal</button></div>
+    </div>
+
+    <div id="m-coach" class="hide">
+      <h2>Coach (suggest + compare)</h2>
+      <label>Human baseline steps</label><input id="hsteps" type="number" value="6">
+      <label>Human baseline time (s)</label><input id="hwall" type="number" value="30">
+      <div class="btnrow"><button class="primary" id="cgo">Run detectors + compare</button></div>
+      <div id="cbox"></div>
+    </div>
+  </div>
+
+  <!-- CENTER: live browser -->
+  <div class="col">
+    <h2>Live view <span class="note">(record here in Monitor mode)</span></h2>
+    <div id="stage">
+      <img id="shot" alt="browser view">
+      <span class="chip" id="url">—</span>
+      <span id="state" class="state-IDLE">IDLE</span>
+    </div>
+    <div class="btnrow"><button id="fresh">Refresh view</button><span class="note">In PAUSED_HUMAN, clicks/keys here forward to the page.</span></div>
+    <div id="gate" class="gate hide"></div>
+    <div id="ask" class="gate hide"></div>
+  </div>
+
+  <!-- RIGHT: event stream + metrics + suggestions -->
+  <div class="col">
+    <h2>Event stream</h2>
+    <div id="events" class="mono"></div>
+    <h2 style="margin-top:12px">Run metrics</h2>
+    <div id="metrics" class="note mono">—</div>
+    <h2 style="margin-top:12px">Suggestions</h2>
+    <div id="sugg" class="note">No data yet — run a task, then use Coach.</div>
+  </div>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const api=async(p,o)=>{const r=await fetch(p,o);if(!r.ok)throw new Error(r.status+" "+(await r.text()).slice(0,200));return r.json();};
+const japi=p=>api(p,{method:'POST',headers:{'Content-Type':'application/json'}});
+let mode='monitor', recording=false, lastShot=null;
+
+// health
+api('/api/v2/health').then(h=>{$('#hmodel').textContent=`agent: ${h.agent_model} · browser: ${h.browser} · allowlist: ${h.allowlist.join(', ')}`}).catch(()=>{});
+
+// tabs
+$('#tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  ['monitor','execute','coach'].forEach(m=>{$('#m-'+m).classList.toggle('hide',m!==b.dataset.m)});
+  [...$('#tabs').children].forEach(x=>x.classList.toggle('on',x===b)); mode=b.dataset.m;};
+
+// ---- event stream (SSE) ----
+const es=new EventSource('/events');
+es.onmessage=e=>{const ev=JSON.parse(e.data);onEvent(ev);};
+function onEvent(ev){
+  addEvt(ev);
+  const st=ev.type==='state'?'state':ev.type;
+  if(ev.type==='state'){setState(ev.data.state);}
+  if(ev.type==='approval_gate'){showGate(ev.data);}
+  if(ev.type==='ask_human'){showAsk(ev.data);}
+  if(ev.type==='ask_answered'||ev.type==='approved'){hideGate();hideAsk();}
+  if(ev.type==='done'){refreshMetrics();}
+}
+function addEvt(ev){const d=document.createElement('div');d.className='evt';
+  d.innerHTML=`<b>${ev.type}</b> ${JSON.stringify(ev.data).slice(0,90)}`;
+  const box=$('#events');box.prepend(d);while(box.children.length>60)box.lastChild.remove();}
+function setState(s){const el=$('#state');el.textContent=s;el.className='state-'+s;
+  if(s==='DONE'||s==='ERROR')refreshMetrics();}
+
+// ---- screenshot polling ----
+async function pollShot(){try{const s=await api('/api/v2/browser/shot');lastShot=s.screenshot;
+  $('#shot').src=lastShot;$('#url').textContent=s.url;}catch(e){}}
+setInterval(pollShot,2000);pollShot();
+$('#fresh').onclick=pollShot;
+
+// ---- monitor: start browser + record ----
+$('#mrec').onclick=async()=>{
+  recording=!recording;
+  $('#mrec').textContent=recording?'● Recording — click the live view to capture actions':'● Start recording';
+  await japi('/api/v2/browser/start',{site:{site:$('#msite').value}});
+  await japi('/api/v2/monitor/start',{site:{site:$('#msite').value}});
+};
+$('#shot').onclick=async(e)=>{
+  if(!recording||mode!=='monitor')return;
+  const img=e.target,r=img.getBoundingClientRect(),sx=img.naturalWidth/r.width,sy=img.naturalHeight/r.height;
+  const x=Math.round((e.clientX-r.left)*sx),y=Math.round((e.clientY-r.top)*sy);
+  const el=await api(`/api/v2/browser/element-at?x=${x}&y=${y}`).catch(()=>({locators:[] }));
+  const locs=el.locators&&el.locators.length?el.locators:[{kind:'box',value:`${x},${y}` }];
+  const rec=await japi('/api/v2/monitor/record',{tool:'click',locators:locs,narration:$('#mnar').value});
+  addEvt({type:'rec',data:rec});$('#mnar').value='';
+};
+
+// ---- compile / save / run learned ----
+$('#mcompile').onclick=async()=>{
+  const c=await japi('/api/v2/monitor/compile',{goal:$('#mgoal').value||'learned procedure',add_checks:[]});
+  addEvt({type:'compile',data:{steps:c.steps,warnings:c.warnings}});
+  window.__proc=c.procedure;
+  const r=await japi('/api/v2/procedure/save?name=learned',{...c.procedure});
+  $('#msaved').textContent='Procedure compiled ('+c.steps+' steps) → saved. "Run learned" executes it deterministically.';
+};
+$('#msave').onclick=async()=>{if(!window.__proc)return;await japi('/api/v2/procedure/save?name=learned',window.__proc);addEvt({type:'saved',data:{}});};
+$('#mrun').onclick=async()=>{const r=await japi('/api/v2/procedure/run',{name:'learned',approve:true});
+  addEvt({type:'exec',data:{success:r.success,checks:(r.checks||[]).map(c=>c.name+'='+(c.passed?'ok':'no'))}});
+  showSugg('deterministic',[{what:'Learned procedure finished. Success: '+(r.success?'YES':'NO — see checks'),
+    why:(r.checks||[]).map(c=>c.name+':'+(c.passed?'pass':'fail')).join(', '),
+    expected_saving:'n/a',risk:'low',apply:''}]);refreshMetrics();};
+
+// ---- execute: agent ----
+$('#xstart').onclick=async()=>{await japi('/api/v2/agent/run',{goal:$('#xgoal').value,site:$('#xsite').value});};
+$('#xpause').onclick=async()=>{await japi('/api/v2/agent/pause');};
+$('#xresume').onclick=async()=>{await japi('/api/v2/agent/resume',{});};
+$('#xkill').onclick=async()=>{await japi('/api/v2/agent/kill');};
+
+// takeover: forward input to live page while paused
+$('#shot').addEventListener('click',()=>{}); // handled above in monitor; execute uses buttons below
+document.addEventListener('keydown',e=>{
+  const st=$('#state').textContent;
+  if(st==='PAUSED_HUMAN'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'&&e.target.tagName!=='SELECT'){
+    japi('/api/v2/browser/input',{kind:'key',payload:{key:e.key}}).catch(()=>{});
+  }
+});
+
+// approval gate + ask_human UI
+function showGate(d){const g=$('#gate');g.classList.remove('hide');g.innerHTML=
+  `<div class="q">Approval gate — ${d.tool} is ${d.irreversible?'irreversible':''}${d.external?' external':''}</div>
+   <div class="note mono">${JSON.stringify(d.args)}</div>
+   <div class="btnrow"><button class="primary" onclick="japi('/api/v2/agent/approve',{allow:true})">Allow</button>
+   <button class="danger" onclick="japi('/api/v2/agent/approve',{allow:false})">Deny</button></div>`;}
+function hideGate(){$('#gate').classList.add('hide');}
+function showAsk(d){const a=$('#ask');a.classList.remove('hide');
+  const opts=(d.options&&d.options.length?d.options:['proceed']).map(o=>`<button onclick="japi('/api/v2/agent/answer',{choice:${JSON.stringify(o)}})">${o}</button>`).join(' ');
+  a.innerHTML=`<div class="q">Agent asks:</div><div class="note">${d.question}</div><div class="btnrow">${opts}</div>`;}
+function hideAsk(){$('#ask').classList.add('hide');}
+
+// ---- coach ----
+async function refreshMetrics(){try{const s=await api('/api/v2/agent/state');const m=s.metrics;
+  $('#metrics').innerHTML=['steps:'+m.steps,'wall:'+m.wall_s+'s','model calls:'+m.model_calls,
+    'takeovers:'+m.takeovers,'approvals:'+m.approvals].join('<br>');}catch(e){}}
+$('#cgo').onclick=async()=>{const c=await api(`/api/v2/coach?human_steps=${$('#hsteps').value}&human_time=${$('#hwall').value}`);
+  showSugg('compare',c.deterministic);$('#cbox').innerHTML=renderCompare(c.compare)+'<div>'+renderSugg(c.spoken)</div>';};
+function renderCompare(cmp){if(!cmp)return'';return `<h2>Agent vs human</h2>
+  <div class="sugg"><div class="row"><span>Agent</span><span class="tag">${cmp.agent.steps} steps · ${cmp.agent.model_calls} calls</span></div>
+  <div class="row"><span>Human</span><span class="tag">${cmp.human.steps??'—'} steps</span></div>
+  <div class="row"><span>Beat human</span><span class="tag">${cmp.agent_beat_human?'YES':'no/na'}</span></div></div>`;}
+function renderSugg(s){if(!s)return'';return `<div class="sugg"><div class="w">${s.what||s.text||''}</div>
+  <div class="note">${s.why||''} · saving: ${s.expected_saving||''} · risk: ${s.risk||''}</div>
+  ${s.spoken?`<div class="note">🔊 ${s.spoken}</div>`:''}</div>`;}
+function showSugg(kind,items){$('#sugg').innerHTML=(items&&items.length)?items.map(renderSugg).join(''):'No suggestions — run a task with Coach.';}
+
+// ---- voice: push-to-talk goal (browser Web Speech; disclosed) ----
+let audioCtx=null,rec=null,recordingAudio=false;
+$('#xppt').onclick=async()=>{
+  if(recordingAudio){rec&&rec.stop();recordingAudio=false;return;}
+  recordingAudio=true;$('#xppt').textContent='⏹ stop';
+  if(navigator.mediaDevices&&window.MediaRecorder){
+    try{const s=await navigator.mediaDevices.getUserMedia({audio:true});
+      rec=new MediaRecorder(s);rec.ondataavailable=e=>chunks.push(e.data);rec.onstop=async()=>{
+        const b=new Blob(chunks).awaitBlob?await new Blob(chunks).then(x=>x):await (await new Blob(chunks)).arrayBuffer();
+        const ab=await (new Blob(chunks)).arrayBuffer();
+        const r=await api('/api/v2/voice/transcribe',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({wav_base64:btoa(String.fromCharCode(...new Uint8Array(ab)))})});
+        $('#xgoal').value=$('#xgoal').value.replace(/\s*$/,' ') + (r.text||'');
+        addEvt({type:'transcribed',data:{text:r.text,source:r.source}});};
+      chunks=[];rec.start();
+    }catch(e){addEvt({type:'voice_note',data:{note:'mic unavailable, typing only'} });recordingAudio=false;$('#xppt').textContent='🎙 Record goal';}
+  }else{addEvt({type:'voice_note',data:{note:'Web Speech unsupported; type the goal'}});recordingAudio=false;$('#xppt').textContent='🎙 Record goal';}
+};
+</script>
+</body>
+</html>

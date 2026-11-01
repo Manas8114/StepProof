@@ -94,12 +94,25 @@ def execute_action(tb, name: str, arg: dict) -> ActionResult:
 
 
 def _click_by_name(tb, name: str) -> None:
-    """Click the first visible element whose name/kind contains `name`, at its box centre."""
+    """Click the best-matching visible element: exact substring first, then token match
+    (every word of `name` present in the element's name/kind). Box-centre click."""
     obs = tb.observe()
     low = name.strip().lower()
+    toks = low.split()
+    best, best_score = None, 0
     for el in obs.get("elements", []):
+        if not el.get("visible"):
+            continue
         hay = f"{el.get('name', '')} {el.get('kind', '')}".lower()
+        score = 0
         if low in hay:
-            tb.act("click_box", {"x": el["x"] + el["w"] // 2, "y": el["y"] + el["h"] // 2})
-            return
-    raise ValueError(f"no visible element matching {name!r}")
+            score = 100
+        elif toks and all(t in hay for t in toks):
+            score = 50 + len(toks)
+        elif len(low) >= 4 and low in hay.replace(" ", ""):
+            score = 30
+        if score > best_score:
+            best, best_score = el, score
+    if best_score < 30:
+        raise ValueError(f"no visible element matching {name!r}")
+    tb.act("click_box", {"x": best["x"] + best["w"] // 2, "y": best["y"] + best["h"] // 2})
