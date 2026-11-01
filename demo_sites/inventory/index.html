@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>Inventory Ledger</title>
+<style>
+body{font:15px/1.5 system-ui;margin:40px;max-width:760px}
+table{border-collapse:collapse;width:100%;margin-top:12px}
+th,td{border:1px solid #ccc;padding:8px;text-align:left}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.low{background:#fde8e8}
+#total{margin-top:16px;font-size:20px;font-weight:700}
+#log{margin-top:16px;font:13px/1.4 ui-monospace,monospace;background:#f4f4f4;padding:10px;min-height:40px}
+label{font-weight:600}
+input,button{padding:6px 10px;font:inherit}
+button{margin-top:8px;cursor:pointer}
+button.danger{background:#b3261e;color:#fff;border:none}
+#confirmBox{display:none;margin-top:10px;padding:10px;background:#fde8e8;border-radius:6px}
+</style>
+</head>
+<body>
+<h1>Inventory Ledger</h1>
+<p>Restock a SKU by part number. Totals are deterministic. "Discard restock" is irreversible.</p>
+<form id="add">
+  <label for="sku">SKU (part number)</label>
+  <input id="sku" autocomplete="off" placeholder="e.g. WS-1042">
+  <label for="qty">Quantity</label>
+  <input id="qty" type="number" min="1" value="1">
+  <button id="restock" type="button">Restock</button>
+  <button id="discard" class="danger" type="button">Discard restock</button>
+</form>
+<div id="confirmBox"><span id="confirmText"></span>
+  <button id="confirmYes">Confirm discard</button> <button id="confirmNo" class="ghost">Cancel</button>
+</div>
+<table id="t">
+  <thead><tr><th>SKU</th><th>Item</th><th class="num">Stock</th><th class="num">Unit price</th><th class="num">Value</th></tr></thead>
+  <tbody></tbody>
+</table>
+<div id="total"></div>
+<div id="log" aria-live="polite"></div>
+<script>
+const ITEMS = [
+  {sku:'WS-1042', name:'Wireless earbuds', stock:3,  price:59.00},
+  {sku:'CB-2210', name:'USB-C cable 2m',   stock:14, price:18.50},
+  {sku:'HD-0033', name:'Docking station',   stock:0,  price:120.00},
+];
+let pendingDiscard = null;
+const tbody = document.querySelector('#t tbody');
+function render(){
+  tbody.replaceChildren(...ITEMS.map(it => {
+    const tr = document.createElement('tr');
+    if (it.stock === 0) tr.className = 'low';
+    tr.innerHTML = '<td>' + it.sku + '</td><td>' + it.name + '</td><td class="num stock">' + it.stock +
+      '</td><td class="num">' + it.price.toFixed(2) + '</td><td class="num val">' + (it.stock*it.price).toFixed(2) + '</td>';
+    return tr;
+  }));
+  document.getElementById('total').textContent = 'Total value: $' + ITEMS.reduce((s,it)=>s+it.stock*it.price,0).toFixed(2);
+}
+const log = m => { document.getElementById('log').textContent = m; };
+document.getElementById('restock').onclick = () => {
+  const sku = document.getElementById('sku').value.trim().toUpperCase();
+  const qty = parseInt(document.getElementById('qty').value,10)||0;
+  const it = ITEMS.find(x=>x.sku===sku);
+  if (!it) return log('Rejected: unknown SKU "'+sku+'"');
+  if (qty < 1) return log('Rejected: quantity must be at least 1.');
+  it.stock += qty; render();
+  log('OK: '+sku+' restocked by '+qty+' -> stock '+it.stock+(it.stock<5?' (still low)':' (healthy)'));
+};
+// irreversible action behind a confirm gate
+document.getElementById('discard').onclick = () => {
+  pendingDiscard = document.getElementById('sku').value.trim().toUpperCase();
+  document.getElementById('confirmText').textContent = 'Discard all pending restocks for '+pendingDiscard+'? This cannot be undone.';
+  document.getElementById('confirmBox').style.display='block';
+};
+document.getElementById('confirmYes').onclick = () => {
+  const it = ITEMS.find(x=>x.sku===pendingDiscard);
+  if (it) { it.stock = 0; render(); }
+  document.getElementById('log').textContent = 'Confirmed: discarded restock for '+pendingDiscard+' -> stock 0.';
+  document.getElementById('confirmBox').style.display='none';
+  const b=document.getElementById('discard'); b.disabled=true;
+};
+document.getElementById('confirmNo').onclick = () => { document.getElementById('confirmBox').style.display='none'; };
+render();
+</script>
+</body>
+</html>
