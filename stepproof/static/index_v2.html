@@ -63,6 +63,7 @@ input[type=range]{accent-color:var(--acc)}
       <button data-m="monitor" class="on">Monitor</button>
       <button data-m="execute">Execute</button>
       <button data-m="coach">Coach</button>
+      <button data-m="tour">Tour</button>
     </div>
 
     <div id="m-monitor">
@@ -102,6 +103,16 @@ input[type=range]{accent-color:var(--acc)}
       <div class="btnrow"><button class="primary" id="cgo">Run detectors + compare</button></div>
       <div id="cbox"></div>
     </div>
+    <div id="m-tour" class="hide">
+      <h2>Guided tour</h2>
+      <p class="note">One-click showcase: Learn → Execute+gate → Takeover → Prove, streamed live on the event feed. Click Allow/Deny and Hand back when the beats prompt you.</p>
+      <div class="btnrow"><button class="primary" id="tourrun">▶ Run guided tour</button></div>
+      <h2>Replay (offline, dated)</h2>
+      <label>Recorded runs</label><select id="tourlist"></select>
+      <div class="btnrow"><button id="tourreplay">↺ Replay selected</button></div>
+      <p class="note" id="tourlabel"></p>
+    </div>
+
   </div>
 
   <!-- CENTER: live browser -->
@@ -138,7 +149,7 @@ api('/api/v2/health').then(h=>{$('#hmodel').textContent=`agent: ${h.agent_model}
 
 // tabs
 $('#tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;
-  ['monitor','execute','coach'].forEach(m=>{$('#m-'+m).classList.toggle('hide',m!==b.dataset.m)});
+  ['monitor','execute','coach','tour'].forEach(m=>{$('#m-'+m).classList.toggle('hide',m!==b.dataset.m)});
   [...$('#tabs').children].forEach(x=>x.classList.toggle('on',x===b)); mode=b.dataset.m;};
 
 // ---- event stream (SSE) ----
@@ -153,9 +164,16 @@ function onEvent(ev){
   if(ev.type==='ask_answered'||ev.type==='approved'){hideGate();hideAsk();}
   if(ev.type==='done'){refreshMetrics();}
 }
-function addEvt(ev){const d=document.createElement('div');d.className='evt';
-  d.innerHTML=`<b>${ev.type}</b> ${JSON.stringify(ev.data).slice(0,90)}`;
+function addEvt(ev){
+  if(ev.type==='tour_beat'){banner('TOUR · '+ev.data.label,'acc');return;}
+  if(ev.type==='tour_replay_start'){banner(ev.data.label+' — replayed offline, no live model calls','acc');return;}
+  if(ev.type==='tour_done'){banner('Tour finished'+(ev.data.replay?' (replay)':' — recorded '+ev.data.date'),'ok');return;}
+  const d=document.createElement('div');d.className='evt';
+  let body=JSON.stringify(ev.data).slice(0,90);
+  if(ev.type==='tour_step'&&ev.data.step) body='▶ '+ev.data.step+(ev.data.replay?' (replay)':'');
+  d.innerHTML=`<b>${ev.type}</b> ${body}`;
   const box=$('#events');box.prepend(d);while(box.children.length>60)box.lastChild.remove();}
+function banner(msg,cls){const b=$('#tourlabel');b.textContent=msg;b.className='note';b.style.color=cls==='ok'?'var(--ok)':'var(--acc)';}
 function setState(s){const el=$('#state');el.textContent=s;el.className='state-'+s;
   if(s==='DONE'||s==='ERROR')refreshMetrics();}
 
@@ -257,6 +275,23 @@ $('#xppt').onclick=async()=>{
     }catch(e){addEvt({type:'voice_note',data:{note:'mic unavailable, typing only'} });recordingAudio=false;$('#xppt').textContent='🎙 Record goal';}
   }else{addEvt({type:'voice_note',data:{note:'Web Speech unsupported; type the goal'}});recordingAudio=false;$('#xppt').textContent='🎙 Record goal';}
 };
+
+
+// ---- guided tour ----
+$('#tourrun').onclick=async()=>{
+  banner('Starting guided tour (click Allow/Deny and Hand back when prompted)','acc');
+  await japi('/api/v2/tour/start',{site:window.location.origin+'/site/expense'});
+};
+async function loadTourList(){
+  const r=await api('/api/v2/tour/runs').catch(()=>[]);
+  const sel=$('#tourlist');sel.replaceChildren(...r.map(f=>{const o=document.createElement('option');o.value=f;o.textContent=f;return o;}));
+  sel.selectedOptions.length?sel.selectedIndex=r.length-1:sel.selectedIndex=0;
+}
+$('#tourreplay').onclick=async()=>{
+  const f=$('#tourlist').value;if(!f)return banner('No recorded tour yet — run one first','warn');
+  await japi('/api/v2/tour/replay',{file:f});
+};
+loadTourList();
 </script>
 </body>
 </html>

@@ -10,7 +10,7 @@ in-app browser with a voice companion.
 One command to run: `uvicorn stepproof.api_v2:app --port 8011`.
 """
 from __future__ import annotations
-import json
+import json, threading
 from pathlib import Path
 from typing import Optional
 from fastapi import FastAPI, HTTPException
@@ -29,6 +29,7 @@ from .learn.compile import sanitize
 from .coach import run_detectors, compare_runs, VoiceCompanion, browser_speak, phrase
 from .proc import Procedure
 from .events import BUS
+from demo import Tour, replay as tour_replay, TOUR_DIR
 
 BASE = Path(__file__).parent.parent
 DEMO = BASE / "demo_sites"
@@ -42,6 +43,8 @@ _agent = AgentLoop(_browser, _model, Budgets())
 _recorder = Recorder(_browser)
 _voice = VoiceCompanion()
 _proc_cache: dict[str, Procedure] = {}
+_tour = Tour(_browser, _model, _recorder, execute_procedure,
+             mode="interactive", site_base=f"http://localhost:{APP_PORT}")
 
 app = FastAPI(title="StepProof v2")
 for name in ("expense", "inventory", "hostile"):
@@ -295,3 +298,55 @@ def voice_say(body: VoiceIn):
 @app.get("/")
 def index():
     return FileResponse(BASE / "stepproof" / "static" / "index_v2.html")
+
+
+# ------------------------------------------------------------------ guided tour
+
+class TourIn(BaseModel):
+    site: str = f"http://localhost:{APP_PORT}/site/expense"
+
+
+@app.post("/api/v2/tour/start")
+def tour_start(body: TourIn):
+    """Kick off the 4-beat guided showcase on a thread; progress streams on /events."""
+    global _tour
+    _tour = Tour(_browser, _model, _recorder, execute_procedure,
+                 mode="interactive", site_base=body.site)
+    threading.Thread(target=_tour.run, daemon=True).start()
+    return {"started": True, "mode": "interactive",
+            "note": "watch /events; click Allow/Deny and Hand back as beats prompt you"}
+
+
+@app.post("/api/v2/tour/answer")
+def tour_answer(body: ApproveIn):
+    """A human clicks Allow/Deny at the tour's approval gate (beat 2)."""
+    _tour.gate_answer(body.allow)
+    return {"ok": True, "allow": body.allow}
+
+
+@app.post("/api/v2/tour/operator-done")
+def tour_operator_done():
+    """A human finished the takeover action in the live view (beat 3); hand back to the agent."""
+    _tour.operator_done()
+    return {"ok": True}
+
+
+class TourReplayIn(BaseModel):
+    file: str
+
+
+@app.post("/api/v2/tour/replay")
+def tour_replay_ep(body: TourReplayIn):
+    """Replay a dated recorded tour offline (no model, no network); streams REPLAY-labeled events."""
+    p = TOUR_DIR / body.file
+    if not p.exists():
+        raise HTTPException(404, f"no recorded tour {body.file!r}")
+    trace = tour_replay(p, publish=True)   # streams REPLAY-labeled events onto the bus
+    return {"replayed": True, "date": trace.get("date"), "steps": len(trace.get("records", []))}
+
+
+@app.get("/api/v2/tour/runs")
+def tour_runs():
+    """List dated recorded tours (the replayable showcase artifacts)."""
+    TOUR_DIR.mkdir(parents=True, exist_ok=True)
+    return sorted(x.name for x in TOUR_DIR.glob("*.json"))

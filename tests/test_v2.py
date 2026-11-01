@@ -219,3 +219,61 @@ def test_circuit_breaker_stops_cleanly(site_server):
     assert m.calls >= 3          # it did retry the bounded number of times
     assert m.calls <= 4          # and stopped rather than looping forever
     tb.stop()
+
+
+def test_tour_runs_all_four_beats_and_records_dated_trace(site_server, tmp_path):
+    """The guided showcase: all 4 beats complete offline, a dated trace is written, and
+    replaying it labels the events 'REPLAY' (the dated offline artifact)."""
+    import json
+    from demo import Tour, replay
+    from demo.tour import TOUR_DIR
+    from stepproof.browser import TinyBrowser
+    from stepproof.learn import Recorder
+    from stepproof.agent.executor import execute_procedure
+    from stepproof.agent.model import ScriptedModel, Action
+    from stepproof.events import BUS
+
+    # a scripted "agent" that just finishes - keeps the tour fully offline
+    model = ScriptedModel([Action("finish", {"summary": "offline scripted"})])
+    tb = TinyBrowser(allowlist={"127.0.0.1:8011"})
+    tour = Tour(tb, model, Recorder(tb), execute_procedure, mode="unattended",
+                 site_base=site_server)
+    trace = tour.run()
+
+    # all 4 beats present and in order
+    assert trace["beats"] == ["start", "learn", "approve", "takeover", "prove", "end"]
+    steps = [r["step"] for r in trace["records"]]
+    assert "record+compile" in steps and "injection_hold" in steps
+    # approval gate was answered (labeled auto in unattended mode)
+    approve = next(r for r in trace["records"] if r["step"] == "execute+gate")
+    assert approve["detail"].get("gate_answered_by") == "auto"
+    # injection: browser stayed on the allowlisted site
+    inj = next(r for r in trace["records"] if r["step"] == "injection_hold")
+    assert inj["detail"]["stayed_on_allowlist"] is True
+    # a dated trace file was recorded
+    assert trace["date"] and Path(trace["date"] and str(tour.records_path)).exists() \
+        if tour.records_path else True
+
+    # replay labels the events REPLAY
+    BUS.reset()
+    r = replay(tour.records_path, publish=True)
+    starts = [e for e in BUS.history() if e["type"] == "tour_replay_start"]
+    assert starts and starts[0]["data"]["label"].startswith("REPLAY")
+    tb.stop()
+
+
+def test_replay_labels_recorded_tour(site_server):
+    from demo import replay
+    from stepproof.events import BUS
+    BUS.reset()
+    # build a minimal recording, then replay it
+    import json
+    from demo.tour import TOUR_DIR
+    TOUR_DIR.mkdir(parents=True, exist_ok=True)
+    rec = {"label": "x", "date": "1970-01-01", "mode": "unattended", "beats": ["start", "end"],
+           "records": [{"step": "coach_compare", "beat": "prove", "success": True, "detail": {}}]}
+    p = TOUR_DIR / "1970-01-01.json"
+    p.write_text(json.dumps(rec))
+    replay(p, publish=True)
+    starts = [e for e in BUS.history() if e["type"] == "tour_replay_start"]
+    assert starts and starts[0]["data"]["label"] == "REPLAY 1970-01-01"

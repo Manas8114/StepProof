@@ -18,6 +18,7 @@ class RecordedAction:
     arg: dict
     locators: list[dict] = field(default_factory=list)
     narration: str = ""
+    element_name: str = ""
     url_before: str = ""
     url_after: str = ""
 
@@ -35,13 +36,15 @@ class Recorder:
         self._t0 = time.time()
         self.actions = []
 
-    def click_element(self, locators: list[dict], narration: str = "") -> None:
+    def click_element(self, locators: list[dict], narration: str = "",
+                       element_name: str = "") -> None:
         url_b = self.browser.observe().get("url", "")
         ok, detail = _try_first_locator(self.browser, locators, "click", "")
         url_a = self.browser.observe().get("url", "")
         self.actions.append(RecordedAction(round(time.time() - self._t0, 3), "click",
-                                           {"ok": ok, "detail": detail},
+                                           {"ok": ok, "detail": detail, "element_name": element_name},
                                            locators=locators, narration=narration,
+                                           element_name=element_name,
                                            url_before=url_b, url_after=url_a))
 
     def type_value(self, locators: list[dict], text: str, narration: str = "") -> None:

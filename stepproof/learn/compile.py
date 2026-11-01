@@ -22,6 +22,9 @@ def _action_from_recorded(rec: dict, goal_site: str) -> Step:
         arg["text"] = recarg.get("text", "")
     elif tool == "select":
         arg["value"] = recarg.get("value", "")
+    name = recarg.get("element_name", "") or rec.get("element_name", "")
+    if name:
+        arg["name"] = name
     s = Step(id=f"s{len([])+1}", description=rec.get("narration") or f"{tool} via {tool} step",
              action=tool, arg=arg, locators=locs)
     s.id = ""  # renumbered by caller
