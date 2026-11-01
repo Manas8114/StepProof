@@ -31,9 +31,8 @@ class TinyBrowser:
     # ---- public API (thread-safe: everything goes through the worker) ----
 
     def start_site(self, url: str) -> dict:
-        r = self._call("goto", url)
-        self._after_nav()
-        return r
+        """Alias for `goto` (allowlist-gated). Every nav path refuses off-allowlist hosts."""
+        return self.goto(url)
 
     def goto(self, url: str) -> dict:
         """Allowlist-gated navigation. Refused (and explained) when the host is not allowed."""

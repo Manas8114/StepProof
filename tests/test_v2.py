@@ -47,6 +47,15 @@ def test_allowlist_refuses_navigation(site_server):
     tb.stop()
 
 
+def test_start_site_refuses_off_allowlist(site_server):
+    """Every navigation path is allowlist-gated: start_site must refuse like goto."""
+    from stepproof.browser import TinyBrowser
+    tb = TinyBrowser(allowlist={"127.0.0.1:8011"})
+    r = tb.start_site("http://evil.example/x")
+    assert r["ok"] is False and "refused" in r["error"]
+    tb.stop()
+
+
 def test_agent_loop_completes_task_deterministically(site_server):
     from stepproof.agent.model import ScriptedModel, Action
     from stepproof.agent.loop import AgentLoop
