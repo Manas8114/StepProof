@@ -31,6 +31,8 @@ def text_visible(tb, spec: dict) -> CheckResult:
 
 def element_state(tb, spec: dict) -> CheckResult:
     sel, state = spec.get("selector", ""), spec.get("state", "visible")
+    if not sel:
+        return CheckResult("element_state", False, "no selector given")
     prop = {
         "visible": "return el.getBoundingClientRect().width>2&&el.getBoundingClientRect().height>2",
         "hidden": "return !(el.getBoundingClientRect().width>2&&el.getBoundingClientRect().height>2)",
@@ -47,6 +49,8 @@ def element_state(tb, spec: dict) -> CheckResult:
 
 def value_equals(tb, spec: dict) -> CheckResult:
     sel, want = spec.get("selector", ""), str(spec.get("value", ""))
+    if not sel:
+        return CheckResult("value_equals", False, "no selector given")
     got = _js(tb, sel, "return el.value")
     return CheckResult("value_equals", got == want, f"{sel!r} value={got!r} (wanted {want!r})")
 
@@ -59,7 +63,7 @@ def run_check(tb, check: dict) -> CheckResult:
     fn = _RUNNERS.get(check.get("kind", ""))
     if fn is None:
         return CheckResult(check.get("kind", "unknown"), False, "unsupported check kind")
-    return fn(tb, check)
+    return fn(tb, check.get("spec", {}))   # each runner reads the nested spec
 
 
 def all_pass(tb, checks: list[dict]) -> tuple[bool, list[CheckResult]]:

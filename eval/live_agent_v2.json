@@ -1,0 +1,20 @@
+{
+  "live_agent": {
+    "state": "DONE",
+    "steps": 4,
+    "wall_s": 13.01,
+    "model_calls": 5,
+    "actions": [
+      "type",
+      "type",
+      "select",
+      "click"
+    ],
+    "takeovers": 0,
+    "approvals": 1,
+    "success_check_passed": true,
+    "result": {
+      "summary": "Filed expense claim for Acme $42 office, got Claim filed EXP-3496."
+    }
+  }
+}

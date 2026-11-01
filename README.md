@@ -40,5 +40,34 @@ Each clip is a short MJPG video with coloured parts on authored schedules, plus 
 ## Disclosure
 `/api/health` and every report list the exact models and hosts used. If the Muse Spark endpoint is replaced by a gateway (`VISION_BASE_URL`), say so in your submission. SAM has no fallback in this repo.
 
+## StepProof v2 — Learn · Execute · Verify (browser companion + voice)
+One command starts the v2 companion app, the two demo sites and the tiny browser:
+```bash
+uvicorn stepproof.api_v2:app --port 8011      # open http://localhost:8011
+python -m pytest -q                            # 32 tests incl. 10 v2 integration tests
+```
+Three modes in the UI: **Monitor** (do the task yourself in the live view - the app records
+multi-locator actions + your narration and compiles a reusable, editable Procedure),
+**Execute** (an aim, typed or via push-to-talk; Muse Spark drives the same tiny browser
+with a kill switch, pause/takeover at any moment, and approval gates before irreversible or
+external actions), **Coach** (deterministic detectors measure where you can go faster;
+the model only phrases it). **Verify** is always code, never the model: success =
+deterministic checks (URL / visible text / element state / extracted value) over browser
+state, each verdict linked to before/after screenshots.
+
+Safety (enforced in code, tested): domain allowlist, approval gates, credentials are never
+read/stored/logged, per-run budgets, full action log, and page text is treated as
+untrusted data (hostile-page injection test in `tests/test_v2.py` + `eval/run_eval_v2.py`).
+
+Live-agent numbers: `eval/RESULTS.md` (done in 13 s, 4 actions, 5 model calls, gate
+triggered on Submit - measured, single session). The v2 evaluation is deterministic +
+offline: `python -m eval.run_eval_v2` (no API key).
+
+**Disclosures:** reasoning = `muse-spark-1.3` via `api.meta.ai` Responses API (flat tool
+shape - Meta variant); computer-use observe/act loop follows Meta's docs; STT = Meta
+`muse-voice-transcribe-1.0` when reachable, else browser Web Speech (disclosed in UI);
+TTS = browser `speechSynthesis` (no dependency). The v1 camera-verify path is frozen and
+optional.
+
 ## Known limits
 Fixed camera and large, distinct parts work best; SAM takes one concept per request; masks are parsed but not yet drawn (boxes only, see PRD stretch P1); phone videos may need re-encoding to H.264 without rotation flags.

@@ -139,7 +139,13 @@ class AgentLoop:
                 break
             shot = self.browser.take_screenshot()
             obs = self.browser.observe()
-            act = self.model.decide(self.goal, elements_text(obs), shot, self.history)
+            try:
+                act = self.model.decide(self.goal, elements_text(obs), shot, self.history)
+                self.log.model_calls += 1
+            except Exception as e:
+                BUS.publish("decision_error", {"error": f"{type(e).__name__}: {str(e)[:160]}"})
+                self._stop("ERROR", {"error": "model call failed", "detail": str(e)[:200]})
+                return
             if act is None:
                 act = Action("finish", {"summary": "model returned no action"})
             BUS.publish("decision", {"tool": act.tool, "args": act.args})
@@ -161,7 +167,9 @@ class AgentLoop:
                     continue
 
             result = execute_action(self.browser, act.tool, act.args)
-            self.history.append({"tool": act.tool, "args": act.args, "ok": result.ok, "detail": result.detail})
+            rec = {"tool": act.tool, "args": act.args, "ok": result.ok, "detail": result.detail}
+            self.history.append(rec)
+            self.log.steps.append(rec)          # so metrics().actions reports the agent's own actions
             BUS.publish("action", {"tool": act.tool, "ok": result.ok, "detail": result.detail})
             steps += 1
 
