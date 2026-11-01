@@ -255,6 +255,30 @@ def test_coach_detects_redundant_navigation(site_server):
     assert any(d["what"] in ("repeated action", "redundant navigation", "backtrack") for d in dets)
 
 
+def test_model_accumulates_usage():
+    """Every live model call's token usage is accumulated so the report can emit
+    per-run and cumulative-over-N token counts (the 'cheaper' claim, measured)."""
+    from stepproof.agent.model import MuseAgentModel
+    m = MuseAgentModel()
+    assert m.usage == {"input_tokens": 0, "output_tokens": 0, "calls": 0}
+
+
+def test_runlog_metrics_include_usage(site_server):
+    from stepproof.agent.loop import AgentLoop
+    from stepproof.agent.model import ScriptedModel, Action
+    tb = _browser(site_server)
+    loop = AgentLoop(tb, ScriptedModel([Action("finish", {"summary": "x"})]))
+    loop.model.usage = {"input_tokens": 100, "output_tokens": 20, "calls": 1}
+    loop.start("t")
+    for _ in range(60):
+        if loop.machine.state.value in ("DONE", "ERROR"):
+            break
+        time.sleep(0.05)
+    met = loop.log.metrics()
+    assert met["usage"] == {"input_tokens": 100, "output_tokens": 20, "calls": 1}, met
+    tb.stop()
+
+
 def test_voice_phrases_short_lines(site_server):
     from stepproof.coach import phrase
     line = phrase("suggestion", "You could skip the duplicate navigation step and save one step of work on this form")

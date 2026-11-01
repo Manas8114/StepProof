@@ -68,6 +68,9 @@ class MuseAgentModel:
         self.client = OpenAI(base_url=cfg.META_BASE_URL, api_key=cfg.MODEL_API_KEY or "missing",
                              timeout=180, max_retries=0)
         self.calls = 0
+        # token accounting: accumulated from each response's usage field so a report
+        # can show per-run and cumulative-over-N token cost (the "cheaper" claim, measured)
+        self.usage = {"input_tokens": 0, "output_tokens": 0, "calls": 0}
 
     def decide(self, goal: str, obs_text: str, screenshot: str, history: list[dict],
                extra: dict | None = None) -> Optional[Action]:
@@ -80,6 +83,7 @@ class MuseAgentModel:
         for attempt in range(3):
             try:
                 r = self.client.responses.create(model=cfg.VISION_MODEL, input=msgs, tools=TOOLS)
+                _acc_usage(self.usage, r)
                 return _extract_action(r)
             except (RateLimitError, APIConnectionError, APITimeoutError, json.JSONDecodeError) as e:
                 last = e
@@ -102,6 +106,7 @@ class MuseAgentModel:
                         " Suggest one concrete efficiency or safety improvement. Do not invent savings."}],
                 tool_choice="json",
                 tools=[{"type": "function", "name": "suggestion", "description": "One improvement", "parameters": schema}])
+            _acc_usage(self.usage, r)
             for i in r.output:
                 if getattr(i, "type", "") == "function_call" and i.name == "suggestion":
                     return json.loads(i.arguments)
@@ -119,6 +124,16 @@ def _render(system: str, goal: str, obs: str, history: list[dict], extra: dict |
     if extra:
         s += "\n\nNOTE: " + json.dumps(extra)
     return s
+
+
+def _acc_usage(acc: dict, resp) -> None:
+    """Accumulate a response's token usage into `acc` (no-op when the API omits it)."""
+    u = getattr(resp, "usage", None)
+    if not u:
+        return
+    acc["input_tokens"] += int(getattr(u, "input_tokens", 0) or 0)
+    acc["output_tokens"] += int(getattr(u, "output_tokens", 0) or 0)
+    acc["calls"] += 1
 
 
 def _extract_action(r) -> Optional[Action]:

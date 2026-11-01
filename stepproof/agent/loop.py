@@ -50,6 +50,7 @@ class RunLog:
                 "model_calls": self.model_calls, "takeovers": self.takeovers,
                 "approvals": self.approvals, "backtracks": self.backtracks,
                 "idle_s": round(self.idle_s, 2), "result": self.result,
+                "usage": getattr(self, "_usage", {}) or {},
                 "actions": [s["tool"] for s in self.steps]}
 
 
@@ -230,6 +231,8 @@ class AgentLoop:
     def _stop(self, to: str, result: dict) -> None:
         self._running = False
         self.log.result = result
+        if hasattr(self.model, "usage"):
+            self.log._usage = dict(self.model.usage)   # surface token accounting in metrics()
         from .state import State as _S
         self.machine = StateMachine()
         self.machine.state = _S(to) if to in ("DONE", "ERROR", "RUNNING") else _S.ERROR
