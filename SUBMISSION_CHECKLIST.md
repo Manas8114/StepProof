@@ -49,3 +49,36 @@ Status 2026-10-31 (end of day): live API access is confirmed and working (B1-B3 
 | D2 | `eval/results_pipeline.json` / `results_baseline.json` currently contain synthetic numbers (mock providers, `models` field says `mock-sam (synthetic, offline)`). They demonstrate mechanics only; the submission must report B5's real numbers. |
 | D3 | `MockSam`/`MockMuse` (`STEPPROOF_PROVIDER=mock`) and `PROVIDER_MODE=replay` are for development/demos; no synthetic number may appear in `eval/RESULTS.md` without an explicit "synthetic, offline" label. |
 | D4 | `tests/fixtures/wire_*.txt` are real live API outputs (pinned 2026-10-31) - fine to reference; do not confuse with D2's synthetic eval results. |
+
+## V. v2 (browser companion) - submission state
+| # | Item | Status / evidence |
+|---|---|---|
+| V1 | Tiny browser (Playwright), screenshot stream, input forwarding, kill switch | `stepproof/browser/session.py`; `tests/test_v2.py` |
+| V2 | Agent loop: observe -> Muse tool-call -> code-first gate -> act -> log | `stepproof/agent/loop.py`; circuit breaker tested |
+| V3 | Takeover protocol (pause at action boundary, hand-back w/ note) | `state.py` + `loop.py`; `tests/test_v2.py::test_*takeover*` |
+| V4 | Approval gates (irreversible/external, code-classified first) | `browser/actions.py::classify_action`; `test_approval_gate_blocks_irreversible` |
+| V5 | Monitor -> compile -> execute from a learned Procedure (self-healing locators) | `learn/`, `agent/executor.py`; `test_monitor_compile_execute_procedure`, `test_self_healing_falls_through_locators` |
+| V6 | Deterministic success checks + evidence screenshots (verdict = code, not model) | `checks.py`; every verdict links a before/after JPEG |
+| V7 | Coach: deterministic detectors + agent-vs-human compare (model only phrases) | `coach/efficiency.py`; `test_coach_detects_redundant_navigation` |
+| V8 | Voice: TTS browser `speechSynthesis`; STT Meta->browser fallback (disclosed) | `coach/voice.py` |
+| V9 | 4-beat guided tour + dated offline replay | `demo/tour.py`; `tests/test_v2.py::test_tour_runs_all_four_beats...`; `data/tour_runs/<date>.json` |
+| V10 | Eval matrix: learned / human-demo / goal-only + safety (injection + gate-denied) | `eval/run_eval_v2.py`, `eval/results_v2.json`; `gate_denied_ok=true`, `injection_hold_ok=true` |
+| V11 | Live goal-only agent measured | `eval/live_agent_v2.json` (DONE, 4 actions, 5 model calls, 13.0 s, gate on Submit) |
+| V12 | Vision self-heal experiment (Muse-first, SAM fallback) | **CUT - 5/12 (41.7%) < 70%**; `eval/vision_heal_results.json`; DOM multi-locator self-heal stays primary |
+| V13 | Safety: injection defence + allowlist + credentials masked | `demo_sites/hostile/`; `test_injection_page_text_cannot_change_goal` |
+| V14 | Docs | `docs/ARCHITECTURE.md`, `docs/USAGE.md`, `README.md` (v2 + tour + vision-heal + launch video) |
+
+## W. Launch video (/brag)
+| # | Item | Status |
+|---|---|---|
+| W1 | `/brag` plan + storyboard + share copy | DONE - `brag-output/brag-plan.md`, `brag-output/share-copy.txt` |
+| W2 | Rendered `.mp4` | **BLOCKED** - `npx hyperframes` not available in this environment; render with `cd brag-output && npx hyperframes check && npx hyperframes render` where the tool exists |
+
+## X. v2 honesty guardrails
+| # | Rule |
+|---|---|
+| X1 | Condition A (goal-only agent) is live/rate-limited; when the API is down the harness marks it `SKIPPED` and discloses it - never report a number we did not run. |
+| X2 | Efficiency claims are **learned-procedure vs the recorded human demo only** - we do not claim a win against an unrecorded baseline. |
+| X3 | Vision self-heal is reported as a **negative result** (41.7% < 70%, cut); it is not presented as a working feature. |
+| X4 | Tour approval/takeover clicks: interactive mode waits for a real human; unattended/auto mode labels itself in the trace. |
+| X5 | `live_agent_trace.json` and tour records are dated; replayed ones carry a `REPLAY <date>` label and are not live runs. |

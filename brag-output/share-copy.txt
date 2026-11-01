@@ -1,0 +1,9 @@
+StepProof v2 — a browser companion that learns the task by watching you, then does it better,
+hands you the wheel any time, and PROVES the outcome with deterministic checks.
+
+The model only ever perceives. The pass/fail decision, the safety gates and the audit trail
+are code, never the AI.
+
+Hook:  "Learns from you. Does it better. You stay in charge. It proves it."
+Proof: 4-beat guided tour (Learn / Execute+gate / Takeover / Prove), replayable offline with a date.
+Safety: hostile-page injection holds; a denied irreversible action leaves the page intact.

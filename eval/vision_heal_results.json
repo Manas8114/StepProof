@@ -1,0 +1,258 @@
+{
+  "n_cases": 12,
+  "muse": {
+    "success": null,
+    "of": 0
+  },
+  "sam": {
+    "success": 0.417,
+    "of": 12
+  },
+  "combined": {
+    "success": 0.417,
+    "of": 12
+  },
+  "cut_threshold": 0.7,
+  "per_case": [
+    {
+      "target": "the Submit claim button",
+      "truth": {
+        "x": 40,
+        "y": 387,
+        "w": 126,
+        "h": 47
+      },
+      "muse": {
+        "hit": false,
+        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+      },
+      "sam": {
+        "hit": false,
+        "point": null
+      }
+    },
+    {
+      "target": "the Vendor text input",
+      "truth": {
+        "x": 40,
+        "y": 169,
+        "w": 640,
+        "h": 43
+      },
+      "muse": {
+        "hit": false,
+        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+      },
+      "sam": {
+        "hit": true,
+        "point": {
+          "x": 359,
+          "y": 190,
+          "grounded_by": "sam",
+          "conf": 0.5241636037826538,
+          "concept": "text input box"
+        }
+      }
+    },
+    {
+      "target": "the category dropdown",
+      "truth": {
+        "x": 40,
+        "y": 331,
+        "w": 640,
+        "h": 40
+      },
+      "muse": {
+        "hit": false,
+        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+      },
+      "sam": {
+        "hit": false,
+        "point": null
+      }
+    },
+    {
+      "target": "the Amount input",
+      "truth": {
+        "x": 40,
+        "y": 250,
+        "w": 640,
+        "h": 43
+      },
+      "muse": {
+        "hit": false,
+        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+      },
+      "sam": {
+        "hit": false,
+        "point": null
+      }
+    },
+    {
+      "target": "the Restock button",
+      "truth": {
+        "x": 635,
+        "y": 151,
+        "w": 75,
+        "h": 39
+      },
+      "muse": {
+        "hit": false,
+        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+      },
+      "sam": {
+        "hit": true,
+        "point": {
+          "x": 672,
+          "y": 169,
+          "grounded_by": "sam",
+          "conf": 0.6604774594306946,
+          "concept": "button"
+        }
+      }
+    },
+    {
+      "target": "the Discard restock button",
+      "truth": {
+        "x": 40,
+        "y": 197,
+        "w": 121,
+        "h": 35
+      },
+      "muse": {
+        "hit": false,
+        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+      },
+      "sam": {
+        "hit": true,
+        "point": {
+          "x": 100,
+          "y": 214,
+          "grounded_by": "sam",
+          "conf": 0.8439024686813354,
+          "concept": "red button"
+        }
+      }
+    },
+    {
+      "target": "the SKU input",
+      "truth": {
+        "x": 172,
+        "y": 151,
+        "w": 196,
+        "h": 39
+      },
+      "muse": {
+        "hit": false,
+        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+      },
+      "sam": {
+        "hit": false,
+        "point": null
+      }
+    },
+    {
+      "target": "the quantity input",
+      "truth": {
+        "x": 435,
+        "y": 151,
+        "w": 196,
+        "h": 39
+      },
+      "muse": {
+        "hit": false,
+        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+      },
+      "sam": {
+        "hit": false,
+        "point": null
+      }
+    },
+    {
+      "target": "the WS-1042 table row",
+      "truth": {
+        "x": 41,
+        "y": 284,
+        "w": 759,
+        "h": 40
+      },
+      "muse": {
+        "hit": false,
+        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+      },
+      "sam": {
+        "hit": false,
+        "point": {
+          "x": 419,
+          "y": 382,
+          "grounded_by": "sam",
+          "conf": 0.7620818018913269,
+          "concept": "table row"
+        }
+      }
+    },
+    {
+      "target": "the Finish task button",
+      "truth": {
+        "x": 40,
+        "y": 180,
+        "w": 80,
+        "h": 21
+      },
+      "muse": {
+        "hit": false,
+        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+      },
+      "sam": {
+        "hit": true,
+        "point": {
+          "x": 79,
+          "y": 190,
+          "grounded_by": "sam",
+          "conf": 0.7460317611694336,
+          "concept": "button"
+        }
+      }
+    },
+    {
+      "target": "the Submit claim button",
+      "truth": {
+        "x": 40,
+        "y": 387,
+        "w": 126,
+        "h": 47
+      },
+      "muse": {
+        "hit": false,
+        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+      },
+      "sam": {
+        "hit": false,
+        "point": null
+      }
+    },
+    {
+      "target": "the Restock button",
+      "truth": {
+        "x": 635,
+        "y": 151,
+        "w": 75,
+        "h": 39
+      },
+      "muse": {
+        "hit": false,
+        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+      },
+      "sam": {
+        "hit": true,
+        "point": {
+          "x": 672,
+          "y": 169,
+          "grounded_by": "sam",
+          "conf": 0.675126850605011,
+          "concept": "button"
+        }
+      }
+    }
+  ]
+}

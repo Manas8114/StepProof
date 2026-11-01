@@ -44,16 +44,18 @@ Each clip is a short MJPG video with coloured parts on authored schedules, plus 
 One command starts the v2 companion app, the two demo sites and the tiny browser:
 ```bash
 uvicorn stepproof.api_v2:app --port 8011      # open http://localhost:8011
-python -m pytest -q                            # 32 tests incl. 10 v2 integration tests
+python -m pytest -q                            # 35 tests incl. 13 v2 integration tests
 ```
-Three modes in the UI: **Monitor** (do the task yourself in the live view - the app records
+Four modes in the UI: **Monitor** (do the task yourself in the live view - the app records
 multi-locator actions + your narration and compiles a reusable, editable Procedure),
 **Execute** (an aim, typed or via push-to-talk; Muse Spark drives the same tiny browser
 with a kill switch, pause/takeover at any moment, and approval gates before irreversible or
 external actions), **Coach** (deterministic detectors measure where you can go faster;
-the model only phrases it). **Verify** is always code, never the model: success =
-deterministic checks (URL / visible text / element state / extracted value) over browser
-state, each verdict linked to before/after screenshots.
+the model only phrases it), and **Tour** (a one-click, 4-beat guided showcase that streams
+learn / execute+gate / takeover / prove onto the live event feed, then records a dated,
+replayable trace you can re-watch offline). **Verify** is always code, never the model:
+success = deterministic checks (URL / visible text / element state / extracted value) over
+browser state, each verdict linked to before/after screenshots.
 
 Safety (enforced in code, tested): domain allowlist, approval gates, credentials are never
 read/stored/logged, per-run budgets, full action log, and page text is treated as
@@ -68,6 +70,24 @@ shape - Meta variant); computer-use observe/act loop follows Meta's docs; STT = 
 `muse-voice-transcribe-1.0` when reachable, else browser Web Speech (disclosed in UI);
 TTS = browser `speechSynthesis` (no dependency). The v1 camera-verify path is frozen and
 optional.
+
+## Guided tour + launch video
+- Run the 4-beat showcase (real approval-gate + takeover clicks, then a dated offline replay):
+```bash
+uvicorn stepproof.api_v2:app --port 8011   # open http://localhost:8011 -> Tour tab -> Run guided tour
+```
+  Unattended/scripted: `python -m scripts.run_tour` (writes `data/tour_runs/<date>.json`).
+- Launch video: the `/brag` skill produced `brag-output/brag-plan.md` (storyboard) and
+  `brag-output/share-copy.txt`. Render the `.mp4` with: `cd brag-output && npx hyperframes check && npx hyperframes render`.
+
+## Vision self-heal (timeboxed experiment - CUT, reported honestly)
+When every recorded DOM locator for a step fails, a visual fallback can re-locate the target
+on a fresh screenshot (`stepproof/browser/vision_heal.py`): Muse Spark grounding first,
+SAM 3.1 open-vocabulary as the fallback. Measured on 12 real screenshots
+(`eval/vision_heal_results.json`): Muse grounding 0 usable, SAM 5/12 (41.7%), combined 41.7%
+- **below the 70% keep threshold, so it was not wired into the main flow** (DOM multi-locator
+self-healing remains the primary, reliable path). The experiment and its numbers are kept in
+the repo as an honest result, per the "report failures" rule.
 
 ## Known limits
 Fixed camera and large, distinct parts work best; SAM takes one concept per request; masks are parsed but not yet drawn (boxes only, see PRD stretch P1); phone videos may need re-encoding to H.264 without rotation flags.

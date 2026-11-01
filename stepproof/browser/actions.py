@@ -58,11 +58,15 @@ def execute_action(tb, name: str, arg: dict) -> ActionResult:
             sel, selname = arg.get("selector"), arg.get("name")
             if sel:
                 tb.act("click_sel", {"selector": sel})
+                detail = f"clicked {sel}"
             elif selname:
                 _click_by_name(tb, selname)
+                detail = f"clicked {selname!r}"
+            elif "x" in arg and "y" in arg:
+                tb.act("click_box", {"x": int(arg["x"]), "y": int(arg["y"])})
+                detail = f"clicked @({arg['x']},{arg['y']}) " + arg.get("grounded_by", "coords")
             else:
-                raise ValueError("click needs 'selector' or 'name'")
-            detail = f"clicked {sel or repr(selname)}"
+                raise ValueError("click needs 'selector', 'name', or (x,y) coordinates")
         elif name in ("type", "fill"):
             tb.act("fill", {"selector": arg["selector"], "text": arg.get("text", "")})
             detail = f"typed into {arg['selector']}"
