@@ -56,6 +56,48 @@ def test_start_site_refuses_off_allowlist(site_server):
     tb.stop()
 
 
+def test_selector_click_classified_like_name_click(site_server):
+    """Code-first gate: a click addressed by selector must classify from the element's visible
+    label (exactly like a name click); an unresolvable target escalates to a gate - never
+    downgrades to ungated."""
+    from stepproof.browser.actions import classify_action
+    tb = _browser(site_server)
+    tb.start_site(site_server + "/inventory/")
+    irrev, _ext = classify_action("click", {"selector": "#discard"}, tb=tb)
+    assert irrev is True, "selector click on 'Discard restock' must classify irreversible"
+    _irrev2, ext2 = classify_action("click", {"selector": "#does-not-exist"}, tb=tb)
+    assert ext2 is True, "unresolvable selector must escalate to the gate, not run ungated"
+    tb.stop()
+
+
+def test_agent_click_by_selector_now_gates(site_server):
+    """A selector-addressed click on the external 'Submit claim' button reaches the approval
+    gate in the agent loop (previously the selector path skipped the gate the name path enforces)."""
+    from stepproof.agent.model import ScriptedModel, Action
+    from stepproof.agent.loop import AgentLoop
+    tb = _browser(site_server)
+    scripted = ScriptedModel([
+        Action("type", {"selector": "#vendor", "text": "Acme"}),
+        Action("type", {"selector": "#amount", "text": "42"}),
+        Action("select", {"selector": "#category", "value": "office"}),
+        Action("click", {"selector": "#submit"}),
+    ])
+    loop = AgentLoop(tb, scripted)
+    loop.start("File an Acme office expense of $42")
+    saw_gate, deadline = False, time.time() + 30
+    while time.time() < deadline:
+        if loop._pending_decision.is_set():
+            saw_gate = True
+            loop.approve(True)          # labeled auto-approve (same path the UI/eval uses)
+        elif loop.machine.state.value in ("DONE", "ERROR"):
+            break
+        time.sleep(0.05)
+    assert saw_gate, "selector click on 'Submit claim' must trigger the approval gate"
+    assert loop.machine.state.value == "DONE", loop.log.result
+    assert "Claim filed" in tb.observe().get("body_text", "")
+    tb.stop()
+
+
 def test_agent_loop_completes_task_deterministically(site_server):
     from stepproof.agent.model import ScriptedModel, Action
     from stepproof.agent.loop import AgentLoop
@@ -68,10 +110,15 @@ def test_agent_loop_completes_task_deterministically(site_server):
     ])
     loop = AgentLoop(tb, scripted)
     loop.start("File an Acme office expense of $42")
-    for _ in range(60):
-        if loop.machine.state.value in ("DONE", "ERROR"):
+    # the 'Submit claim' click now (correctly) reaches the approval gate; answer it the
+    # labeled way the eval supervisor does, then let the loop finish
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        if loop._pending_decision.is_set():
+            loop.approve(True)
+        elif loop.machine.state.value in ("DONE", "ERROR"):
             break
-        time.sleep(0.25)
+        time.sleep(0.05)
     assert loop.machine.state.value == "DONE", loop.log.result
     assert "Claim filed" in tb.observe().get("body_text", "")
     tb.stop()

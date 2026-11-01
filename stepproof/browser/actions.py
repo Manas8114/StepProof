@@ -38,18 +38,45 @@ def classify_element_text(label: str) -> tuple[bool, bool]:
     return irrev, ext
 
 
-def classify_action(name: str, arg: dict) -> tuple[bool, bool]:
-    """Classify an action by name/args. Code decides; the model may escalate, never downgrade."""
+def classify_action(name: str, arg: dict, tb=None) -> tuple[bool, bool]:
+    """Classify an action by name/args. Code decides; the model may escalate, never
+    downgrade. For click/select, the element's visible label drives the verdict: a
+    `name`-addressed action uses it directly; a `selector`-addressed action resolves the
+    element's label via the live page (`tb` required - gate call sites pass it), so a
+    selector click on "Submit" gates exactly like a name click. A target that cannot
+    be resolved is escalated to the gate (external), never run ungated. Without `tb`
+    only `name`/`url` are classified (informational callers keep the pure behavior)."""
     if name == "goto":
         return False, bool(_EXTERNAL_URL.match(str(arg.get("url", ""))))
     if name in ("click", "select"):
-        return classify_element_text(str(arg.get("name", "")))
+        label = str(arg.get("name", "")).strip()
+        if not label and arg.get("selector"):
+            if tb is None:
+                return False, False
+            found = _label_of(tb, str(arg["selector"]))
+            if found is None:
+                return False, True    # unknown target -> escalate, never run ungated
+            label = found
+        return classify_element_text(label)
     return False, False
+
+
+def _label_of(tb, selector: str) -> str | None:
+    """Visible label of the element a CSS selector addresses; None when no such element
+    exists (deterministic page read - no model)."""
+    expr = ("(()=>{const el=document.querySelector(%r);"
+            "if(!el)return null;"
+            "return (el.textContent||el.getAttribute('aria-label')||el.id||'').trim().slice(0,60);})()"
+            % selector)
+    try:
+        return tb.act("eval", {"expr": expr})
+    except Exception:
+        return None
 
 
 def execute_action(tb, name: str, arg: dict) -> ActionResult:
     """Run one action on the browser (through the worker thread). Evidence = URL before/after."""
-    irrev, ext = classify_action(name, arg)
+    irrev, ext = classify_action(name, arg, tb=tb)   # keep ActionResult flags consistent with the gate
     before_url = tb.observe().get("url", "")
     BUS.publish("action", {"name": name, "arg": arg, "step_url": before_url})
     ok, detail = True, ""

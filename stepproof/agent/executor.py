@@ -59,7 +59,7 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
     res = ExecResult(success=False, steps_run=0, wall_s=0.0)
     BUS.publish("exec_start", {"goal": proc.goal})
     for i, step in enumerate(proc.steps[:max_steps]):
-        irrev, ext = classify_action(step.action, {k: step.arg.get(k) for k in ("name", "url")})
+        irrev, ext = classify_action(step.action, step.arg, tb=tb)
         if irrev or ext:
             if approve_fn is None or not approve_fn(step.action, step.arg):
                 res.error = f"step {i} ({step.action}) blocked: not approved"

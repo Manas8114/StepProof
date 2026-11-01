@@ -169,7 +169,7 @@ class AgentLoop:
                 continue
 
             # safety gate FIRST (code-first; model can only escalate)
-            irrev, ext = classify_action(act.tool, act.args)
+            irrev, ext = classify_action(act.tool, act.args, tb=self.browser)
             if irrev or ext:
                 ok = self._approval_gate(act, irrev, ext)
                 if not ok:
