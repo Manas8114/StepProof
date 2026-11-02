@@ -29,6 +29,15 @@ def _img(path: Path) -> dict:
     return {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + base64.b64encode(path.read_bytes()).decode()}}
 
 
+def _record_muse(name: str, latency_s: float, input_tokens: int, output_tokens: int,
+                 cached: bool = False) -> None:
+    """Record a Muse call into the active meter (no-op unless one is set)."""
+    from .. import usage
+    if usage.active() is not None:
+        usage.active().record(cfg.VISION_MODEL, f"muse_{name}", latency_s,
+                              input_tokens=input_tokens, output_tokens=output_tokens, cached=cached)
+
+
 class MuseSpark:
     def __init__(self) -> None:
         self.client = OpenAI(base_url=cfg.VISION_BASE_URL, api_key=cfg.VISION_API_KEY or "missing", timeout=180, max_retries=0)
@@ -39,10 +48,12 @@ class MuseSpark:
         key = hashlib.sha256(json.dumps([cfg.VISION_MODEL, name, messages], sort_keys=True).encode()).hexdigest()[:24]
         cp = cfg.CACHE / "muse" / f"{key}.json"
         if cfg.USE_CACHE and cp.exists():
+            _record_muse(name, 0.0, 0, 0, cached=True)
             return json.loads(cp.read_text())
         if cfg.PROVIDER_MODE == "replay":
             raise FileNotFoundError(f"replay mode: no cached Muse result ({name}, {key})")
         last: Exception | None = None
+        t0 = time.time()
         for attempt in range(3):
             try:
                 r = self.client.chat.completions.create(
@@ -51,6 +62,10 @@ class MuseSpark:
                 )
                 data = json.loads(r.choices[0].message.content)
                 cp.write_text(json.dumps(data))
+                u = getattr(r, "usage", None)
+                _record_muse(name, time.time() - t0,
+                             int(getattr(u, "prompt_tokens", 0) or 0),
+                             int(getattr(u, "completion_tokens", 0) or 0))
                 return data
             except (json.JSONDecodeError, RateLimitError, APIConnectionError, APITimeoutError) as e:
                 last = e

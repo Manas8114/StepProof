@@ -12,6 +12,26 @@ from ..wire import parse_wire
 _MIME = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
 
 
+def _record_sam(kind: str, latency_s: float, frames_returned: int, cached: bool,
+                path: Path | None = None) -> None:
+    """Record a SAM call into the active meter (no-op unless one is set). Billed frames are
+    estimated from the uploaded media - Meta bills per frame (50-frame minimum): a video
+    uploads every native-fps frame, so billed_frames = the clip's frame count (the exact
+    quantity our preprocessors reduce). Cached calls bill nothing."""
+    if cached or path is None:
+        billed = 0
+    else:
+        try:
+            from ..video import probe
+            billed = max(int(probe(path)[1]), 50) if kind == "video" else 1
+        except Exception:
+            billed = 0
+    from .. import usage
+    if usage.active() is not None:
+        usage.active().record(cfg.SAM_MODEL, f"sam_{kind}", latency_s,
+                              frames_returned=frames_returned, billed_frames=billed, cached=cached)
+
+
 def _file_hash(path: Path) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -67,12 +87,17 @@ class SamApi:
         key = f"{_file_hash(path)}-{kind}-{hashlib.sha1(concept.encode()).hexdigest()[:10]}"
         cp = cfg.CACHE / "sam" / f"{key}.txt"
         if cfg.USE_CACHE and cp.exists():
-            return parse_wire(cp.read_text())
+            dets = parse_wire(cp.read_text())
+            _record_sam(kind, 0.0, len(dets), cached=True, path=path)
+            return dets
         if cfg.PROVIDER_MODE == "replay":
             raise FileNotFoundError(f"replay mode: no cached SAM result for {concept!r} ({key})")
+        t0 = time.time()
         text = self._stream(concept, self._media(path, kind))
         cp.write_text(text)
-        return parse_wire(text)
+        dets = parse_wire(text)
+        _record_sam(kind, time.time() - t0, len(dets), cached=False, path=path)
+        return dets
 
     def segment_video(self, path: Path, concept: str) -> list[Detection]:
         return self._segment(path, concept, "video")
