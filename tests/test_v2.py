@@ -443,3 +443,13 @@ def test_replay_labels_recorded_tour(site_server):
     replay(p, publish=True)
     starts = [e for e in BUS.history() if e["type"] == "tour_replay_start"]
     assert starts and starts[0]["data"]["label"] == "REPLAY 1970-01-01"
+
+
+def test_api_v2_health_reports_vision_selfheal():
+    from stepproof.api_v2 import health_v2
+    h = health_v2()
+    assert "vision_selfheal" in h
+    assert "enabled" in h["vision_selfheal"]
+    assert "flag" in h["vision_selfheal"]
+    assert "models" in h["vision_selfheal"]
+    assert "hosts" in h["vision_selfheal"]

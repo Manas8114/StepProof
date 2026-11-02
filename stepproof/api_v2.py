@@ -75,8 +75,43 @@ _agent = AgentLoop(_browser, _model, Budgets())
 _recorder = Recorder(_browser)
 _voice = VoiceCompanion()
 _proc_cache: dict[str, Procedure] = {}
+
+_vision_selfheal_fn = None
+_healer_info: dict = {"enabled": False, "models": [], "hosts": []}
+if cfg.VISION_SELFHEAL and cfg.MODEL_API_KEY:
+    try:
+        from .browser.vision_heal import MuseVisionHealer, SamVisionHealer, make_selfheal
+        _ms = MuseVisionHealer()
+        _sam = SamVisionHealer()
+        _base_selfheal = make_selfheal(_ms, _sam, _browser)
+
+        def _logged_vision_selfheal(target):
+            hit = _base_selfheal(target)
+            if hit:
+                target_desc = getattr(target, "vision_concept", "") or getattr(target, "description", "") or str(target)
+                BUS.publish("vision_heal", {
+                    "grounded_by": hit.get("grounded_by", "vision"),
+                    "target": target_desc,
+                    "x": hit.get("x"),
+                    "y": hit.get("y"),
+                    "box": hit.get("box"),
+                    "conf": hit.get("conf"),
+                    "msg": f"locators exhausted → {hit.get('grounded_by', 'vision').upper()} grounded '{target_desc}' @ ({hit.get('x')},{hit.get('y')}) conf {hit.get('conf')}"
+                })
+            return hit
+
+        _vision_selfheal_fn = _logged_vision_selfheal
+        _healer_info = {
+            "enabled": True,
+            "models": [_ms.name, _sam.name],
+            "hosts": [cfg.VISION_BASE_URL, cfg.META_BASE_URL],
+        }
+    except Exception as e:
+        print(f"Warning: failed to initialize vision selfheal: {e}")
+
 _tour = Tour(_browser, _model, _recorder, execute_procedure,
-             mode="interactive", site_base=f"http://localhost:{APP_PORT}")
+             mode="interactive", site_base=f"http://localhost:{APP_PORT}",
+             vision_selfheal=_vision_selfheal_fn)
 
 app = FastAPI(title="StepProof v2")
 for name in ("expense", "inventory", "hostile", "mutated"):
@@ -139,7 +174,13 @@ def health_v2():
     return {"mode": cfg.PROVIDER_MODE, "agent_model": _model.name,
             "browser": "playwright-chromium", "allowlist": sorted(ALLOW),
             "states": ["IDLE", "PLANNING", "RUNNING", "PAUSED_HUMAN",
-                        "AWAITING_APPROVAL", "DONE", "ERROR"]}
+                        "AWAITING_APPROVAL", "DONE", "ERROR"],
+            "vision_selfheal": {
+                "enabled": bool(_vision_selfheal_fn is not None),
+                "flag": cfg.VISION_SELFHEAL,
+                "models": _healer_info["models"],
+                "hosts": _healer_info["hosts"],
+            }}
 
 
 @app.get("/events")
@@ -337,7 +378,8 @@ def procedure_run(body: ProcRunIn):
         r = _browser.start_site(proc.site)   # saved absolute URLs pass through; gate applies
         if not r.get("ok"):
             raise HTTPException(400, r.get("error", "procedure site refused"))
-    res = execute_procedure(_browser, proc, approve_fn=lambda tool, args: body.approve)
+    res = execute_procedure(_browser, proc, approve_fn=lambda tool, args: body.approve,
+                            vision_selfheal=_vision_selfheal_fn)
     return {"success": res.success, "error": res.error, "metrics": res.metrics(),
             "checks": [{"name": c.name, "passed": c.passed, "detail": c.detail}
                        for c in res.check_results]}
@@ -390,7 +432,8 @@ def tour_start(body: TourIn):
     global _tour
     mode = "unattended" if os.getenv("STEPPROOF_TEST_MODEL") == "1" else "interactive"
     _tour = Tour(_browser, _model, _recorder, execute_procedure,
-                 mode=mode, site_base=body.site)
+                 mode=mode, site_base=body.site,
+                 vision_selfheal=_vision_selfheal_fn)
     threading.Thread(target=_tour.run, daemon=True).start()
     return {"started": True, "mode": mode,
             "note": "watch /events; click Allow/Deny and Hand back as beats prompt you"}

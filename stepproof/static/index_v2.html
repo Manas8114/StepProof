@@ -186,6 +186,7 @@ function addEvt(ev){
   const d=document.createElement('div');d.className='evt';
   let body=JSON.stringify(ev.data).slice(0,90);
   if(ev.type==='tour_step'&&ev.data.step) body='▶ '+ev.data.step+(ev.data.replay?' (replay)':'');
+  if(ev.type==='vision_heal'&&ev.data.msg) body='🎯 '+ev.data.msg;
   d.innerHTML=`<b>${ev.type}</b> ${body}`;
   const box=$('#events');box.prepend(d);while(box.children.length>60)box.lastChild.remove();}
 function banner(msg,cls){const b=$('#tourlabel');b.textContent=msg;b.className='note';b.style.color=cls==='ok'?'var(--ok)':'var(--acc)';}

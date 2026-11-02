@@ -32,9 +32,11 @@ class Tour:
     """Runs the 4-beat showcase on a live browser + agent, recording everything."""
 
     def __init__(self, browser, model, recorder, executor,
-                 mode: str = "interactive", site_base: str = "http://127.0.0.1:8011") -> None:
+                 mode: str = "interactive", site_base: str = "http://127.0.0.1:8011",
+                 vision_selfheal=None) -> None:
         self.tb, self.model, self.recorder, self.executor = browser, model, recorder, executor
         self.mode = mode
+        self.vision_selfheal = vision_selfheal
         # unattended = fully offline: the takeover beat's agent is a scripted stand-in, so
         # the showcase never stalls on the live API and the recorded trace stays clean.
         # Interactive mode keeps the live model (a real takeover is the point of that mode).
@@ -123,7 +125,7 @@ class Tour:
                                      "source": "human" if self.mode == "interactive" else "auto"})
             return self._gate_allow["value"]
 
-        res = self.executor(self.tb, self.learned, approve_fn=approve_fn)
+        res = self.executor(self.tb, self.learned, approve_fn=approve_fn, vision_selfheal=self.vision_selfheal)
         self._learned_res = res
         self._record("execute+gate", {"success": res.success, "steps": res.steps_run,
                                        "wall_s": res.wall_s,

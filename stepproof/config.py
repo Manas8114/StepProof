@@ -23,3 +23,4 @@ VISION_MODEL = _e("VISION_MODEL", "muse-spark-1.3")
 
 PROVIDER_MODE = _e("PROVIDER_MODE", "live")  # live | replay
 USE_CACHE = _e("STEPPROOF_CACHE", "1") == "1"
+VISION_SELFHEAL = _e("STEPPROOF_VISION_SELFHEAL", "0") == "1"
