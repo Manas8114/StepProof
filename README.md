@@ -47,14 +47,16 @@ One command starts the v2 companion app, the two demo sites and the tiny browser
 uvicorn stepproof.api_v2:app --port 8011      # open http://localhost:8011
 python -m pytest -q                            # 35 tests incl. 13 v2 integration tests
 ```
-Four modes in the UI: **Monitor** (do the task yourself in the live view - the app records
+Five modes in the UI: **Monitor** (do the task yourself in the live view - the app records
 multi-locator actions + your narration and compiles a reusable, editable Procedure),
 **Execute** (an aim, typed or via push-to-talk; Muse Spark drives the same tiny browser
 with a kill switch, pause/takeover at any moment, and approval gates before irreversible or
 external actions), **Coach** (deterministic detectors measure where you can go faster;
-the model only phrases it), and **Tour** (a one-click, 4-beat guided showcase that streams
-learn / execute+gate / takeover / prove onto the live event feed, then records a dated,
-replayable trace you can re-watch offline). **Verify** is always code, never the model:
+the model only phrases it), **Tour** (a one-click, 5-beat guided showcase that streams
+learn / execute+gate / takeover / prove / heal onto the live event feed, then records a dated,
+replayable trace you can re-watch offline), and **Tracking** (zero-shot video object
+tracking via cached SAM 3.1 video segmentation with stable object IDs and confidence-tinted
+bounding box overlay across 60 frames). **Verify** is always code, never the model:
 success = deterministic checks (URL / visible text / element state / extracted value) over
 browser state, each verdict linked to before/after screenshots.
 
@@ -73,7 +75,7 @@ TTS = browser `speechSynthesis` (no dependency). The v1 camera-verify path is fr
 optional.
 
 ## Guided tour + launch video
-- Run the 4-beat showcase (real approval-gate + takeover clicks, then a dated offline replay):
+- Run the 5-beat showcase (real approval-gate, takeover, and mutated-UI visual heal clicks, then a dated offline replay):
 ```bash
 uvicorn stepproof.api_v2:app --port 8011   # open http://localhost:8011 -> Tour tab -> Run guided tour
 ```
@@ -96,7 +98,9 @@ SAM 3.1 7/16 (43.8%), combined **15/16 (93.8%)** — exceeding the 70% keep thre
 Wired into the live app via `STEPPROOF_VISION_SELFHEAL=1` (default stays off in offline tests for determinism):
 - **Visual Fill:** `fill_at` types visually into fields, with strict refusal on password fields (`input[type=password]`).
 - **Safety Gate:** Re-evaluates visible label at clicked coordinates; irreversible/external hints (`Submit`, `Discard`) or unresolvable labels escalate to the approval gate before execution.
+- **Mask Evidence Overlay:** SAM 3.1 one-bit segmentation masks are decoded with `meta-sam-parser` (`decode_mask_to_raster`) and composited onto screenshots in `data/evidence/` with bounding box fallback.
 - **Mutated UI Showcase:** BEAT 5 · HEAL in `demo/tour.py` runs against `/mutated/` where all DOM IDs/classes are regenerated and DOM order is shuffled on every load, proving locator fallthrough → visual grounding → gated healed click → fill_at on renamed inputs → deterministic verification.
+- **Dynamic Tracking View:** Read-only UI mode in `/api/v2/tracking/demo` animates tracked boxes over a 60-frame clip with stable object IDs and confidence-tinted outlines from cache (0 new model calls).
 
 ## Known limits
-Fixed camera and large, distinct parts work best; SAM takes one concept per request (short noun phrases like `Vendor text input` or `Submit claim button`, not sentences or instructions — carried in `proc.py:Step.vision_concept`); masks are parsed but not yet drawn (boxes only, see PRD stretch P1); phone videos may need re-encoding to H.264 without rotation flags.
+Fixed camera and large, distinct parts work best; SAM takes one concept per request (short noun phrases like `Vendor text input` or `Submit claim button`, not sentences or instructions — carried in `proc.py:Step.vision_concept`); phone videos may need re-encoding to H.264 without rotation flags.

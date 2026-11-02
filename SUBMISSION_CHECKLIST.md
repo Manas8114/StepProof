@@ -61,12 +61,15 @@ Status 2026-10-31 (end of day): live API access is confirmed and working (B1-B3 
 | V6 | Deterministic success checks + evidence screenshots (verdict = code, not model) | `checks.py`; every verdict links a before/after JPEG |
 | V7 | Coach: deterministic detectors + agent-vs-human compare (model only phrases) | `coach/efficiency.py`; `test_coach_detects_redundant_navigation` |
 | V8 | Voice: TTS browser `speechSynthesis`; STT Meta->browser fallback (disclosed) | `coach/voice.py` |
-| V9 | 4-beat guided tour + dated offline replay | `demo/tour.py`; `tests/test_v2.py::test_tour_runs_all_four_beats...`; `data/tour_runs/<date>.json` |
+| V9 | 5-beat guided tour (including BEAT 5 · HEAL on mutated UI) + dated offline replay | `demo/tour.py`; `tests/test_v2.py::test_tour_runs_all_four_beats...`; `data/tour_runs/<date>.json` |
 | V10 | Eval matrix: learned / human-demo / goal-only + safety (injection + gate-denied) | `eval/run_eval_v2.py`, `eval/results_v2.json`; `gate_denied_ok=true`, `injection_hold_ok=true` |
 | V11 | Live goal-only agent measured | `eval/live_agent_v2.json` (DONE, 4 actions, 5 model calls, 13.0 s, gate on Submit) |
-| V12 | Vision self-heal experiment (Muse-first, SAM fallback) | **CUT - 5/12 (41.7%) < 70%**; `eval/vision_heal_results.json`; DOM multi-locator self-heal stays primary |
+| V12 | Vision self-heal experiment (Muse-first, SAM fallback) | **KEPT - 15/16 (93.8%) >= 70%**; `eval/vision_heal_results.json`, `eval/RESULTS.md` §3; DOM multi-locator stays primary, vision fallback active on mutated/hostile UI |
 | V13 | Safety: injection defence + allowlist + credentials masked | `demo_sites/hostile/`; `test_injection_page_text_cannot_change_goal` |
 | V14 | Docs | `docs/ARCHITECTURE.md`, `docs/USAGE.md`, `README.md` (v2 + tour + vision-heal + launch video) |
+| V15 | Health & model disclosures | `/api/v2/health` discloses agent model, browser, allowlist, and active healers (`MuseVisionHealer`, `SamVisionHealer`) |
+| V16 | Gated healed actions | `stepproof/agent/executor.py`: visual groundings re-classify visible label at clicked point against irreversible/external hints; unresolvable labels escalate |
+| V17 | Mask evidence overlay & dynamic tracking | `meta_sam_parser` composites one-bit masks onto screenshots in `data/evidence/`; zero-shot video tracking in `/api/v2/tracking/demo` + UI |
 
 ## W. Launch video (/brag)
 | # | Item | Status |
@@ -79,6 +82,6 @@ Status 2026-10-31 (end of day): live API access is confirmed and working (B1-B3 
 |---|---|
 | X1 | Condition A (goal-only agent) is live/rate-limited; when the API is down the harness marks it `SKIPPED` and discloses it - never report a number we did not run. |
 | X2 | Efficiency claims are **learned-procedure vs the recorded human demo only** - we do not claim a win against an unrecorded baseline. |
-| X3 | Vision self-heal is reported as a **negative result** (41.7% < 70%, cut); it is not presented as a working feature. |
+| X3 | Vision self-heal is honestly measured and reported (**15/16 = 93.8%**, Muse 15/16, SAM 7/16 on mutated UI); failures are fully documented in `eval/RESULTS.md` §3; DOM multi-locator self-heal remains the primary path, vision is the fallback when selectors mutate. |
 | X4 | Tour approval/takeover clicks: interactive mode waits for a real human; unattended/auto mode labels itself in the trace. |
 | X5 | `live_agent_trace.json` and tour records are dated; replayed ones carry a `REPLAY <date>` label and are not live runs. |
