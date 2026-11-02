@@ -261,10 +261,14 @@ def main() -> None:
     import os
     os.chdir(DEMO)
     socketserver.TCPServer.allow_reuse_address = True
-    httpd = socketserver.TCPServer(("127.0.0.1", PORT),
-                                   lambda *a, **k: http.server.SimpleHTTPRequestHandler(*a, directory=str(DEMO), **k))
-    threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    time.sleep(0.4)
+    httpd = None
+    try:
+        httpd = socketserver.TCPServer(("127.0.0.1", PORT),
+                                       lambda *a, **k: http.server.SimpleHTTPRequestHandler(*a, directory=str(DEMO), **k))
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        time.sleep(0.4)
+    except OSError:
+        pass  # Port already bound (e.g. running uvicorn server)
 
     live = (not a.no_live) and _api_up()
     results = {"api_available": live, "runs_per_condition": a.runs, "tasks": {}}
@@ -367,7 +371,8 @@ def main() -> None:
                   f"overclaims={d.get('overclaims')}, tokens_over_N={_u.get('total_tokens') if _u else 0}, "
                   f"causes={d['causes'][:2]}")
     print("wrote eval/results_v2.json")
-    httpd.shutdown()
+    if httpd:
+        httpd.shutdown()
 
 
 if __name__ == "__main__":

@@ -12,13 +12,17 @@ DEMO = os.path.join(BASE, "demo_sites")
 
 
 def _serve():
-    socketserver.TCPServer.allow_reuse_address = True
-    httpd = socketserver.TCPServer(("127.0.0.1", 8011),
-                                   lambda *a, **k: http.server.SimpleHTTPRequestHandler(*a,
-                                                                                        directory=DEMO, **k))
-    threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    time.sleep(0.4)
-    return httpd
+    try:
+        socketserver.TCPServer.allow_reuse_address = True
+        httpd = socketserver.TCPServer(("127.0.0.1", 8011),
+                                       lambda *a, **k: http.server.SimpleHTTPRequestHandler(*a,
+                                                                                            directory=DEMO, **k))
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        time.sleep(0.4)
+        return httpd
+    except OSError:
+        # Port 8011 is already bound (e.g. uvicorn app is running)
+        return None
 
 
 def main() -> None:
@@ -48,7 +52,8 @@ def main() -> None:
         print("  [%-8s] %-20s -> %s" % (r["beat"], r["step"], show))
     print("recorded to:", getattr(tour, "records_path", None))
     tb.stop()
-    httpd.shutdown()
+    if httpd:
+        httpd.shutdown()
 
 
 if __name__ == "__main__":

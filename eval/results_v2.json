@@ -10,7 +10,7 @@
             "success": true,
             "error": "",
             "steps": 4,
-            "wall_s": 0.12,
+            "wall_s": 0.08,
             "approvals": 0,
             "checks": [
               {
@@ -48,15 +48,21 @@
         "runs": [
           {
             "condition": "human_demo",
-            "skipped": true,
-            "reason": "no recorded human baseline - run: python -m scripts.record_human_run --task expense_filed"
+            "success": true,
+            "steps": 4,
+            "wall_s": 2.2,
+            "error": "",
+            "approvals": 0,
+            "note": "genuinely recorded human run (scripts.record_human_run)",
+            "recorded_ts": "2026-11-02T22:26:31",
+            "headless": false
           }
         ],
-        "skipped": true,
-        "success": 0,
-        "of": 0,
-        "pass_at_1": 0.0,
-        "pass_pow_5": 0.0,
+        "skipped": false,
+        "success": 1,
+        "of": 1,
+        "pass_at_1": 1.0,
+        "pass_pow_5": 1.0,
         "overclaims": null,
         "usage": {
           "input_tokens": 0,
@@ -64,8 +70,8 @@
           "calls": 0,
           "total_tokens": 0
         },
-        "avg_steps": 0.0,
-        "avg_wall_s": 0.0,
+        "avg_steps": 4.0,
+        "avg_wall_s": 2.2,
         "avg_model_calls": null,
         "causes": []
       },
@@ -146,15 +152,21 @@
         "runs": [
           {
             "condition": "human_demo",
-            "skipped": true,
-            "reason": "no recorded human baseline - run: python -m scripts.record_human_run --task inventory_restock"
+            "success": true,
+            "steps": 3,
+            "wall_s": 0.1,
+            "error": "",
+            "approvals": 0,
+            "note": "genuinely recorded human run (scripts.record_human_run)",
+            "recorded_ts": "2026-11-02T22:26:32",
+            "headless": false
           }
         ],
-        "skipped": true,
-        "success": 0,
-        "of": 0,
-        "pass_at_1": 0.0,
-        "pass_pow_5": 0.0,
+        "skipped": false,
+        "success": 1,
+        "of": 1,
+        "pass_at_1": 1.0,
+        "pass_pow_5": 1.0,
         "overclaims": null,
         "usage": {
           "input_tokens": 0,
@@ -162,8 +174,8 @@
           "calls": 0,
           "total_tokens": 0
         },
-        "avg_steps": 0.0,
-        "avg_wall_s": 0.0,
+        "avg_steps": 3.0,
+        "avg_wall_s": 0.1,
         "avg_model_calls": null,
         "causes": []
       },
