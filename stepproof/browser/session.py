@@ -26,7 +26,9 @@ class TinyBrowser:
 
     def __init__(self, allowlist: set[str] | None = None,
                  user_data_dir: str | None = None) -> None:
-        self.allowlist = allowlist or {"localhost:8011", "localhost:8012"}
+        from stepproof import config as cfg
+        default_allow = {"localhost:8011", "localhost:8012"}.union(cfg.ALLOWED_HOSTS)
+        self.allowlist = allowlist if allowlist is not None else default_allow
         self.kill = threading.Event()
         self.last_shot: str = ""          # data URL (JPEG)
         self.url = "about:blank"

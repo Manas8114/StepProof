@@ -56,6 +56,19 @@ def test_start_site_refuses_off_allowlist(site_server):
     tb.stop()
 
 
+def test_public_host_on_allowlist():
+    """Task 15: Public practice site hosts are present on default allowlist; off-allowlist refused."""
+    from stepproof.browser import TinyBrowser
+    tb = TinyBrowser()
+    assert "the-internet.herokuapp.com" in tb.allowlist
+    assert "saucedemo.com" in tb.allowlist
+    r1 = tb.goto("http://evil.notallowed.example/x")
+    assert r1["ok"] is False and "refused" in r1["error"]
+    r2 = tb.start_site("http://evil.notallowed.example/x")
+    assert r2["ok"] is False and "refused" in r2["error"]
+    tb.stop()
+
+
 def test_selector_click_classified_like_name_click(site_server):
     """Code-first gate: a click addressed by selector must classify from the element's visible
     label (exactly like a name click); an unresolvable target escalates to a gate - never

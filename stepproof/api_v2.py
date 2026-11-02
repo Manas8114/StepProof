@@ -40,6 +40,7 @@ APP_PORT = int(os.getenv("STEPPROOF_V2_PORT", "8011"))
 # host:port parity: the app is reachable as both localhost:<port> and 127.0.0.1:<port>,
 # so both must be allowlisted or the same navigation is refused depending on host form
 ALLOW = {f"localhost:{APP_PORT}", f"127.0.0.1:{APP_PORT}"}
+ALLOW.update(cfg.ALLOWED_HOSTS)
 
 # ------------------------------------------------------------------ runtime state
 # the live companion uses a persistent profile (P0.1b real browser); eval/tests keep
@@ -183,10 +184,22 @@ class ProcRunIn(BaseModel):
 
 @app.get("/api/v2/health")
 def health_v2():
+    # AGENT_PROMPT rule 5: keep a model substitution VISIBLE - which model actually
+    # answers, and whether the 404 fallback was used, is reported here and never silent
+    _fell = bool(getattr(_model, "fell_back", False))
     return {"mode": cfg.PROVIDER_MODE, "agent_model": _model.name,
             "browser": "playwright-chromium", "allowlist": sorted(ALLOW),
             "states": ["IDLE", "PLANNING", "RUNNING", "PAUSED_HUMAN",
                         "AWAITING_APPROVAL", "DONE", "ERROR"],
+            "model": {
+                "primary": cfg.VISION_MODEL,
+                "active": getattr(_model, "active_model", cfg.VISION_MODEL),
+                "fallback_model": cfg.MUSE_FALLBACK_MODEL,
+                "fallback_used": _fell,
+                "disclosure": (f"{cfg.VISION_MODEL} unavailable (404) - "
+                               f"answering on {getattr(_model, 'active_model', cfg.MUSE_FALLBACK_MODEL)}"
+                               if _fell else "primary model"),
+            },
             "vision_selfheal": {
                 "enabled": bool(_vision_selfheal_fn is not None),
                 "flag": cfg.VISION_SELFHEAL,

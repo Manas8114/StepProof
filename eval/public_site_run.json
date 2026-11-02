@@ -1,0 +1,57 @@
+{
+  "timestamp": "2026-11-02 17:16:15",
+  "wall_time_s": 18.38,
+  "video_path": "C:\\Users\\msgok\\OneDrive\\Desktop\\Project\\Meta\\stepproof\\stepproof\\data\\videos\\public_website_demo.mp4",
+  "total_frames": 114,
+  "duration_s": 28.5,
+  "sites_tested": [
+    "https://the-internet.herokuapp.com/add_remove_elements/",
+    "https://the-internet.herokuapp.com/dynamic_loading/2",
+    "https://www.saucedemo.com"
+  ],
+  "records": [
+    {
+      "site": "https://the-internet.herokuapp.com/add_remove_elements/",
+      "step": "navigate",
+      "ok": true
+    },
+    {
+      "site": "https://the-internet.herokuapp.com/add_remove_elements/",
+      "step": "click_add",
+      "detail": "clicked 'Add Element'",
+      "ok": true
+    },
+    {
+      "site": "https://the-internet.herokuapp.com/add_remove_elements/",
+      "step": "check_delete_visible",
+      "passed": true
+    },
+    {
+      "site": "https://the-internet.herokuapp.com/add_remove_elements/",
+      "step": "click_delete",
+      "detail": "clicked button.added-manually",
+      "ok": true
+    },
+    {
+      "site": "https://the-internet.herokuapp.com/dynamic_loading/2",
+      "step": "navigate",
+      "ok": true
+    },
+    {
+      "site": "https://the-internet.herokuapp.com/dynamic_loading/2",
+      "step": "check_hello_world",
+      "passed": true
+    },
+    {
+      "site": "https://www.saucedemo.com",
+      "step": "fill_username",
+      "ok": true
+    },
+    {
+      "site": "https://www.saucedemo.com",
+      "step": "security_check",
+      "passed": true
+    }
+  ],
+  "all_passed": true
+}

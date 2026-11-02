@@ -20,7 +20,18 @@ SAM_MODEL = _e("SAM_MODEL", "sam-3.1")
 VISION_BASE_URL = _e("VISION_BASE_URL", META_BASE_URL)
 VISION_API_KEY = _e("VISION_API_KEY", MODEL_API_KEY)
 VISION_MODEL = _e("VISION_MODEL", "muse-spark-1.3")
+# 404 fallback: if the primary model is down/renamed/absent from a gateway, retry the
+# SAME call on this model and DISCLOSE the substitution (AGENT_PROMPT rule 5). Never silent.
+MUSE_FALLBACK_MODEL = _e("MUSE_FALLBACK_MODEL", "muse-spark-1.1")
 
 PROVIDER_MODE = _e("PROVIDER_MODE", "live")  # live | replay
 USE_CACHE = _e("STEPPROOF_CACHE", "1") == "1"
 VISION_SELFHEAL = _e("STEPPROOF_VISION_SELFHEAL", "0") == "1"
+
+PUBLIC_ALLOWED_HOSTS = {
+    "the-internet.herokuapp.com",
+    "saucedemo.com",
+    "www.saucedemo.com",
+    "demoqa.com",
+}
+ALLOWED_HOSTS = {h.strip() for h in _e("ALLOWED_HOSTS", "").split(",") if h.strip()}.union(PUBLIC_ALLOWED_HOSTS)
