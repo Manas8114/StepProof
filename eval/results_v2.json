@@ -30,6 +30,15 @@
         "skipped": false,
         "success": 1,
         "of": 1,
+        "pass_at_1": 1.0,
+        "pass_pow_5": 1.0,
+        "overclaims": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "calls": 0,
+          "total_tokens": 0
+        },
         "avg_steps": 4.0,
         "avg_wall_s": 0.1,
         "avg_model_calls": null,
@@ -50,6 +59,15 @@
         "skipped": false,
         "success": 1,
         "of": 1,
+        "pass_at_1": 1.0,
+        "pass_pow_5": 1.0,
+        "overclaims": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "calls": 0,
+          "total_tokens": 0
+        },
         "avg_steps": 5.0,
         "avg_wall_s": 42.0,
         "avg_model_calls": null,
@@ -66,10 +84,24 @@
         "skipped": true,
         "success": 0,
         "of": 0,
+        "pass_at_1": 0.0,
+        "pass_pow_5": 0.0,
+        "overclaims": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "calls": 0,
+          "total_tokens": 0
+        },
         "avg_steps": 0.0,
         "avg_wall_s": 0.0,
         "avg_model_calls": null,
         "causes": []
+      },
+      "learned_from_agent": {
+        "condition": "learned_from_agent",
+        "skipped": true,
+        "reason": "no successful goal-only trace to learn from (A skipped/failed)"
       }
     },
     "inventory_restock": {
@@ -80,7 +112,7 @@
             "success": true,
             "error": "",
             "steps": 3,
-            "wall_s": 0.08,
+            "wall_s": 0.09,
             "approvals": 0,
             "checks": [
               {
@@ -100,6 +132,15 @@
         "skipped": false,
         "success": 1,
         "of": 1,
+        "pass_at_1": 1.0,
+        "pass_pow_5": 1.0,
+        "overclaims": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "calls": 0,
+          "total_tokens": 0
+        },
         "avg_steps": 3.0,
         "avg_wall_s": 0.1,
         "avg_model_calls": null,
@@ -120,6 +161,15 @@
         "skipped": false,
         "success": 1,
         "of": 1,
+        "pass_at_1": 1.0,
+        "pass_pow_5": 1.0,
+        "overclaims": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "calls": 0,
+          "total_tokens": 0
+        },
         "avg_steps": 4.0,
         "avg_wall_s": 28.0,
         "avg_model_calls": null,
@@ -136,10 +186,24 @@
         "skipped": true,
         "success": 0,
         "of": 0,
+        "pass_at_1": 0.0,
+        "pass_pow_5": 0.0,
+        "overclaims": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "calls": 0,
+          "total_tokens": 0
+        },
         "avg_steps": 0.0,
         "avg_wall_s": 0.0,
         "avg_model_calls": null,
         "causes": []
+      },
+      "learned_from_agent": {
+        "condition": "learned_from_agent",
+        "skipped": true,
+        "reason": "no successful goal-only trace to learn from (A skipped/failed)"
       }
     }
   },

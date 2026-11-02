@@ -2,7 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make StepProof's v2 claims *true and measured* — fix the real safety/correctness holes found in self-review, wire in the citation-grounded metrics framework (usage, pass^k, learn-from-own-run, parametrised slots, no-safety baseline, overclaim rate), and replace the hardcoded "recorded human" baseline with a genuinely recorded one.
+**Goal:** Make StepProof's v2 claims *true and measured* — fix the real safety/correctness holes found in self-review, wire in the citation-grounded metrics framework (usage, pass^k, 
+
+learn-from-own-run, parametrised slots, no-safety baseline, overclaim rate), and replace the hardcoded "recorded human" baseline with a genuinely recorded one.
 
 **Architecture:** Four phases, each producing independently-runnable, tested software. Phase 1 makes the safety claims hold in code (they're what the README asserts and a judge can falsify). Phase 2 adds the measurement layer the "real talk" brief demands. Phase 3 records a real human run. Phase 4 packages the submission (docs, public site, demo beats, video). Order matters: you cannot honestly report metrics (P2) on a system whose safety claims are false (P1), and the human baseline (P3) feeds the efficiency table (P2/P4).
 

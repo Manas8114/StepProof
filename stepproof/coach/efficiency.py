@@ -7,6 +7,22 @@ import json
 from collections import Counter
 
 
+def _tool_of(a) -> str:
+    """Actions arrive two ways: full step dicts {"tool","args",...} (agent loop metrics)
+    or bare tool-name strings (executor healed-step metrics, tour snapshots). Normalize."""
+    return a.get("tool", "") if isinstance(a, dict) else str(a)
+
+
+def _url_of(a) -> object:
+    if not isinstance(a, dict) or _tool_of(a) != "goto":
+        return None
+    args = a.get("args")
+    if isinstance(args, dict) and "url" in args:
+        return args["url"]
+    return a.get("url")
+
+
+
 def run_detectors(metrics: dict, human_demo: dict | None = None) -> list[dict]:
     out: list[dict] = []
     actions = metrics.get("actions", [])
@@ -18,12 +34,13 @@ def run_detectors(metrics: dict, human_demo: dict | None = None) -> list[dict]:
     for i in range(1, n):
         a, b = actions[i - 1], actions[i]
         if a == b:
-            out.append(_msg("repeated action", f"{a} issued twice in a row (step {i})",
+            label = json.dumps(b) if isinstance(b, dict) else b
+            out.append(_msg("repeated action", f"{label} issued twice in a row (step {i})",
                            "1 step", "low", "drop the duplicate"))
             break
 
-    # 2. redundant navigation: same URL visited more than once
-    urls = [a for a in actions if a.get("tool") == "goto"]
+    # 2. redundant navigation: same URL visited more than once (needs dict actions with args)
+    urls = [u for u in (_url_of(a) for a in actions) if u is not None]
     if len(urls) > 1:
         c = Counter(json.dumps(u, sort_keys=True) for u in urls)
         dup = [v for v in c.values() if v > 1]
@@ -32,7 +49,7 @@ def run_detectors(metrics: dict, human_demo: dict | None = None) -> list[dict]:
                            f"{sum(dup) - 1} step", "low", "skip the repeated goto"))
 
     # 3. avoidable wait: consecutive wait actions
-    waits = sum(1 for a in actions if a.get("tool") == "wait")
+    waits = sum(1 for a in actions if _tool_of(a) == "wait")
     if waits > 2:
         out.append(_msg("avoidable wait", f"{waits} wait steps", "1-2 steps", "low", "merge or drop waits"))
 

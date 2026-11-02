@@ -24,8 +24,8 @@ button{cursor:pointer}textarea,input,select{width:100%;background:#0c1113;border
 label{display:block;color:var(--mut);font-size:12px;margin:8px 0 3px}
 #stage{position:relative;background:#000;border-radius:8px;overflow:hidden;aspect-ratio:1024/640}
 #stage img{width:100%;height:100%;object-fit:contain;display:block}
-#stage .chip{position:absolute;top:8px;left:8px;background:#0009;padding:3px 8px;border-radius:6px;font-size:11px}
-#state{position:absolute;top:8px;right:8px;padding:3px 9px;border-radius:6px;font-weight:700;font-size:12px}
+#stage .chip{position:absolute;top:8px;left:8px;background:#0009;padding:3px 8px;border-radius:6px;font-size:11px;pointer-events:none}
+#state{position:absolute;top:8px;right:8px;padding:3px 9px;border-radius:6px;font-weight:700;font-size:12px;pointer-events:none}
 .state-RUNNING{background:var(--ok)} .state-PLANNING{background:var(--acc)}
 .state-PAUSED_HUMAN{background:var(--warn)} .state-AWAITING_APPROVAL{background:var(--warn)}
 .state-DONE{background:var(--ok)} .state-ERROR{background:var(--err)}
@@ -34,6 +34,11 @@ label{display:block;color:var(--mut);font-size:12px;margin:8px 0 3px}
 .evt{border-left:2px solid var(--line);padding:3px 8px;margin:3px 0;font-size:12px}
 .evt b{color:var(--acc)}
 #events{max-height:360px;overflow:auto}
+.urlbar{display:flex;gap:5px;margin:8px 0}
+.urlbar input{flex:1;min-width:0}
+.urlbar button{background:#223034;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:6px 10px}
+#errbanner{background:#2a1616;border:1px solid var(--err);border-radius:8px;padding:8px;margin:8px 0;font:12px/1.4 ui-monospace,monospace;white-space:pre-wrap}
+#loading{position:absolute;bottom:8px;left:8px;background:#000c;padding:3px 8px;border-radius:6px;font-size:11px;pointer-events:none}
 .btnrow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
 .btnrow button{background:#223034;border:1px solid var(--line);color:var(--ink);padding:6px 10px;border-radius:6px}
 .btnrow button.primary{background:var(--acc);color:#04121e;font-weight:700;border-color:var(--acc)}
@@ -72,7 +77,7 @@ input[type=range]{accent-color:var(--acc)}
         <option value="/site/expense">Expense claim</option>
         <option value="/site/inventory">Inventory ledger</option>
       </select>
-      <button class="btnrow" style="padding:6px 10px;background:#223034;border:1px solid var(--line);color:var(--ink);border-radius:6px;width:100%;margin-top:8px" id="mrec" style="width:100%">● Start recording</button>
+      <button class="btnrow" id="mrec" style="width:100%">● Start recording</button>
       <p class="note">Click the browser below to record actions. Narrate each step (optional):</p>
       <label>Narration</label><input id="mnar" placeholder="why are you doing this step?">
       <label>Goal (compile into a Procedure)</label><input id="mgoal" placeholder="e.g. File an Acme office expense of $42">
@@ -122,8 +127,17 @@ input[type=range]{accent-color:var(--acc)}
       <img id="shot" alt="browser view">
       <span class="chip" id="url">—</span>
       <span id="state" class="state-IDLE">IDLE</span>
+      <span id="loading" class="chip hide" style="top:auto;bottom:8px;left:8px">loading…</span>
+    </div>
+    <div class="urlbar">
+      <button id="navback" title="Back (history, allowlist-verified)">←</button>
+      <input id="urlinput" value="" placeholder="URL (allowlist-gated)" aria-label="address">
+      <button id="navforward" title="Forward (history, allowlist-verified)">→</button>
+      <button id="navgo" title="Navigate (allowlist-gated)">Go</button>
+      <button id="navreload" title="Reload">⟳</button>
     </div>
     <div class="btnrow"><button id="fresh">Refresh view</button><span class="note">In PAUSED_HUMAN, clicks/keys here forward to the page.</span></div>
+    <div id="errbanner" class="hide"></div>
     <div id="gate" class="gate hide"></div>
     <div id="ask" class="gate hide"></div>
   </div>
@@ -140,8 +154,9 @@ input[type=range]{accent-color:var(--acc)}
 </main>
 <script>
 const $=s=>document.querySelector(s);
-const api=async(p,o)=>{const r=await fetch(p,o);if(!r.ok)throw new Error(r.status+" "+(await r.text()).slice(0,200));return r.json();};
-const japi=p=>api(p,{method:'POST',headers:{'Content-Type':'application/json'}});
+const api=async(p,o)=>{const r=await fetch(p,o);if(!r.ok){const t=await r.text();throw new Error(r.status+" "+t.slice(0,200));}return r.json();};
+const japi=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:b!==undefined?JSON.stringify(b):undefined});
+function err(msg){const b=$('#errbanner');b.textContent=''+msg;b.classList.remove('hide');clearTimeout(err._t);err._t=setTimeout(()=>b.classList.add('hide'),8000);}
 let mode='monitor', recording=false, lastShot=null;
 
 // health
@@ -167,7 +182,7 @@ function onEvent(ev){
 function addEvt(ev){
   if(ev.type==='tour_beat'){banner('TOUR · '+ev.data.label,'acc');return;}
   if(ev.type==='tour_replay_start'){banner(ev.data.label+' — replayed offline, no live model calls','acc');return;}
-  if(ev.type==='tour_done'){banner('Tour finished'+(ev.data.replay?' (replay)':' — recorded '+ev.data.date'),'ok');return;}
+  if(ev.type==='tour_done'){banner('Tour finished'+(ev.data.replay?' (replay)':' — recorded '+ev.data.date),'ok');return;}
   const d=document.createElement('div');d.className='evt';
   let body=JSON.stringify(ev.data).slice(0,90);
   if(ev.type==='tour_step'&&ev.data.step) body='▶ '+ev.data.step+(ev.data.replay?' (replay)':'');
@@ -177,27 +192,55 @@ function banner(msg,cls){const b=$('#tourlabel');b.textContent=msg;b.className='
 function setState(s){const el=$('#state');el.textContent=s;el.className='state-'+s;
   if(s==='DONE'||s==='ERROR')refreshMetrics();}
 
-// ---- screenshot polling ----
+// ---- screenshot polling + URL bar / loading state (P0.1b real browser) ----
 async function pollShot(){try{const s=await api('/api/v2/browser/shot');lastShot=s.screenshot;
-  $('#shot').src=lastShot;$('#url').textContent=s.url;}catch(e){}}
+  $('#shot').src=lastShot;$('#url').textContent=s.url;
+  if(document.activeElement!==$('#urlinput'))$('#urlinput').value=s.url||'';
+  const ld=$('#loading');ld.classList.toggle('hide',!s.loading);}catch(e){}}
 setInterval(pollShot,2000);pollShot();
-$('#fresh').onclick=pollShot;
+$('#fresh').onclick=async()=>{
+  let chip=$('#freshstatus');
+  if(!chip){
+    chip=document.createElement('span');
+    chip.id='freshstatus';
+    chip.className='note';
+    $('#fresh').parentNode.appendChild(chip);
+  }
+  chip.textContent=' • refreshed '+new Date().toLocaleTimeString();
+  await pollShot();
+};
+
+// URL bar: back / forward / reload / go - each server-verified against the allowlist
+async function nav(op,url){try{const r=await japi('/api/v2/browser/nav',{op:op,url:url||''});
+  if(r&&r.error)err(r.error);await pollShot();}catch(e){err(e.message);}}
+$('#navback').onclick=()=>nav('back');
+$('#navforward').onclick=()=>nav('forward');
+$('#navreload').onclick=()=>nav('reload');
+$('#navgo').onclick=()=>{const u=$('#urlinput').value.trim();if(u)nav('goto',u);};
+$('#urlinput').addEventListener('keydown',e=>{if(e.key==='Enter')nav('goto',$('#urlinput').value.trim());});
 
 // ---- monitor: start browser + record ----
+// every control either acts or shows WHY (no silent no-ops): failures surface in #errbanner
 $('#mrec').onclick=async()=>{
-  recording=!recording;
-  $('#mrec').textContent=recording?'● Recording — click the live view to capture actions':'● Start recording';
-  await japi('/api/v2/browser/start',{site:{site:$('#msite').value}});
-  await japi('/api/v2/monitor/start',{site:{site:$('#msite').value}});
+  try{
+    recording=!recording;
+    $('#mrec').textContent=recording?'● Recording — click the live view to capture actions':'● Start recording';
+    const b=await japi('/api/v2/browser/start',{site:$('#msite').value});   // flat SiteIn payload
+    if(b&&b.error)return err('browser start: '+b.error);
+    await japi('/api/v2/monitor/start',{site:$('#msite').value});
+    await pollShot();
+  }catch(e){err('record: '+e.message);if(recording)$('#mrec').textContent='● Start recording';}
 };
 $('#shot').onclick=async(e)=>{
   if(!recording||mode!=='monitor')return;
   const img=e.target,r=img.getBoundingClientRect(),sx=img.naturalWidth/r.width,sy=img.naturalHeight/r.height;
   const x=Math.round((e.clientX-r.left)*sx),y=Math.round((e.clientY-r.top)*sy);
-  const el=await api(`/api/v2/browser/element-at?x=${x}&y=${y}`).catch(()=>({locators:[] }));
-  const locs=el.locators&&el.locators.length?el.locators:[{kind:'box',value:`${x},${y}` }];
-  const rec=await japi('/api/v2/monitor/record',{tool:'click',locators:locs,narration:$('#mnar').value});
-  addEvt({type:'rec',data:rec});$('#mnar').value='';
+  try{
+    const el=await api(`/api/v2/browser/element-at?x=${x}&y=${y}`).catch(()=>({locators:[]}));
+    const locs=el.locators&&el.locators.length?el.locators:[{kind:'box',value:`${x},${y}` }];
+    const rec=await japi('/api/v2/monitor/record',{tool:'click',locators:locs,narration:$('#mnar').value});
+    addEvt({type:'rec',data:rec});$('#mnar').value='';
+  }catch(e2){err('record click: '+e2.message);}
 };
 
 // ---- compile / save / run learned ----
@@ -216,10 +259,35 @@ $('#mrun').onclick=async()=>{const r=await japi('/api/v2/procedure/run',{name:'l
     expected_saving:'n/a',risk:'low',apply:''}]);refreshMetrics();};
 
 // ---- execute: agent ----
-$('#xstart').onclick=async()=>{await japi('/api/v2/agent/run',{goal:$('#xgoal').value,site:$('#xsite').value});};
-$('#xpause').onclick=async()=>{await japi('/api/v2/agent/pause');};
-$('#xresume').onclick=async()=>{await japi('/api/v2/agent/resume',{});};
-$('#xkill').onclick=async()=>{await japi('/api/v2/agent/kill');};
+$('#xstart').onclick=async()=>{
+  try{
+    const r=await japi('/api/v2/agent/run',{goal:$('#xgoal').value,site:$('#xsite').value});
+    if(r.error)return err('agent run: '+r.error);
+    setState(r.state||'RUNNING');
+    addEvt({type:'agent_start',data:{goal:$('#xgoal').value}});
+  }catch(e){err('agent start: '+e.message);}
+};
+$('#xpause').onclick=async()=>{
+  try{
+    const r=await japi('/api/v2/agent/pause');
+    if(r.state)setState(r.state);
+    addEvt({type:'pause',data:r});
+  }catch(e){err('pause: '+e.message);}
+};
+$('#xresume').onclick=async()=>{
+  try{
+    const r=await japi('/api/v2/agent/resume',{});
+    if(r.state)setState(r.state);
+    addEvt({type:'resume',data:r});
+  }catch(e){err('resume: '+e.message);}
+};
+$('#xkill').onclick=async()=>{
+  try{
+    const r=await japi('/api/v2/agent/kill');
+    setState('ERROR');
+    addEvt({type:'kill',data:r});
+  }catch(e){err('kill: '+e.message);}
+};
 
 // takeover: forward input to live page while paused
 $('#shot').addEventListener('click',()=>{}); // handled above in monitor; execute uses buttons below
@@ -247,7 +315,7 @@ async function refreshMetrics(){try{const s=await api('/api/v2/agent/state');con
   $('#metrics').innerHTML=['steps:'+m.steps,'wall:'+m.wall_s+'s','model calls:'+m.model_calls,
     'takeovers:'+m.takeovers,'approvals:'+m.approvals].join('<br>');}catch(e){}}
 $('#cgo').onclick=async()=>{const c=await api(`/api/v2/coach?human_steps=${$('#hsteps').value}&human_time=${$('#hwall').value}`);
-  showSugg('compare',c.deterministic);$('#cbox').innerHTML=renderCompare(c.compare)+'<div>'+renderSugg(c.spoken)</div>';};
+  showSugg('compare',c.deterministic);$('#cbox').innerHTML=renderCompare(c.compare)+'<div>'+renderSugg(c.spoken)+'</div>';};
 function renderCompare(cmp){if(!cmp)return'';return `<h2>Agent vs human</h2>
   <div class="sugg"><div class="row"><span>Agent</span><span class="tag">${cmp.agent.steps} steps · ${cmp.agent.model_calls} calls</span></div>
   <div class="row"><span>Human</span><span class="tag">${cmp.human.steps??'—'} steps</span></div>

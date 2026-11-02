@@ -9,20 +9,30 @@ Page content is untrusted: it can never change the allowlist, goal or safety rul
 from __future__ import annotations
 import base64, queue, re, threading
 from concurrent.futures import Future
+from pathlib import Path
+from urllib.parse import urljoin
 from .. import events
 
 _SHOT_Q = 70
 
 
 class TinyBrowser:
-    """Wraps one headless Chromium page with a worker thread and a command queue."""
+    """Wraps one headless Chromium page with a worker thread and a command queue.
 
-    def __init__(self, allowlist: set[str] | None = None) -> None:
+    `user_data_dir` (optional) gives the browser a persistent profile (the live
+    companion, UNIBOT P0.1b); tests and eval harnesses use an ephemeral one so
+    concurrent instances don't contend on the profile lock.
+    """
+
+    def __init__(self, allowlist: set[str] | None = None,
+                 user_data_dir: str | None = None) -> None:
         self.allowlist = allowlist or {"localhost:8011", "localhost:8012"}
         self.kill = threading.Event()
         self.last_shot: str = ""          # data URL (JPEG)
         self.url = "about:blank"
         self.title = ""
+        self.loading = False             # page not yet finished loading (URL-bar state)
+        self._profile = user_data_dir
         self._worker = threading.Thread(target=self._run_worker, daemon=True)
         self._cmd: queue.Queue[tuple[str, object, Future]] = queue.Queue()
         self._done = threading.Event()
@@ -30,18 +40,50 @@ class TinyBrowser:
 
     # ---- public API (thread-safe: everything goes through the worker) ----
 
-    def start_site(self, url: str) -> dict:
-        """Alias for `goto` (allowlist-gated). Every nav path refuses off-allowlist hosts."""
-        return self.goto(url)
+    def start_site(self, url: str, base: str | None = None) -> dict:
+        """Alias for `goto` (allowlist-gated). Every nav path refuses off-allowlist hosts.
+        Relative paths ('/site/expense') are resolved against `base` so the UI's relative
+        values don't trip the gate with an empty host."""
+        return self.goto(url, base=base)
 
-    def goto(self, url: str) -> dict:
+    def goto(self, url: str, base: str | None = None) -> dict:
         """Allowlist-gated navigation. Refused (and explained) when the host is not allowed."""
+        url = _absolutize(url, base)
         host = _host_of(url)
         if host not in self.allowlist:
             return {"ok": False, "error": f"refused: host {host!r} not on the allowlist"}
         r = self._call("goto", url)
         self._after_nav()
         return r
+
+    # ---- URL-bar navigation (P0.1b): back/forward/reload + loading state.
+    # Every history op re-verifies the result against the allowlist: the UI's URL bar can
+    # only move within allowed hosts; an off-allowlist landing is refused, not followed.
+
+    def go_back(self) -> dict:
+        r = self._call("back", None)
+        self._after_nav()
+        return self._verify_on_allowlist()
+
+    def go_forward(self) -> dict:
+        r = self._call("forward", None)
+        self._after_nav()
+        return self._verify_on_allowlist()
+
+    def reload(self) -> dict:
+        r = self._call("refresh", None)
+        self._after_nav()
+        return {"ok": True, "url": self.url}
+
+    def _verify_on_allowlist(self) -> dict:
+        """After a history op, the page may have landed off-allowlist (a back/forward into
+        a saved off-allowlist entry). Refuse it: report + navigate back to about:blank."""
+        host = _host_of(self.url)
+        if host and host not in self.allowlist:
+            self._call("goto", "about:blank")
+            self._after_nav()
+            return {"ok": False, "error": f"refused: host {host!r} not on the allowlist"}
+        return {"ok": True, "url": self.url}
 
     def act(self, op: str, arg: object = None) -> object:
         """Run a low-level page op on the worker thread (actions/agent use this)."""
@@ -89,14 +131,44 @@ class TinyBrowser:
         self._cmd.put((op, arg, fut))
         return fut.result(timeout=120)
 
+    def _navigate(self, p, url: str) -> None:
+        """Navigate with a visible loading state (URL bar) + the password mask re-applied
+        on the new document (the model never sees a typed credential)."""
+        self.loading = True
+        try:
+            p.goto(url, wait_until="load")
+            p.add_style_tag(content="input[type=password]{display:none!important}")
+        finally:
+            self.loading = False
+
+    def _wait_load(self, p) -> None:
+        """best-effort settle wait for history ops; the UI's loading chip reflects this."""
+        try:
+            p.wait_for_load_state("load", timeout=5000)
+        except Exception:
+            pass
+
     def _run_worker(self) -> None:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as pw:
-            self._browser = pw.chromium.launch(headless=True)
-            ctx = self._browser.new_context(viewport={"width": 1024, "height": 640})
-            self._page = ctx.new_page()
+            # real browser (P0.1b): persistent profile when given (the live companion),
+            # ephemeral for eval/tests so concurrent instances don't fight for the lock
+            launch = dict(headless=True)
+            if self._profile:
+                Path(self._profile).mkdir(parents=True, exist_ok=True)
+                ctx = pw.chromium.launch_persistent_context(self._profile, headless=True,
+                                                            viewport={"width": 1024, "height": 640},
+                                                            accept_downloads=False)  # downloads blocked by default
+                self._browser = None
+                self._page = ctx.pages[0] if ctx.pages else ctx.new_page()
+            else:
+                self._browser = pw.chromium.launch(**launch)
+                ctx = self._browser.new_context(viewport={"width": 1024, "height": 640},
+                                                accept_downloads=False)
+                self._page = ctx.new_page()
             # dialog guard: never let a page's dialog block the worker; use approval gates instead
             self._page.on("dialog", lambda d: d.dismiss())
+            self._page.on("download", lambda d: d.cancel())
             self._page.goto("about:blank")
             self._page.add_style_tag(content="input[type=password]{display:none!important}")
             while True:
@@ -108,17 +180,22 @@ class TinyBrowser:
                         fut.set_result(self._do(op, arg))
                     except Exception as e:
                         fut.set_exception(e)
-            self._browser.close()
+            (self._browser or ctx).close()
         self._done.set()
 
     def _do(self, op: str, arg) -> object:
         p = self._page
         if op == "goto":
-            p.goto(str(arg), wait_until="load")
-            # keep passwords out of screenshots on the NEW document too (the initial
-            # style tag lives on about:blank only): the model never sees a typed credential
-            p.add_style_tag(content="input[type=password]{display:none!important}")
+            self._navigate(p, str(arg))
             return {"ok": True, "url": p.url}
+        if op == "back":
+            p.go_back()
+            self._wait_load(p)
+            return {"ok": True}
+        if op == "forward":
+            p.go_forward()
+            self._wait_load(p)
+            return {"ok": True}
         if op == "shot":
             shot = p.screenshot(type="jpeg", quality=_SHOT_Q)
             return ("data:image/jpeg;base64," + base64.b64encode(shot).decode()), p.url, p.title()
@@ -144,7 +221,12 @@ class TinyBrowser:
             p.click(arg["selector"], force=True)
             return {"ok": True}
         if op == "refresh":
-            p.reload()
+            self.loading = True
+            try:
+                p.reload()
+                p.add_style_tag(content="input[type=password]{display:none!important}")
+            finally:
+                self.loading = False
             return {"ok": True}
         if op == "eval":
             return p.evaluate(str(arg["expr"]))
@@ -184,3 +266,14 @@ def _host_of(url: str) -> str:
     if not m:
         return ""
     return f"{m.group(1).lower()}:{m.group(2)}" if m.group(2) else m.group(1).lower()
+
+
+def _absolutize(url: str, base: str | None) -> str:
+    """Turn a relative site path ('/site/expense') into an absolute URL against `base` so
+    the allowlist gate sees a real host instead of an empty one. Scheme-less values that
+    still don't parse are left as-is (the gate will refuse them with an empty host)."""
+    if re.match(r"^[a-z][a-z0-9+.-]*://", url, re.I):
+        return url
+    if base and url.startswith("/"):
+        return urljoin(base, url)
+    return url

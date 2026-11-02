@@ -51,7 +51,11 @@ class Tour:
             ])
         else:
             self._takeover_model = model
-        self.site = site_base
+        base = site_base.rstrip("/")
+        for suffix in ("/expense", "/inventory", "/hostile", "/mutated"):
+            if base.endswith(suffix):
+                base = base[:-len(suffix)].rstrip("/")
+        self.site = base
         self.records: list[dict] = []
         self._beats: list[str] = []
         self._human = threading.Event()   # set when a real human has completed the takeover

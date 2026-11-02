@@ -79,6 +79,7 @@ class AgentLoop:
     # ---- control surface (called from the API/UI) ----
 
     def start(self, goal: str) -> None:
+        self.browser.kill.clear()
         self.goal = goal
         self.log = RunLog()
         self.history = []

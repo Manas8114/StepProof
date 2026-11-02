@@ -13,7 +13,7 @@ from __future__ import annotations
 import json, threading
 from pathlib import Path
 from typing import Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -31,14 +31,46 @@ from .proc import Procedure
 from .events import BUS
 from demo import Tour, replay as tour_replay, TOUR_DIR
 
+import os
 BASE = Path(__file__).parent.parent
 DEMO = BASE / "demo_sites"
-APP_PORT = 8011
-ALLOW = {f"localhost:{APP_PORT}"}
+# env-parametrized so the button audit can boot an isolated instance on 8012 alongside
+# a running companion (spec P0.1a: the audit is part of the default test run)
+APP_PORT = int(os.getenv("STEPPROOF_V2_PORT", "8011"))
+# host:port parity: the app is reachable as both localhost:<port> and 127.0.0.1:<port>,
+# so both must be allowlisted or the same navigation is refused depending on host form
+ALLOW = {f"localhost:{APP_PORT}", f"127.0.0.1:{APP_PORT}"}
 
 # ------------------------------------------------------------------ runtime state
-_browser = TinyBrowser(allowlist=ALLOW)
-_model = MuseAgentModel()
+# the live companion uses a persistent profile (P0.1b real browser); eval/tests keep
+# ephemeral contexts (no profile-lock contention between concurrent instances)
+_PROFILE = os.getenv("STEPPROOF_BROWSER_PROFILE", str(cfg.DATA_DIR / "browser_profile"))
+_browser = TinyBrowser(allowlist=ALLOW, user_data_dir=_PROFILE)
+if os.getenv("STEPPROOF_TEST_MODEL") == "1":
+    from .agent.model import Action
+    class _TestAuditModel:
+        name = "scripted (audit)"
+        def __init__(self):
+            self.calls = 0
+            self.usage = {"input_tokens": 0, "output_tokens": 0, "calls": 0}
+        def decide(self, goal, obs_text, screenshot, history, extra=None):
+            self.calls += 1
+            steps = [h for h in history if h.get("tool") not in ("human_note", "wait")]
+            n = len(steps)
+            if n == 0:
+                return Action("type", {"selector": "#vendor", "text": "Acme"})
+            if n == 1:
+                return Action("type", {"selector": "#amount", "text": "42"})
+            if n == 2:
+                return Action("select", {"selector": "#category", "value": "office"})
+            if n == 3:
+                return Action("click", {"selector": "#submit"})
+            return Action("finish", {"summary": "done"})
+        def suggest(self, run_metrics, goal):
+            return {"what": "redundant navigation detected", "why": "metrics", "expected_saving": "1 step", "risk": "low", "apply": ""}
+    _model = _TestAuditModel()
+else:
+    _model = MuseAgentModel()
 _agent = AgentLoop(_browser, _model, Budgets())
 _recorder = Recorder(_browser)
 _voice = VoiceCompanion()
@@ -47,12 +79,22 @@ _tour = Tour(_browser, _model, _recorder, execute_procedure,
              mode="interactive", site_base=f"http://localhost:{APP_PORT}")
 
 app = FastAPI(title="StepProof v2")
-for name in ("expense", "inventory", "hostile"):
-    app.mount(f"/site/{name}", StaticFiles(directory=DEMO / name, html=True), name=name)
+for name in ("expense", "inventory", "hostile", "mutated"):
+    p = DEMO / name
+    if p.exists():
+        app.mount(f"/site/{name}", StaticFiles(directory=p, html=True), name=f"site_{name}")
+        app.mount(f"/{name}", StaticFiles(directory=p, html=True), name=f"root_{name}")
+
 
 
 class GoalIn(BaseModel):
     goal: str
+    site: str = f"http://localhost:{APP_PORT}/site/expense"
+
+
+class SiteIn(BaseModel):
+    """A site to open (no goal): relative paths are resolved against the request origin,
+    and the allowlist gate still applies - a relative path must not escape the sandbox."""
     site: str = f"http://localhost:{APP_PORT}/site/expense"
 
 
@@ -112,15 +154,46 @@ def event_stream():
     return EventSourceResponse(gen())
 
 
+def _abs_site(site: str, request: Request) -> str:
+    """Resolve a UI-relative site ('/site/expense') against the request origin so the
+    allowlist gate sees a real host; absolute values pass through unchanged."""
+    import re as _re
+    if _re.match(r"^[a-z][a-z0-9+.-]*://", site, _re.I) or site.startswith("about:"):
+        return site
+    if site.startswith("/"):
+        return str(request.base_url).rstrip("/") + site
+    return site
+
+
 @app.post("/api/v2/browser/start")
-def browser_start(site: GoalIn):
-    r = _browser.start_site(site.site)
+def browser_start(site: SiteIn, request: Request):
+    r = _browser.start_site(_abs_site(site.site, request), base=str(request.base_url))
     return {"ok": bool(r.get("ok")), "url": _browser.url}
+
+
+class NavIn(BaseModel):
+    op: str      # goto | back | forward | reload
+    url: str = ""
+
+
+@app.post("/api/v2/browser/nav")
+def browser_nav(body: NavIn):
+    """URL-bar navigation (P0.1b). Every op is allowlist-gated: goto through the gated
+    `goto`; back/forward re-verify the landing URL and refuse off-allowlist history."""
+    if body.op == "goto":
+        r = _browser.goto(body.url)
+        return {**r, "url": _browser.url}
+    fn = {"back": _browser.go_back, "forward": _browser.go_forward, "reload": _browser.reload}
+    if body.op not in fn:
+        raise HTTPException(400, f"unknown nav op {body.op!r}")
+    r = fn[body.op]()
+    return {**r, "url": _browser.url}
 
 
 @app.get("/api/v2/browser/shot")
 def browser_shot():
-    return {"screenshot": _browser.take_screenshot(), "url": _browser.url, "title": _browser.title}
+    return {"screenshot": _browser.take_screenshot(), "url": _browser.url,
+            "title": _browser.title, "loading": _browser.loading}
 
 
 class PointIn(BaseModel):
@@ -157,7 +230,10 @@ def browser_input(body: InputIn):
 
 
 @app.post("/api/v2/agent/run")
-def agent_run(site: GoalIn):
+def agent_run(site: GoalIn, request: Request):
+    r = _browser.start_site(_abs_site(site.site, request), base=str(request.base_url))
+    if not r.get("ok"):
+        return {"state": "IDLE", "goal": site.goal, "error": r.get("error", "browser start failed")}
     _agent.start(site.goal)
     return {"state": "RUNNING", "goal": site.goal}
 
@@ -201,8 +277,8 @@ def agent_state():
 # ------------------------------------------------------------------ monitor + execute
 
 @app.post("/api/v2/monitor/start")
-def monitor_start(site: GoalIn):
-    _recorder.start(site.site)
+def monitor_start(site: SiteIn, request: Request):
+    _recorder.start(_abs_site(site.site, request))
     return {"ok": True, "note": "perform the task; narrate via /monitor/narrate"}
 
 
@@ -258,7 +334,9 @@ def procedure_run(body: ProcRunIn):
         else:
             raise HTTPException(404, f"unknown procedure {body.name!r}")
     if proc.site:
-        _browser.start_site(proc.site)
+        r = _browser.start_site(proc.site)   # saved absolute URLs pass through; gate applies
+        if not r.get("ok"):
+            raise HTTPException(400, r.get("error", "procedure site refused"))
     res = execute_procedure(_browser, proc, approve_fn=lambda tool, args: body.approve)
     return {"success": res.success, "error": res.error, "metrics": res.metrics(),
             "checks": [{"name": c.name, "passed": c.passed, "detail": c.detail}
@@ -310,10 +388,11 @@ class TourIn(BaseModel):
 def tour_start(body: TourIn):
     """Kick off the 4-beat guided showcase on a thread; progress streams on /events."""
     global _tour
+    mode = "unattended" if os.getenv("STEPPROOF_TEST_MODEL") == "1" else "interactive"
     _tour = Tour(_browser, _model, _recorder, execute_procedure,
-                 mode="interactive", site_base=body.site)
+                 mode=mode, site_base=body.site)
     threading.Thread(target=_tour.run, daemon=True).start()
-    return {"started": True, "mode": "interactive",
+    return {"started": True, "mode": mode,
             "note": "watch /events; click Allow/Deny and Hand back as beats prompt you"}
 
 
