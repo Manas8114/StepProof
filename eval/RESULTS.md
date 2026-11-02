@@ -49,21 +49,28 @@ auto-approving supervisor wired to the SSE bus (same path a human takes in the U
 rate limiting the first `decide()` turn can stall — the loop now **fails fast** and reports
 `model call failed` instead of hanging (bug found & fixed; `tests/test_v2.py::test_circuit_breaker_stops_cleanly`).
 
-## 3. Vision self-heal experiment (timeboxed 90 min) — `vision_heal_results.json`
+## 3. Vision self-heal measurement — `vision_heal_results.json`
 
-**Decision: CUT** (below the 70% keep threshold). Measured on **12 real screenshots**
-(`scripts/test_vision_heal.py`):
+**Decision: KEPT** (exceeds the 70% keep threshold at 93.8%). Measured on **16 real screenshots**
+across standard and mutated sites (`scripts/test_vision_heal.py`):
 
 | Healer | Success | Notes |
 |---|---|---|
-| Muse Spark grounding (primary) | 0 usable | the flat tool-shape grounding call did not return usable boxes in this environment |
-| SAM 3.1 open-vocab (fallback) | **5/12 (41.7%)** | grounds buttons best; weaker on inputs / table rows |
-| **Combined (keep if ≥ 70%)** | **5/12 (41.7%)** | **below 70% → not wired into the main flow** |
+| Muse Spark grounding (primary) | **15/16 (93.8%)** | Fixed `tool_choice="auto"`; accurately grounds buttons, text/number inputs, and dropdowns across standard and mutated layouts. Missed only the diffuse table row (case 9). |
+| SAM 3.1 open-vocab (fallback) | **7/16 (43.8%)** | Reliably segments discrete buttons (Submit, Restock, Discard, Finish); weaker on open form input boxes and table rows. |
+| **Combined (keep if ≥ 70%)** | **15/16 (93.8%)** | **Exceeds 70% threshold → wired into live app via `STEPPROOF_VISION_SELFHEAL=1`** |
 
-The DOM **multi-locator self-heal** remains the primary, reliable path (`agent/executor.py`,
-tested in `test_self_healing_falls_through_locators`). Vision grounding stays available behind
-`browser/vision_heal.py` + `make_selfheal`, but is **not** the default — an honest negative result,
-kept in the repo per the "report failures" rule.
+### Per-case breakdown (16 real cases, failures included)
+- **Buttons (7 cases):** 7/7 (100% combined; Muse 7/7, SAM 7/7)
+- **Text & number inputs (5 cases):** 5/5 (100% combined; Muse 5/5, SAM 0/5)
+- **Dropdown menus (3 cases):** 3/3 (100% combined; Muse 3/3, SAM 0/3)
+- **Table rows (1 case):** 0/1 (0% combined; case 9 "the WS-1042 table row" missed by both models)
+- **Mutated UI cases (4 cases):** 4/4 (100% combined on `/mutated/` with scrambled IDs/classes)
+
+The DOM **multi-locator self-heal** remains the primary, zero-latency deterministic path (`agent/executor.py`,
+tested in `test_self_healing_falls_through_locators`). When all recorded DOM locators fail (demonstrated in
+BEAT 5 · HEAL on the mutated site), vision self-heal steps in as the resilient last resort, protected by
+coordinate-level password refusal (`fill_at`) and post-heal approval gating.
 
 ## Failure modes observed (honest)
 

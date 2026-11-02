@@ -45,6 +45,10 @@ CASES = [
     ("/hostile/", [], "the Finish task button", "#legit", "button"),
     ("/expense/", [("#vendor", "Acme"), ("#amount", "42")], "the Submit claim button", "#submit", "submit button"),
     ("/inventory/", [("#sku", "WS-1042")], "the Restock button", "#restock", "button"),
+    ("/mutated/", [], "the Vendor text input", "#grp-vendor input", "Vendor text input"),
+    ("/mutated/", [], "the Amount number input", "#grp-amount input", "Amount number input"),
+    ("/mutated/", [], "the Category dropdown menu", "#grp-category select", "Category dropdown menu"),
+    ("/mutated/", [], "the Submit claim button", "button[type='submit']", "Submit claim button"),
 ]
 
 

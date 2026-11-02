@@ -1,16 +1,16 @@
 {
-  "n_cases": 12,
+  "n_cases": 16,
   "muse": {
-    "success": 1.0,
-    "of": 12
+    "success": 0.938,
+    "of": 16
   },
   "sam": {
-    "success": null,
-    "of": 0
+    "success": 0.438,
+    "of": 16
   },
   "combined": {
-    "success": 1.0,
-    "of": 12
+    "success": 0.938,
+    "of": 16
   },
   "cut_threshold": 0.7,
   "per_case": [
@@ -25,20 +25,29 @@
       "muse": {
         "hit": true,
         "point": {
-          "x": 102,
-          "y": 441,
+          "x": 103,
+          "y": 413,
           "grounded_by": "muse",
           "box": {
-            "confidence": 0.95,
+            "confidence": 0.98,
             "h": 48,
             "w": 127,
-            "x": 39,
-            "y": 417
+            "x": 40,
+            "y": 389
           },
-          "conf": 0.95
+          "conf": 0.98
         }
       },
-      "sam": null
+      "sam": {
+        "hit": true,
+        "point": {
+          "x": 102,
+          "y": 410,
+          "grounded_by": "sam",
+          "conf": 0.8324607610702515,
+          "concept": "Submit claim button"
+        }
+      }
     },
     {
       "target": "the Vendor text input",
@@ -51,20 +60,23 @@
       "muse": {
         "hit": true,
         "point": {
-          "x": 365,
-          "y": 191,
+          "x": 361,
+          "y": 192,
           "grounded_by": "muse",
           "box": {
-            "confidence": 0.95,
+            "confidence": 0.98,
             "h": 45,
-            "w": 652,
+            "w": 645,
             "x": 39,
-            "y": 169
+            "y": 170
           },
-          "conf": 0.95
+          "conf": 0.98
         }
       },
-      "sam": null
+      "sam": {
+        "hit": false,
+        "point": null
+      }
     },
     {
       "target": "the category dropdown",
@@ -77,20 +89,23 @@
       "muse": {
         "hit": true,
         "point": {
-          "x": 377,
-          "y": 353,
+          "x": 366,
+          "y": 354,
           "grounded_by": "muse",
           "box": {
-            "confidence": 0.97,
+            "confidence": 0.98,
             "h": 42,
-            "w": 676,
+            "w": 655,
             "x": 39,
-            "y": 332
+            "y": 333
           },
-          "conf": 0.97
+          "conf": 0.98
         }
       },
-      "sam": null
+      "sam": {
+        "hit": false,
+        "point": null
+      }
     },
     {
       "target": "the Amount input",
@@ -103,20 +118,23 @@
       "muse": {
         "hit": true,
         "point": {
-          "x": 365,
-          "y": 274,
+          "x": 364,
+          "y": 273,
           "grounded_by": "muse",
           "box": {
             "confidence": 0.95,
-            "h": 47,
-            "w": 652,
+            "h": 44,
+            "w": 650,
             "x": 39,
             "y": 251
           },
           "conf": 0.95
         }
       },
-      "sam": null
+      "sam": {
+        "hit": false,
+        "point": null
+      }
     },
     {
       "target": "the Restock button",
@@ -129,20 +147,29 @@
       "muse": {
         "hit": true,
         "point": {
-          "x": 710,
-          "y": 170,
+          "x": 679,
+          "y": 171,
           "grounded_by": "muse",
           "box": {
             "confidence": 0.96,
-            "h": 39,
-            "w": 78,
-            "x": 671,
+            "h": 40,
+            "w": 77,
+            "x": 641,
             "y": 151
           },
           "conf": 0.96
         }
       },
-      "sam": null
+      "sam": {
+        "hit": true,
+        "point": {
+          "x": 672,
+          "y": 169,
+          "grounded_by": "sam",
+          "conf": 0.6604774594306946,
+          "concept": "button"
+        }
+      }
     },
     {
       "target": "the Discard restock button",
@@ -155,20 +182,29 @@
       "muse": {
         "hit": true,
         "point": {
-          "x": 99,
-          "y": 188,
+          "x": 98,
+          "y": 189,
           "grounded_by": "muse",
           "box": {
-            "confidence": 0.98,
-            "h": 36,
-            "w": 121,
+            "confidence": 0.95,
+            "h": 38,
+            "w": 118,
             "x": 39,
             "y": 170
           },
-          "conf": 0.98
+          "conf": 0.95
         }
       },
-      "sam": null
+      "sam": {
+        "hit": true,
+        "point": {
+          "x": 100,
+          "y": 214,
+          "grounded_by": "sam",
+          "conf": 0.8439024686813354,
+          "concept": "red button"
+        }
+      }
     },
     {
       "target": "the SKU input",
@@ -185,16 +221,19 @@
           "y": 170,
           "grounded_by": "muse",
           "box": {
-            "confidence": 0.96,
-            "h": 38,
-            "w": 198,
-            "x": 173,
-            "y": 151
+            "confidence": 0.95,
+            "h": 37,
+            "w": 200,
+            "x": 172,
+            "y": 152
           },
-          "conf": 0.96
+          "conf": 0.95
         }
       },
-      "sam": null
+      "sam": {
+        "hit": false,
+        "point": null
+      }
     },
     {
       "target": "the quantity input",
@@ -207,20 +246,23 @@
       "muse": {
         "hit": true,
         "point": {
-          "x": 537,
+          "x": 538,
           "y": 170,
           "grounded_by": "muse",
           "box": {
-            "confidence": 0.97,
+            "confidence": 0.95,
             "h": 38,
-            "w": 195,
-            "x": 440,
+            "w": 199,
+            "x": 439,
             "y": 151
           },
-          "conf": 0.97
+          "conf": 0.95
         }
       },
-      "sam": null
+      "sam": {
+        "hit": false,
+        "point": null
+      }
     },
     {
       "target": "the WS-1042 table row",
@@ -231,22 +273,31 @@
         "h": 40
       },
       "muse": {
-        "hit": true,
+        "hit": false,
         "point": {
-          "x": 425,
-          "y": 307,
+          "x": 438,
+          "y": 383,
           "grounded_by": "muse",
           "box": {
             "confidence": 0.95,
-            "h": 40,
-            "w": 772,
+            "h": 48,
+            "w": 799,
             "x": 39,
-            "y": 287
+            "y": 359
           },
           "conf": 0.95
         }
       },
-      "sam": null
+      "sam": {
+        "hit": false,
+        "point": {
+          "x": 419,
+          "y": 382,
+          "grounded_by": "sam",
+          "conf": 0.7620818018913269,
+          "concept": "table row"
+        }
+      }
     },
     {
       "target": "the Finish task button",
@@ -259,20 +310,29 @@
       "muse": {
         "hit": true,
         "point": {
-          "x": 81,
+          "x": 79,
           "y": 191,
           "grounded_by": "muse",
           "box": {
-            "confidence": 0.98,
-            "h": 23,
-            "w": 84,
+            "confidence": 0.95,
+            "h": 22,
+            "w": 80,
             "x": 39,
             "y": 180
           },
-          "conf": 0.98
+          "conf": 0.95
         }
       },
-      "sam": null
+      "sam": {
+        "hit": true,
+        "point": {
+          "x": 79,
+          "y": 190,
+          "grounded_by": "sam",
+          "conf": 0.7460317611694336,
+          "concept": "button"
+        }
+      }
     },
     {
       "target": "the Submit claim button",
@@ -285,20 +345,29 @@
       "muse": {
         "hit": true,
         "point": {
-          "x": 103,
-          "y": 411,
+          "x": 104,
+          "y": 414,
           "grounded_by": "muse",
           "box": {
-            "confidence": 0.98,
-            "h": 45,
-            "w": 130,
-            "x": 38,
-            "y": 389
+            "confidence": 0.95,
+            "h": 52,
+            "w": 131,
+            "x": 39,
+            "y": 388
           },
-          "conf": 0.98
+          "conf": 0.95
         }
       },
-      "sam": null
+      "sam": {
+        "hit": true,
+        "point": {
+          "x": 102,
+          "y": 410,
+          "grounded_by": "sam",
+          "conf": 0.8202247023582458,
+          "concept": "Submit claim button"
+        }
+      }
     },
     {
       "target": "the Restock button",
@@ -311,20 +380,151 @@
       "muse": {
         "hit": true,
         "point": {
-          "x": 681,
+          "x": 680,
           "y": 170,
           "grounded_by": "muse",
           "box": {
-            "confidence": 0.97,
-            "h": 37,
-            "w": 76,
-            "x": 643,
+            "confidence": 0.96,
+            "h": 36,
+            "w": 77,
+            "x": 642,
             "y": 152
           },
-          "conf": 0.97
+          "conf": 0.96
         }
       },
-      "sam": null
+      "sam": {
+        "hit": true,
+        "point": {
+          "x": 672,
+          "y": 169,
+          "grounded_by": "sam",
+          "conf": 0.675126850605011,
+          "concept": "button"
+        }
+      }
+    },
+    {
+      "target": "the Vendor text input",
+      "truth": {
+        "x": 40,
+        "y": 169,
+        "w": 640,
+        "h": 43
+      },
+      "muse": {
+        "hit": true,
+        "point": {
+          "x": 352,
+          "y": 191,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.98,
+            "h": 45,
+            "w": 627,
+            "x": 39,
+            "y": 169
+          },
+          "conf": 0.98
+        }
+      },
+      "sam": {
+        "hit": false,
+        "point": null
+      }
+    },
+    {
+      "target": "the Amount number input",
+      "truth": {
+        "x": 40,
+        "y": 169,
+        "w": 640,
+        "h": 43
+      },
+      "muse": {
+        "hit": true,
+        "point": {
+          "x": 378,
+          "y": 192,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.95,
+            "h": 46,
+            "w": 678,
+            "x": 39,
+            "y": 169
+          },
+          "conf": 0.95
+        }
+      },
+      "sam": {
+        "hit": false,
+        "point": null
+      }
+    },
+    {
+      "target": "the Category dropdown menu",
+      "truth": {
+        "x": 40,
+        "y": 169,
+        "w": 640,
+        "h": 40
+      },
+      "muse": {
+        "hit": true,
+        "point": {
+          "x": 366,
+          "y": 189,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.95,
+            "h": 42,
+            "w": 655,
+            "x": 39,
+            "y": 168
+          },
+          "conf": 0.95
+        }
+      },
+      "sam": {
+        "hit": false,
+        "point": null
+      }
+    },
+    {
+      "target": "the Submit claim button",
+      "truth": {
+        "x": 40,
+        "y": 391,
+        "w": 126,
+        "h": 47
+      },
+      "muse": {
+        "hit": true,
+        "point": {
+          "x": 104,
+          "y": 446,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.95,
+            "h": 51,
+            "w": 131,
+            "x": 39,
+            "y": 421
+          },
+          "conf": 0.95
+        }
+      },
+      "sam": {
+        "hit": true,
+        "point": {
+          "x": 102,
+          "y": 414,
+          "grounded_by": "sam",
+          "conf": 0.8128654956817627,
+          "concept": "Submit claim button"
+        }
+      }
     }
   ]
 }

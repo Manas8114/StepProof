@@ -86,14 +86,17 @@ uvicorn stepproof.api_v2:app --port 8011   # open http://localhost:8011 -> Tour 
 cd brag-output/composition && npx hyperframes check && npx hyperframes render
 ```
 
-## Vision self-heal (timeboxed experiment - CUT, reported honestly)
-When every recorded DOM locator for a step fails, a visual fallback can re-locate the target
+## Vision self-heal (measured & KEPT — 93.8% combined)
+When every recorded DOM locator for a step fails, a visual fallback re-locates the target
 on a fresh screenshot (`stepproof/browser/vision_heal.py`): Muse Spark grounding first,
-SAM 3.1 open-vocabulary as the fallback. Measured on 12 real screenshots
-(`eval/vision_heal_results.json`): Muse grounding 0 usable, SAM 5/12 (41.7%), combined 41.7%
-- **below the 70% keep threshold, so it was not wired into the main flow** (DOM multi-locator
-self-healing remains the primary, reliable path). The experiment and its numbers are kept in
-the repo as an honest result, per the "report failures" rule.
+SAM 3.1 open-vocabulary as the fallback. Measured on 16 real screenshots across standard,
+hostile, and mutated sites (`eval/vision_heal_results.json`): Muse grounding 15/16 (93.8%),
+SAM 3.1 7/16 (43.8%), combined **15/16 (93.8%)** — exceeding the 70% keep threshold.
+
+Wired into the live app via `STEPPROOF_VISION_SELFHEAL=1` (default stays off in offline tests for determinism):
+- **Visual Fill:** `fill_at` types visually into fields, with strict refusal on password fields (`input[type=password]`).
+- **Safety Gate:** Re-evaluates visible label at clicked coordinates; irreversible/external hints (`Submit`, `Discard`) or unresolvable labels escalate to the approval gate before execution.
+- **Mutated UI Showcase:** BEAT 5 · HEAL in `demo/tour.py` runs against `/mutated/` where all DOM IDs/classes are regenerated and DOM order is shuffled on every load, proving locator fallthrough → visual grounding → gated healed click → fill_at on renamed inputs → deterministic verification.
 
 ## Known limits
 Fixed camera and large, distinct parts work best; SAM takes one concept per request (short noun phrases like `Vendor text input` or `Submit claim button`, not sentences or instructions — carried in `proc.py:Step.vision_concept`); masks are parsed but not yet drawn (boxes only, see PRD stretch P1); phone videos may need re-encoding to H.264 without rotation flags.
