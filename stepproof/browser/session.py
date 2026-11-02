@@ -93,6 +93,10 @@ class TinyBrowser:
         """Type into element at (x,y) visually; refuses password fields."""
         return self._call("fill_at", {"x": x, "y": y, "text": text, "enter": enter})
 
+    def select_at(self, x: int, y: int, value: str) -> dict:
+        """Select an option in dropdown at (x,y) visually."""
+        return self._call("select_at", {"x": x, "y": y, "value": value})
+
     def observe(self) -> dict:
         """Compact interactive-element + text snapshot for the model (a11y-derived)."""
         return self._call("observe", None)
@@ -240,6 +244,18 @@ class TinyBrowser:
         if op == "select":
             p.select_option(arg["selector"], arg.get("value"))
             return {"ok": True}
+        if op == "select_at":
+            x, y = int(arg.get("x", 0)), int(arg.get("y", 0))
+            val = str(arg.get("value", ""))
+            return p.evaluate("""([cx, cy, v]) => {
+                const el = document.elementFromPoint(cx, cy);
+                if (!el) return { ok: false, error: "no element at coordinates" };
+                const sel = el.matches('select') ? el : el.closest('select') || el.querySelector('select');
+                if (!sel) return { ok: false, error: "no select element at coordinates" };
+                sel.value = v;
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                return { ok: true };
+            }""", [x, y, val])
         if op == "press":
             p.keyboard.press(str(arg.get("key", "Enter")))
             return {"ok": True}

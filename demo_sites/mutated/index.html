@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>Expense Claim (Mutated)</title>
+<style>
+body{font:15px/1.5 system-ui;margin:40px;max-width:640px}
+.field-group{margin:12px 0 4px}
+label{display:block;margin-bottom:4px;font-weight:600}
+input,select{width:100%;padding:8px;font:inherit;box-sizing:border-box}
+button{padding:10px 18px;font:inherit;margin-top:16px;cursor:pointer}
+#status{margin-top:20px;padding:12px;border-radius:6px;background:#e8f0e8;display:none}
+#status.show{display:block}
+code{background:#eee;padding:2px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<h1>Expense Claim</h1>
+<p id="hint">File an expense claim. In mutated mode, DOM IDs/classes and order are shuffled.</p>
+<form id="f">
+  <div class="field-group" id="grp-vendor">
+    <label for="vendor">Vendor</label>
+    <input id="vendor" name="vendor" autocomplete="off" required>
+  </div>
+  <div class="field-group" id="grp-amount">
+    <label for="amount">Amount (USD)</label>
+    <input id="amount" name="amount" type="number" step="0.01" min="0" required>
+  </div>
+  <div class="field-group" id="grp-category">
+    <label for="category">Category</label>
+    <select id="category" name="category" required>
+      <option value="">Choose a category</option>
+      <option value="travel">Travel</option>
+      <option value="office">Office</option>
+      <option value="software">Software</option>
+      <option value="meals">Meals</option>
+    </select>
+  </div>
+  <button id="submit" type="submit">Submit claim</button>
+</form>
+<div id="status" aria-live="polite"></div>
+<script>
+const params = new URLSearchParams(window.location.search);
+const isStable = params.get('STABLE') === '1';
+
+if (!isStable) {
+  // Regenerate element IDs, classes, and shuffle DOM order
+  const rand = () => Math.random().toString(36).substring(2, 8);
+  const vendorEl = document.getElementById('vendor');
+  const amountEl = document.getElementById('amount');
+  const catEl = document.getElementById('category');
+  const submitEl = document.getElementById('submit');
+
+  vendorEl.id = 'v_dyn_' + rand();
+  vendorEl.name = 'field_' + rand();
+  vendorEl.className = 'input_' + rand();
+
+  amountEl.id = 'a_dyn_' + rand();
+  amountEl.name = 'field_' + rand();
+  amountEl.className = 'input_' + rand();
+
+  catEl.id = 'c_dyn_' + rand();
+  catEl.name = 'field_' + rand();
+  catEl.className = 'select_' + rand();
+
+  submitEl.id = 'btn_dyn_' + rand();
+  submitEl.className = 'btn_' + rand();
+
+  // Shuffle form groups
+  const form = document.getElementById('f');
+  const groups = Array.from(form.querySelectorAll('.field-group'));
+  for (let i = groups.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [groups[i], groups[j]] = [groups[j], groups[i]];
+  }
+  groups.forEach(g => form.insertBefore(g, submitEl));
+}
+
+document.getElementById('f').onsubmit = e => {
+  e.preventDefault();
+  const v = (document.querySelector('input[type="text"], input:not([type])') || {}).value || '';
+  const a = (document.querySelector('input[type="number"]') || {}).value || '';
+  const c = (document.querySelector('select') || {}).value || '';
+  if (!v.trim() || !a || !c) return;
+  let h = 0; const s = v.trim().toLowerCase() + '|' + a + '|' + c;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  const ref = 'EXP-' + String(h % 10000).padStart(4, '0');
+  const st = document.getElementById('status');
+  st.classList.add('show');
+  st.innerHTML = '<strong>Claim filed.</strong> Reference <code id="ref">' + ref + '</code> for ' +
+    '<strong>' + v.trim() + '</strong> (' + c + ', $' + a + ').';
+  const btn = document.querySelector('button[type="submit"]');
+  if (btn) btn.disabled = true;
+};
+</script>
+</body>
+</html>
+

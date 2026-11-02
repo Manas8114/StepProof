@@ -128,3 +128,4 @@ def test_vision_healed_unresolvable_label_escalates():
     res2 = execute_procedure(tb, proc, approve_fn=approve_allow, vision_selfheal=vision_mock)
     assert res2.steps_run == 1
     assert approved_calls[0].get("label") == "unresolvable"
+

@@ -100,6 +100,9 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
                     healed["text"] = val
                     if "enter" in step.arg:
                         healed["enter"] = step.arg["enter"]
+                elif step.action == "select":
+                    val = step.arg.get("value", "") or step.arg.get("text", "")
+                    healed["value"] = val
                 elif step.action in ("click", "select"):
                     from ..browser.actions import classify_element_text
                     hx, hy = int(healed.get("x", 0)), int(healed.get("y", 0))

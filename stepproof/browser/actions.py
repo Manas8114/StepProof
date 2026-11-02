@@ -120,8 +120,18 @@ def execute_action(tb, name: str, arg: dict) -> ActionResult:
             ok = r.get("ok", False)
             detail = r.get("url") if ok else r.get("error", "goto failed")
         elif name == "select":
-            tb.act("select", {"selector": arg["selector"], "value": arg.get("value")})
-            detail = f"selected {arg.get('value')} in {arg['selector']}"
+            sel = arg.get("selector")
+            if sel:
+                tb.act("select", {"selector": sel, "value": arg.get("value")})
+                detail = f"selected {arg.get('value')} in {sel}"
+            elif "x" in arg and "y" in arg:
+                res = tb.act("select_at", {"x": int(arg["x"]), "y": int(arg["y"]), "value": str(arg.get("value", ""))})
+                if isinstance(res, dict) and not res.get("ok"):
+                    raise RuntimeError(res.get("error", "select_at failed"))
+                grounded = arg.get("grounded_by", "vision")
+                detail = f"selected {arg.get('value')} @({arg['x']},{arg['y']}) ({grounded} healed)"
+            else:
+                raise ValueError("select needs 'selector' or (x,y) coordinates")
         elif name == "wait":
             import time
             time.sleep(int(arg.get("ms", 250)) / 1000)

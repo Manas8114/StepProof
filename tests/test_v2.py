@@ -388,10 +388,12 @@ def test_tour_runs_all_four_beats_and_records_dated_trace(site_server, tmp_path)
                  site_base=site_server)
     trace = tour.run()
 
-    # all 4 beats present and in order
-    assert trace["beats"] == ["start", "learn", "approve", "takeover", "prove", "end"]
+    # all 5 beats present and in order
+    assert trace["beats"] == ["start", "learn", "approve", "takeover", "prove", "heal", "end"]
     steps = [r["step"] for r in trace["records"]]
-    assert "record+compile" in steps and "injection_hold" in steps
+    assert "record+compile" in steps and "injection_hold" in steps and "execute_heal" in steps
+    heal_rec = next(r for r in trace["records"] if r["step"] == "execute_heal")
+    assert heal_rec["detail"]["success"] is True, heal_rec["detail"]
     # approval gate was answered (labeled auto in unattended mode)
     approve = next(r for r in trace["records"] if r["step"] == "execute+gate")
     assert approve["detail"].get("gate_answered_by") == "auto"
