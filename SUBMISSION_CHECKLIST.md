@@ -11,7 +11,7 @@ Status 2026-10-31 (end of day): live API access is confirmed and working (B1-B3 
 | A1 | Deterministic rules engine (models perceive, code decides) | `pytest` - `tests/test_rules.py` |
 | A2 | SAM wire parser, including real live wire fixtures | `tests/test_wire.py` + `tests/test_wire_real_fixture.py` |
 | A3 | End-to-end pipeline + evidence + overlay | `tests/test_pipeline.py` |
-| A4 | Full test suite green (121 unit, integration, safety & E2E tests) | `python -m pytest -q` -> `121 passed` |
+| A4 | Full test suite green (134 unit, integration, safety & E2E tests) | `python -m pytest -q` -> `134 passed` |
 | A5 | Synthetic dataset on disk (7 clips + 7 sidecars + 2 procedures + manifest + mock config) | `data/clips/`, `data/procedures/`, `data/manifest/`, `data/stepproof_mock.json`; regenerate: `python -m scripts.make_dataset` |
 | A6 | Offline eval, both modes, no API key needed | `STEPPROOF_PROVIDER=mock STEPPROOF_DATA=data python -m eval.run_eval --manifest data/manifest/manifest.json --mode pipeline` (and `--mode baseline`) |
 | A7 | Web UI boots and compiles offline | `STEPPROOF_PROVIDER=mock uvicorn stepproof.api:app` -> http://localhost:8000 |

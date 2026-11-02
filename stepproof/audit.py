@@ -210,6 +210,12 @@ class AuditSpine:
                         zf.write(p, arcname=arcname)
                         manifest_files[arcname] = sha256_file(p)
 
+            # 2b. Embed self-contained verify_bundle.py script into bundle
+            vscript_path = Path(__file__).parent / "verify_bundle.py"
+            if vscript_path.is_file():
+                zf.write(vscript_path, arcname="verify_bundle.py")
+                manifest_files["verify_bundle.py"] = sha256_file(vscript_path)
+
             # 3. Create canonical bundle manifest
             manifest = {
                 "format": "stepproof-evidence-bundle-v1",

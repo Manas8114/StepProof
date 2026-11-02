@@ -38,3 +38,4 @@ PUBLIC_ALLOWED_HOSTS = {
     "m.youtube.com",
 }
 ALLOWED_HOSTS = {h.strip() for h in _e("ALLOWED_HOSTS", "").split(",") if h.strip()}.union(PUBLIC_ALLOWED_HOSTS)
+ALLOW_ALL_SITES = _e("STEPPROOF_ALLOW_ALL_SITES", "0") == "1"

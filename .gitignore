@@ -17,3 +17,6 @@ demo_sites/media/
 data/bench_proc/
 data/bench_h264/
 data/bench_naive/
+
+# Generated test reports (keep reports/index.html tracked)
+reports/junit_*.xml

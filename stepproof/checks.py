@@ -60,10 +60,12 @@ _RUNNERS = {"url_contains": url_contains, "text_visible": text_visible,
 
 
 def run_check(tb, check: dict) -> CheckResult:
-    fn = _RUNNERS.get(check.get("kind", ""))
+    kind = check.get("kind") or check.get("type", "")
+    fn = _RUNNERS.get(kind)
     if fn is None:
-        return CheckResult(check.get("kind", "unknown"), False, "unsupported check kind")
-    return fn(tb, check.get("spec", {}))   # each runner reads the nested spec
+        return CheckResult(kind or "unknown", False, "unsupported check kind")
+    spec = check.get("spec") if "spec" in check else {k: v for k, v in check.items() if k not in ("kind", "type")}
+    return fn(tb, spec)
 
 
 def all_pass(tb, checks: list[dict], shoot=None, prefix: str = "check") -> tuple[bool, list[CheckResult]]:

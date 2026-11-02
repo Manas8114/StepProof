@@ -16,8 +16,54 @@ pip install -r requirements.txt
 python -m playwright install chromium   # one-time: download headless browser
 cp .env.example .env                    # add MODEL_API_KEY
 uvicorn stepproof.api_v2:app --port 8011 # open http://localhost:8011
-pytest -q                               # 121 tests (unit, integration, safety & E2E)
+pytest -q                               # 134 tests (unit, integration, safety & E2E)
 ```
+
+---
+
+## The Three Product Modes & Enterprise Scenario
+
+StepProof delivers three core operational modes built upon a shared cryptographic trust spine:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                   TRUST SPINE: "Models Perceive, Code Decides"         │
+│  • Local Device Key (data/keys/device.key)                             │
+│  • Canonical Manifest SHA-256 + HMAC Signing (stepproof/artifact.py)   │
+│  • Append-Only Hash-Chained Audit Spine (stepproof/audit.py)           │
+│  • Pre-Flight Estimator & Cost Tripwire (stepproof/budget.py)          │
+└──────────────┬─────────────────────────┬───────────────────────────────┘
+               │                         │
+               ▼                         ▼
+  ┌────────────────────────┐  ┌────────────────────────┐  ┌────────────────────────┐
+  │ MODE A: WEB TESTS      │  │ MODE B: PROOF EVIDENCE │  │ MODE C: SKILL FAMILIES │
+  │ • stepproof.testmode   │  │ • scripts.bundle_run   │  │ • stepproof.skill      │
+  │ • Pre-flight budget    │  │ • scripts.verify_bundle│  │ • Slots ({vendor})     │
+  │ • JUnit XML + HTML     │  │ • Zero-network audit   │  │ • Per-value safety     │
+  │ • Exit codes 0/1/2/3   │  │ • Deterministic checks │  │ • Gated re-teach       │
+  └────────────────────────┘  └────────────────────────┘  └────────────────────────┘
+```
+
+### End-to-End Walkthrough: "The Monthly UI Redesign"
+Run the complete 5-Act enterprise walkthrough from the prompt:
+```bash
+python -m scripts.walk_enterprise_scenario
+```
+- **Act 1 — Learn Once (Mode C)**: Demo the task on `/expense/` $\to$ `compile_family` proposes slots $\to$ human confirms $\to$ device key generated $\to$ signed `data/skills/expense_family.artifact`.
+- **Act 2 — Nightly Self-Healing Test (Mode A)**: `python -m stepproof.testmode.suite --procs data/procedures/expense.acme.json --once`. Pre-flight estimate printed, tripwire verified, deterministic checks pass, exit code 0.
+- **Act 3 — Redesign Lands (Money Shot)**: Shuffled DOM IDs on `/mutated/` exhaust DOM locators $\to$ visual healing recovers elements $\to$ test survives $\to$ drift report generated $\to$ human-gated re-harvest re-signs artifact.
+- **Act 4 — Prove It Off-Machine (Mode B)**: `python -m scripts.bundle_run <run_id>` packages evidence bundle. Manager runs `python -m scripts.verify_bundle bundle.zip` on Machine B with **zero network access** $\to$ 100% verified verdict.
+- **Act 5 — The Family Pays Rent**: Instantiate family with Contoso ($310) $\to$ per-value safety classification dynamically gates high-risk/irreversible requests.
+
+---
+
+## Live Copilot & Next-Step Suggestion Box
+
+StepProof includes an interactive multimodal copilot for live web exploration:
+- **Next-Step Prediction**: `POST /api/v2/copilot/suggest` analyzes page DOM, form states, and goals to predict the next logical step with confidence score and safety risk level.
+- **One-Click Actuation**: `POST /api/v2/copilot/apply` (or the UI `[⚡ Apply Step]` button) executes the suggested step immediately on the live browser.
+- **Interactive Q&A**: `POST /api/v2/copilot/ask` answers contextual questions ("What can I do here?", "Why is submit disabled?", "Is this page safe to automate?") grounded in deterministic live page inspection.
+- **Any Site Learning**: Teach any web workflow (including public sites like YouTube, SauceDemo, etc.) directly via Monitor recording or the Copilot dock.
 
 ---
 
@@ -44,19 +90,73 @@ StepProof "Real Mode" elevates the system from an experimental prototype to ente
 - **Cryptographic signatures**: signed via HMAC-SHA256 (`Procedure.signature` and `Procedure.manifest`). `Procedure.from_dict()` rejects tampered steps, locators, or checks.
 - **CLI helper**: `python -m scripts.sign_procedure <proc.json> [--verify]`.
 
-### 5. Lead A — Self-Healing Web Tests
-- **Locator-drift reporting**: tracks which steps required secondary locators or vision-healing (`stepproof/harness/drift.py`).
-- **Self-rewriting procedures**: when vision heal finds an element, the winning locator is synthesized, prepended to the procedure's locator list, and re-signed so subsequent runs require **0 vision/model calls**.
-- **CI Suite Reports**: outputs standard JUnit XML (`<testsuite>`) and dark-themed HTML dashboards (`stepproof/harness/reports.py`).
+### 5. Lead A — Self-Healing Web Tests & Suite Runner
+- **CLI Suite Runner**: `python -m stepproof.testmode.suite --procs data/skills/expense_family.artifact [--once] [--live] [--watch]` runs procedures through the executor with pre-flight cost verification and armed tripwires.
+- **CI Suite Reports**: outputs standard JUnit XML (`reports/junit_*.xml`) and single-file HTML reports (`reports/index.html`). Exit codes: `0` (pass), `1` (fail), `2` (`aborted_budget`), `3` (infra/error).
+- **Locator-Drift & Gated Re-harvest**: `stepproof/testmode/drift_report.py` identifies DOM mutations and vision healing events. Operator confirms re-harvest with `--yes` or interactive confirmation, prepending healed locators and cryptographically re-signing the artifact.
+
+#### Scheduled Nightly Execution (OS-Native: Task Scheduler / cron / launchd)
+StepProof does not run an unconstrained daemon. Scheduled execution is delegated to battle-tested OS-native schedulers, ensuring a deterministic lifecycle, bounded budgets, zero idle resource consumption, and full audit traceability.
+
+- **Windows Task Scheduler**:
+  ```powershell
+  schtasks /create /tn "StepProofNightlyTest" `
+    /tr "C:\Users\msgok\AppData\Local\Programs\Python\Python313\python.exe -m stepproof.testmode.suite --procs data/skills/expense_family.artifact --once" `
+    /sc daily /st 02:00
+  ```
+- **Linux / macOS cron**:
+  ```bash
+  0 2 * * * cd /opt/stepproof && /usr/bin/python3 -m stepproof.testmode.suite --procs data/skills/expense_family.artifact --once >> /var/log/stepproof_nightly.log 2>&1
+  ```
+- **macOS launchd**:
+  Create `~/Library/LaunchAgents/com.stepproof.nightly.plist`:
+  ```xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  <plist version="1.0">
+  <dict>
+      <key>Label</key>
+      <string>com.stepproof.nightly</string>
+      <key>ProgramArguments</key>
+      <array>
+          <string>/usr/local/bin/python3</string>
+          <string>-m</string>
+          <string>stepproof.testmode.suite</string>
+          <string>--procs</string>
+          <string>data/skills/expense_family.artifact</string>
+          <string>--once</string>
+      </array>
+      <key>StartCalendarInterval</key>
+      <dict>
+          <key>Hour</key>
+          <integer>2</integer>
+          <key>Minute</key>
+          <integer>0</integer>
+      </dict>
+      <key>StandardOutPath</key>
+      <string>/tmp/stepproof_nightly.log</string>
+      <key>StandardErrorPath</key>
+      <string>/tmp/stepproof_nightly.err</string>
+  </dict>
+  </plist>
+  ```
+  Load with `launchctl load ~/Library/LaunchAgents/com.stepproof.nightly.plist`.
 
 ### 6. Lead B — Proof & Audit Evidence (Independent Verifier)
-- **Zero-server verifier**: `python -m stepproof.verifier.verify <bundle.zip>` independently confirms manifest digests, walks hash chains, and re-validates deterministic checks offline without live models or servers.
-- **Real-footage adapter**: `verify_v1_clip()` connects physical assembly footage directly to the frozen v1 SAM video-verification pipeline.
+- **Zero-Network Independent Verifier**: `python -m scripts.verify_bundle <bundle.zip>` independently confirms SHA-256 digests, validates device key signatures, walks the audit hash chain, and re-evaluates deterministic checks on an isolated machine with **zero network access** and **zero API calls**.
+- **Run Bundler**: `python -m scripts.bundle_run <run_id> [--out bundle.zip]` packages run manifests, chain entries, and evidence screenshots into a self-contained verifiable zip bundle.
+- **Real-Footage Entry Point**: `python -m scripts.real_clip --clip data/videos/enterprise_redesign_scenario.mp4 [--no-live]` evaluates authentic camera recordings through the SAM 3.1 video pipeline with pre-flight cost estimation printed before execution and tripwires armed. Reports findings honestly (zero detections is published as a real empirical finding, establishing baseline physical footage behavior without synthetic fabrication).
 
-### 7. Lead C — Operator Skill Compiler
-- **Describe-or-demo onboarding**: compiles ~30s demonstrations or natural-language step descriptions into parameterised `{slot}` skills (`stepproof/skills/compiler.py`).
-- **Human-gated re-teach flow**: when a parameter variant fails, the system requires operator approval before merging corrections and re-signing (never silent retraining).
-- **Honesty guardrail**: explicitly marks vision variant understanding on physical footage as **NOT YET MEASURED** per submission rules X1–X5.
+### 7. Lead C — Operator Skill Compiler & Task Families
+- **Describe-or-Demo Onboarding**: `python -m stepproof.skill.from_demo --demo <trace.json>` compiles recorded workflows into signed portable artifacts (`data/skills/<name>.artifact`).
+- **Slot Proposal & Human Confirmation**: `compile_family()` proposes `{slot}` parameters from concrete values (e.g. vendor, amount, category), human operator selects which to parameterize.
+- **Per-Value Safety Classification**: `instantiate(family, values)` type-validates values and dynamically elevates risk to `DANGEROUS` (amount > $500) or `IRREVERSIBLE` ("Discard" keyword), enforcing approval gates deterministically per-value.
+- **Gated Re-Teach Flow**: `re_teach_step()` updates drifted step variants upon human demonstration, generates a new cryptographic signature and audit entry, and maintains provenance without silent mutations.
+
+### 8. Universal Browser & Copilot (Every Website)
+- **Universal Navigation**: Operates on any public or internal website (`STEPPROOF_ALLOW_ALL_SITES=1` or wildcard allowlist), automatically dismissing GDPR cookie consent banners and overlays.
+- **Live Copilot Suggestion Box**: Real-time next-step recommendations and interactive Q&A grounded in live DOM structure, page text, and code-first safety invariants.
+- **Enterprise Redesign Walkthrough**: Reproducible 5-Act scenario (`python -m scripts.walk_enterprise_scenario`) and video recorder (`python -m scripts.record_enterprise_scenario_video`).
 
 ---
 

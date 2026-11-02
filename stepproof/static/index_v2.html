@@ -628,6 +628,7 @@ label {
     <div class="tabs" id="tabs">
       <button data-m="monitor" class="on">Monitor</button>
       <button data-m="execute">Execute</button>
+      <button data-m="copilot">💡 Copilot</button>
       <button data-m="thoughts">🧠 Thoughts</button>
       <button data-m="telemetry">📈 Telemetry</button>
       <button data-m="coach">Coach</button>
@@ -676,6 +677,50 @@ label {
       </div>
       <label>Spoken goal (push-to-talk)</label>
       <div class="btnrow"><button id="xppt">🎙 Record goal</button></div>
+    </div>
+
+    <!-- Copilot Tab (Live Next-Step Suggestion & Ask Anything) -->
+    <div id="m-copilot" class="hide">
+      <h2>Live Co-pilot & Suggestions</h2>
+      <p class="note">Real-time perception engine predicts the next logical step and answers questions about any web page.</p>
+
+      <label>Recommended Next Step</label>
+      <div class="sugg" style="margin-bottom:12px;" id="copilot-sugg-card">
+        <div class="row" style="margin-bottom:6px;">
+          <span style="font-weight:700;font-size:13px;color:var(--acc);" id="copilot-sugg-title">Analyzing page...</span>
+          <span class="tag" id="copilot-sugg-conf" style="background:#0e4429;color:#3fb950;border-color:#238636;">— %</span>
+        </div>
+        <div class="row" style="margin-bottom:6px;">
+          <span style="color:#a1a1aa;font-size:11px;">Action:</span>
+          <span class="mono" id="copilot-sugg-action" style="font-size:12px;color:#f0f6fc;">—</span>
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <span style="color:#a1a1aa;font-size:11px;">Risk Level:</span>
+          <span class="tag" id="copilot-sugg-risk" style="background:#1f242c;color:#a5d6ff;">SAFE</span>
+        </div>
+        <p class="note" id="copilot-sugg-reason" style="margin:4px 0 10px;color:#d4d4d8;line-height:1.4;">Waiting for page observation...</p>
+        <div class="btnrow">
+          <button class="primary" id="copilot-apply-btn" style="flex:2;">⚡ Apply Next Step</button>
+          <button class="ghost" id="copilot-refresh-btn" style="flex:1;">⟳ Refresh</button>
+        </div>
+      </div>
+
+      <label>Ask StepProof Anything About This Page</label>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input id="copilot-q" placeholder="e.g. Why is submit disabled? or What can I do here?" style="flex:1;">
+        <button class="primary" id="copilot-ask-btn" style="padding:6px 14px;">Ask</button>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+        <button class="ghost" style="padding:3px 8px;font-size:11px;" onclick="askCopilotQuick('What can I do on this page?')">What can I do?</button>
+        <button class="ghost" style="padding:3px 8px;font-size:11px;" onclick="askCopilotQuick('Why is the submit button disabled?')">Why is button disabled?</button>
+        <button class="ghost" style="padding:3px 8px;font-size:11px;" onclick="askCopilotQuick('Is this page safe to automate?')">Is page safe?</button>
+        <button class="ghost" style="padding:3px 8px;font-size:11px;" onclick="askCopilotQuick('What is the recommended next step?')">What's next?</button>
+      </div>
+
+      <div id="copilot-answers" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:2px;">
+        <div class="note" style="text-align:center;padding:12px 0;">Ask any question about page elements, form states, safety rules, or next steps.</div>
+      </div>
     </div>
 
     <!-- Thoughts Tab (Dedicated CoT & Deliberation Log) -->
@@ -800,6 +845,21 @@ label {
       <span id="hud-thought-text" class="mono">Agent waiting for goal or instruction...</span>
     </div>
 
+    <!-- Live Copilot Quick Dock -->
+    <div id="hud-copilot-banner" style="background:#13181e;border:1px solid #233140;border-radius:8px;padding:8px 12px;margin:8px 0;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;overflow:hidden;">
+        <span style="font-size:14px;">💡</span>
+        <div style="font-size:12px;line-height:1.3;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;">
+          <span style="color:#38bdf8;font-weight:700;" id="hud-copilot-title">Next Step:</span>
+          <span style="color:#d4d4d8;margin-left:4px;" id="hud-copilot-text">Analyzing page...</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="primary" id="hud-copilot-apply" style="padding:3px 10px;font-size:11px;">⚡ Apply</button>
+        <button class="ghost" id="hud-copilot-goto" style="padding:3px 8px;font-size:11px;" onclick="$('[data-m=copilot]').click()">Ask Copilot</button>
+      </div>
+    </div>
+
     <!-- URL Bar -->
     <div class="urlbar">
       <button id="navback" title="Back (history, allowlist-verified)">←</button>
@@ -871,16 +931,17 @@ api('/api/v2/health').then(h => {
   }
 }).catch(() => {});
 
-// Tabs switching (supports all required tabs + new thoughts & telemetry)
+// Tabs switching (supports all required tabs + new thoughts & telemetry & copilot)
 $('#tabs').onclick = e => {
   const b = e.target.closest('button');
   if (!b) return;
-  ['monitor', 'execute', 'thoughts', 'telemetry', 'coach', 'tour', 'tracking'].forEach(m => {
+  ['monitor', 'execute', 'copilot', 'thoughts', 'telemetry', 'coach', 'tour', 'tracking'].forEach(m => {
     const el = $('#m-' + m);
     if (el) el.classList.toggle('hide', m !== b.dataset.m);
   });
   [...$('#tabs').children].forEach(x => x.classList.toggle('on', x === b));
   mode = b.dataset.m;
+  if (mode === 'copilot') loadCopilotSuggestion();
   if (mode === 'tracking' && !trackData) loadTracking().then(() => renderTrackingFrame());
   if (mode === 'telemetry') updateTelemetryDashboard();
   if (mode === 'thoughts') renderThoughtList();
@@ -1552,6 +1613,126 @@ $('#trackreset').onclick = async () => {
 
 trackVid.addEventListener('seeked', renderTrackingFrame);
 trackVid.addEventListener('timeupdate', () => { if (trackVid.paused) renderTrackingFrame(); });
+
+// -------------------------------------------------------------
+// Live Copilot & Suggestion Box Client
+// -------------------------------------------------------------
+window.currentSuggestion = null;
+
+async function loadCopilotSuggestion() {
+  try {
+    const goalVal = ($('#xgoal') ? $('#xgoal').value : '') || '';
+    const r = await japi('/api/v2/copilot/suggest', { goal: goalVal });
+    if (!r.ok || !r.suggestion) {
+      $('#hud-copilot-title').textContent = 'Live Copilot:';
+      $('#hud-copilot-text').textContent = 'Observing page...';
+      return;
+    }
+    const s = r.suggestion;
+    window.currentSuggestion = s;
+
+    // Update HUD banner
+    $('#hud-copilot-title').textContent = s.title + ':';
+    $('#hud-copilot-text').textContent = `${s.action} ${s.selector || ''} — ${s.reason.slice(0, 75)}`;
+
+    // Update Copilot Tab Card
+    if ($('#copilot-sugg-title')) {
+      $('#copilot-sugg-title').textContent = s.title;
+      $('#copilot-sugg-conf').textContent = `${Math.round(s.confidence * 100)}% Conf.`;
+      $('#copilot-sugg-action').textContent = `${s.action.toUpperCase()} ${s.selector || ''} ${s.text ? `"${s.text}"` : ''} ${s.value ? `value=${s.value}` : ''}`;
+      $('#copilot-sugg-risk').textContent = s.safety;
+      $('#copilot-sugg-risk').style.color = s.safety === 'SAFE' ? '#3fb950' : (s.safety === 'SENSITIVE' ? '#f0883e' : '#f85149');
+      $('#copilot-sugg-reason').textContent = s.reason;
+    }
+  } catch (e) {
+    console.warn('Copilot suggest error:', e);
+  }
+}
+
+async function applyCopilotSuggestion() {
+  if (!window.currentSuggestion) {
+    err('No active suggestion to apply. Refreshing suggestions...');
+    await loadCopilotSuggestion();
+    return;
+  }
+  const s = window.currentSuggestion;
+  try {
+    banner(`Applying Copilot action: ${s.title}...`, 'acc');
+    const r = await japi('/api/v2/copilot/apply', { action: s.action, arg: s });
+    if (!r.ok) {
+      err('Copilot apply failed: ' + (r.error || 'unknown'));
+      return;
+    }
+    banner(`Applied: ${s.title}`, 'ok');
+    addEvt({ type: 'copilot_applied', data: { action: s.action, title: s.title } });
+    await pollShot();
+    setTimeout(loadCopilotSuggestion, 800);
+  } catch (e) {
+    err('Copilot action failed: ' + e.message);
+  }
+}
+
+async function askCopilot(question) {
+  const q = (question || '').trim();
+  if (!q) return;
+  const container = $('#copilot-answers');
+  if (!container) return;
+
+  const card = document.createElement('div');
+  card.className = 'thought-card';
+  card.style.borderColor = '#233140';
+  card.innerHTML = `
+    <div style="font-weight:700;font-size:12px;color:var(--acc);margin-bottom:4px;">Q: ${q}</div>
+    <div class="note" style="color:#a1a1aa;">Thinking...</div>
+  `;
+  container.prepend(card);
+
+  try {
+    const goalVal = ($('#xgoal') ? $('#xgoal').value : '') || '';
+    const r = await japi('/api/v2/copilot/ask', { question: q, goal: goalVal });
+    if (!r.ok) {
+      card.innerHTML = `<div style="font-weight:700;font-size:12px;color:var(--acc);margin-bottom:4px;">Q: ${q}</div><div style="color:var(--err);">${r.error}</div>`;
+      return;
+    }
+    const formattedAnswer = (r.answer || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    card.innerHTML = `
+      <div style="font-weight:700;font-size:12px;color:var(--acc);margin-bottom:4px;">Q: ${q}</div>
+      <div style="font-size:12px;color:#f0f6fc;line-height:1.45;">${formattedAnswer}</div>
+      <div class="note mono" style="font-size:10.5px;color:#7d8590;margin-top:4px;">Target URL: ${r.url || 'active page'}</div>
+    `;
+  } catch (e) {
+    card.innerHTML = `<div style="font-weight:700;font-size:12px;color:var(--acc);margin-bottom:4px;">Q: ${q}</div><div style="color:var(--err);">${e.message}</div>`;
+  }
+}
+
+window.askCopilotQuick = function(q) {
+  if ($('#copilot-q')) $('#copilot-q').value = q;
+  askCopilot(q);
+};
+
+// Wire Copilot buttons
+if ($('#copilot-apply-btn')) $('#copilot-apply-btn').onclick = applyCopilotSuggestion;
+if ($('#hud-copilot-apply')) $('#hud-copilot-apply').onclick = applyCopilotSuggestion;
+if ($('#copilot-refresh-btn')) $('#copilot-refresh-btn').onclick = loadCopilotSuggestion;
+if ($('#copilot-ask-btn')) {
+  $('#copilot-ask-btn').onclick = () => {
+    const q = $('#copilot-q').value;
+    $('#copilot-q').value = '';
+    askCopilot(q);
+  };
+}
+if ($('#copilot-q')) {
+  $('#copilot-q').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const q = $('#copilot-q').value;
+      $('#copilot-q').value = '';
+      askCopilot(q);
+    }
+  });
+}
+
+// Initial Copilot suggestion check
+setTimeout(loadCopilotSuggestion, 1500);
 </script>
 </body>
 </html>

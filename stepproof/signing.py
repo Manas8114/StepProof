@@ -11,15 +11,34 @@ from pathlib import Path
 DEFAULT_DEV_KEY = "dev-insecure-key-stepproof-v2-local"
 
 
-def get_signing_key() -> str:
-    """Retrieve signing key from environment variable, file path, or default dev key."""
+def get_device_key(key_dir: Optional[Path] = None) -> str:
+    """Retrieve or generate persistent device key from data/keys/device.key.
+    Generated on first sign into data/keys/ (gitignored). Stdlib secrets - no new dependencies.
+    """
     key = os.getenv("STEPPROOF_SIGNING_KEY", "").strip()
     if key:
         return key
     key_path = os.getenv("STEPPROOF_SIGNING_KEY_PATH", "")
     if key_path and Path(key_path).exists():
         return Path(key_path).read_text(encoding="utf-8").strip()
-    return DEFAULT_DEV_KEY
+
+    d_dir = key_dir or (Path(__file__).resolve().parent.parent / "data" / "keys")
+    d_dir.mkdir(parents=True, exist_ok=True)
+    d_key_file = d_dir / "device.key"
+    if d_key_file.exists():
+        k = d_key_file.read_text(encoding="utf-8").strip()
+        if k:
+            return k
+
+    import secrets
+    new_key = secrets.token_hex(32)
+    d_key_file.write_text(new_key, encoding="utf-8")
+    return new_key
+
+
+def get_signing_key() -> str:
+    """Retrieve signing key: explicit env, file, or device key."""
+    return get_device_key()
 
 
 def canonical_json(data: Any) -> str:

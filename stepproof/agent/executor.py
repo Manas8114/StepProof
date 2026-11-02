@@ -186,6 +186,7 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
         p = d / f"{tag}_{int(time.time()*1000)}.jpg"
         tb.act("screenshot", str(p))
         return str(p) if p.exists() else ""
+    time.sleep(0.3)
     ok, cresults = checks.all_pass(tb, proc.success_check_specs(), shoot=_shoot, prefix=proc.goal[:12].replace(" ", "_"))
     res.check_results = cresults
     res.success = bool(ok and not res.error)

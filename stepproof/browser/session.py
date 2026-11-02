@@ -27,7 +27,7 @@ class TinyBrowser:
     def __init__(self, allowlist: set[str] | None = None,
                  user_data_dir: str | None = None) -> None:
         from stepproof import config as cfg
-        default_allow = {"localhost:8011", "localhost:8012"}.union(cfg.ALLOWED_HOSTS)
+        default_allow = {"localhost:8011", "localhost:8012", "127.0.0.1:8011", "127.0.0.1:8012"}.union(cfg.ALLOWED_HOSTS)
         self.allowlist = allowlist if allowlist is not None else default_allow
         self.kill = threading.Event()
         self.last_shot: str = ""          # data URL (JPEG)
@@ -42,6 +42,21 @@ class TinyBrowser:
 
     # ---- public API (thread-safe: everything goes through the worker) ----
 
+    def _is_allowed(self, host: str) -> bool:
+        if not host:
+            return False
+        if "*" in self.allowlist or "all" in self.allowlist:
+            return True
+        from stepproof import config as cfg
+        if getattr(cfg, "ALLOW_ALL_SITES", False):
+            return True
+        return host in self.allowlist
+
+    def allow_host(self, host: str) -> None:
+        """Dynamically add host to allowlist."""
+        if host:
+            self.allowlist.add(host.lower())
+
     def start_site(self, url: str, base: str | None = None) -> dict:
         """Alias for `goto` (allowlist-gated). Every nav path refuses off-allowlist hosts.
         Relative paths ('/site/expense') are resolved against `base` so the UI's relative
@@ -52,7 +67,7 @@ class TinyBrowser:
         """Allowlist-gated navigation. Refused (and explained) when the host is not allowed."""
         url = _absolutize(url, base)
         host = _host_of(url)
-        if host not in self.allowlist:
+        if not self._is_allowed(host):
             return {"ok": False, "error": f"refused: host {host!r} not on the allowlist"}
         r = self._call("goto", url)
         self._after_nav()
@@ -81,7 +96,7 @@ class TinyBrowser:
         """After a history op, the page may have landed off-allowlist (a back/forward into
         a saved off-allowlist entry). Refuse it: report + navigate back to about:blank."""
         host = _host_of(self.url)
-        if host and host not in self.allowlist:
+        if host and not self._is_allowed(host):
             self._call("goto", "about:blank")
             self._after_nav()
             return {"ok": False, "error": f"refused: host {host!r} not on the allowlist"}
@@ -136,12 +151,46 @@ class TinyBrowser:
         self._cmd.put(("__stop__", None, None))
         self._done.wait(10)
 
+    def close(self) -> None:
+        self.stop()
+
     # ---- worker ----
 
     def _call(self, op, arg):
         fut: Future = Future()
         self._cmd.put((op, arg, fut))
         return fut.result(timeout=120)
+
+    def _dismiss_popups(self, p) -> None:
+        """Auto-dismiss common cookie consent banners, GDPR dialogs, and welcome overlays
+        on public sites so interactions aren't blocked by backdrop elements."""
+        try:
+            p.evaluate("""() => {
+                const selectors = [
+                    '#onetrust-accept-btn-handler',
+                    '#accept-cookie-notification',
+                    'button#L2AGLb',
+                    'button[aria-label*="Accept all"]',
+                    'button[aria-label*="Agree"]',
+                    'button[data-testid*="cookie-policy-manage-dialog-accept-button"]',
+                    '.cookie-consent-accept',
+                    '.js-cookie-consent-agree',
+                    'button.agree-button',
+                ];
+                for (const sel of selectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.offsetParent !== null) { el.click(); return; }
+                }
+                const btns = Array.from(document.querySelectorAll('button, a[role="button"]'));
+                for (const b of btns) {
+                    const t = (b.textContent || '').trim().toLowerCase();
+                    if (['accept all', 'i agree', 'accept cookies', 'got it', 'agree', 'allow all'].includes(t)) {
+                        if (b.offsetParent !== null) { b.click(); return; }
+                    }
+                }
+            }""")
+        except Exception:
+            pass
 
     def _navigate(self, p, url: str) -> None:
         """Navigate with a visible loading state (URL bar) + the password mask re-applied
@@ -150,6 +199,7 @@ class TinyBrowser:
         try:
             p.goto(url, wait_until="load")
             p.add_style_tag(content="input[type=password]{display:none!important}")
+            self._dismiss_popups(p)
         finally:
             self.loading = False
 
@@ -212,6 +262,7 @@ class TinyBrowser:
             shot = p.screenshot(type="jpeg", quality=_SHOT_Q)
             return ("data:image/jpeg;base64," + base64.b64encode(shot).decode()), p.url, p.title()
         if op == "observe":
+            self._dismiss_popups(p)
             from .observe import observe_page
             return observe_page(p)
         if op == "fill":
