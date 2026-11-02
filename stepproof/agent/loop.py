@@ -79,17 +79,25 @@ class AgentLoop:
     # ---- control surface (called from the API/UI) ----
 
     def start(self, goal: str) -> None:
+        if getattr(self, "_thread_handle", None) and self._thread_handle.is_alive():
+            self._running = False
+            self.browser.kill.set()
+            self._pending_decision.set()
+            self._thread_handle.join(timeout=1.5)
         self.browser.kill.clear()
+        self._pending_decision.clear()
         self.goal = goal
         self.log = RunLog()
         self.history = []
         self.machine = StateMachine()
         self._running = True
-        t = threading.Thread(target=self._thread, daemon=True)
-        t.start()
+        self._thread_handle = threading.Thread(target=self._thread, daemon=True)
+        self._thread_handle.start()
 
     def kill(self) -> None:
+        self._running = False
         self.browser.kill.set()
+        self._pending_decision.set()
 
     def pause(self, reason: str = "human") -> None:
         """Human takeover: stop issuing actions; the UI forwards input. Honoured at boundary."""

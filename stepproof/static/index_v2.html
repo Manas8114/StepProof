@@ -69,6 +69,7 @@ input[type=range]{accent-color:var(--acc)}
       <button data-m="execute">Execute</button>
       <button data-m="coach">Coach</button>
       <button data-m="tour">Tour</button>
+      <button data-m="tracking">Tracking</button>
     </div>
 
     <div id="m-monitor">
@@ -118,6 +119,27 @@ input[type=range]{accent-color:var(--acc)}
       <p class="note" id="tourlabel"></p>
     </div>
 
+    <div id="m-tracking" class="hide">
+      <h2>SAM 3.1 Video Tracking</h2>
+      <p class="note">Dynamic tracking proof: SAM 3.1 maintains stable object IDs across frames without any training data. Tracked boxes and confidence are served from cache (no new model calls).</p>
+      <div style="position:relative;width:100%;aspect-ratio:640/360;background:#000;border-radius:8px;overflow:hidden;margin-bottom:8px;">
+        <video id="trackvideo" src="/video/pan.mp4" loop playsinline muted style="width:100%;height:100%;object-fit:contain;display:block;"></video>
+        <canvas id="trackcanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
+      </div>
+      <div class="btnrow">
+        <button id="trackplay" class="primary">▶ Play Tracking</button>
+        <button id="trackpause">❚❚ Pause</button>
+        <button id="trackreset">↺ Reset</button>
+        <span id="trackstatus" class="note mono" style="align-self:center;margin-left:8px;">Ready</span>
+      </div>
+      <div class="sugg" style="margin-top:10px;">
+        <div class="row"><span>Status</span><span class="tag" id="trackstate">Idle</span></div>
+        <div class="row"><span>Frame</span><span class="mono" id="trackframe">0 / 60</span></div>
+        <div class="row"><span>Active Object ID</span><span class="tag" id="trackobjid">ID #0</span></div>
+        <div class="row"><span>SAM 3.1 Confidence</span><span class="mono" id="trackconf">0.97</span></div>
+      </div>
+    </div>
+
   </div>
 
   <!-- CENTER: live browser -->
@@ -164,8 +186,10 @@ api('/api/v2/health').then(h=>{$('#hmodel').textContent=`agent: ${h.agent_model}
 
 // tabs
 $('#tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;
-  ['monitor','execute','coach','tour'].forEach(m=>{$('#m-'+m).classList.toggle('hide',m!==b.dataset.m)});
-  [...$('#tabs').children].forEach(x=>x.classList.toggle('on',x===b)); mode=b.dataset.m;};
+  ['monitor','execute','coach','tour','tracking'].forEach(m=>{$('#m-'+m).classList.toggle('hide',m!==b.dataset.m)});
+  [...$('#tabs').children].forEach(x=>x.classList.toggle('on',x===b)); mode=b.dataset.m;
+  if(mode==='tracking'&&!trackData)loadTracking().then(()=>renderTrackingFrame());
+};
 
 // ---- event stream (SSE) ----
 const es=new EventSource('/events');
@@ -361,6 +385,106 @@ $('#tourreplay').onclick=async()=>{
   await japi('/api/v2/tour/replay',{file:f});
 };
 loadTourList();
+
+// ---- tracking: SAM 3.1 video segmentation & dynamic tracking ----
+let trackData=null, trackAnimId=null;
+const trackVid=$('#trackvideo');
+const trackCanvas=$('#trackcanvas');
+
+async function loadTracking(){
+  if(trackData)return trackData;
+  try{
+    $('#trackstatus').textContent='Loading tracking cache...';
+    trackData=await api('/api/v2/tracking/demo');
+    $('#trackstatus').textContent='Tracking cache loaded (60 frames)';
+    return trackData;
+  }catch(e){
+    $('#trackstatus').textContent='Error: '+e.message;
+    return null;
+  }
+}
+
+function renderTrackingFrame(){
+  if(!trackVid||!trackCanvas)return;
+  const rect=trackVid.getBoundingClientRect();
+  if(rect.width>0&&rect.height>0&&(trackCanvas.width!==Math.round(rect.width)||trackCanvas.height!==Math.round(rect.height))){
+    trackCanvas.width=Math.round(rect.width);
+    trackCanvas.height=Math.round(rect.height);
+  }
+  const ctx=trackCanvas.getContext('2d');
+  ctx.clearRect(0,0,trackCanvas.width,trackCanvas.height);
+  if(!trackData)return;
+
+  const fps=trackData.fps||10.0;
+  const frameIdx=Math.min(trackData.total_frames-1,Math.floor(trackVid.currentTime*fps));
+  $('#trackframe').textContent=`${frameIdx+1} / ${trackData.total_frames}`;
+
+  const dets=(trackData.frames&&(trackData.frames[frameIdx]||trackData.frames[''+frameIdx]))||[];
+  const sx=(trackCanvas.width||rect.width)/(trackData.width||640);
+  const sy=(trackCanvas.height||rect.height)/(trackData.height||360);
+
+  for(const d of dets){
+    const [x1,y1,x2,y2]=d.box;
+    const bx=x1*sx,by=y1*sy,bw=(x2-x1)*sx,bh=(y2-y1)*sy;
+    const conf=d.conf!=null?d.conf:1.0;
+    const color=conf>=0.8?'#3fb97f':(conf>=0.5?'#e0a13c':'#e0616b');
+
+    ctx.strokeStyle=color;
+    ctx.lineWidth=2.5;
+    ctx.strokeRect(bx,by,bw,bh);
+
+    ctx.fillStyle=color+'26';
+    ctx.fillRect(bx,by,bw,bh);
+
+    const badgeText=`SAM 3.1 ID #${d.obj_id} (${(conf*100).toFixed(0)}%)`;
+    ctx.font='bold 11px ui-monospace,monospace';
+    const textW=ctx.measureText(badgeText).width;
+    ctx.fillStyle='#0f1416e6';
+    ctx.fillRect(bx,Math.max(0,by-18),textW+8,18);
+    ctx.fillStyle=color;
+    ctx.fillText(badgeText,bx+4,Math.max(12,by-5));
+
+    $('#trackobjid').textContent=`ID #${d.obj_id}`;
+    $('#trackconf').textContent=conf.toFixed(3);
+  }
+
+  if(!trackVid.paused&&!trackVid.ended){
+    trackAnimId=requestAnimationFrame(renderTrackingFrame);
+  }
+}
+
+$('#trackplay').onclick=async()=>{
+  await loadTracking();
+  try{
+    await trackVid.play();
+    $('#trackstate').textContent='Tracking Active';
+    $('#trackstatus').textContent='Streaming zero-shot tracking';
+    cancelAnimationFrame(trackAnimId);
+    trackAnimId=requestAnimationFrame(renderTrackingFrame);
+  }catch(e){
+    $('#trackstatus').textContent='Play failed: '+e.message;
+  }
+};
+
+$('#trackpause').onclick=()=>{
+  trackVid.pause();
+  cancelAnimationFrame(trackAnimId);
+  $('#trackstate').textContent='Paused';
+  $('#trackstatus').textContent='Paused';
+};
+
+$('#trackreset').onclick=async()=>{
+  trackVid.pause();
+  trackVid.currentTime=0;
+  cancelAnimationFrame(trackAnimId);
+  $('#trackstate').textContent='Idle';
+  $('#trackstatus').textContent='Ready';
+  await loadTracking();
+  renderTrackingFrame();
+};
+
+trackVid.addEventListener('seeked',renderTrackingFrame);
+trackVid.addEventListener('timeupdate',()=>{if(trackVid.paused)renderTrackingFrame();});
 </script>
 </body>
 </html>

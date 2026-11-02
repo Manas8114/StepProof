@@ -148,7 +148,7 @@ def test_button_audit(app, browser):
         time.sleep(0.25)
 
     # ---- tabs (state change = target panel visible)
-    for m in ("monitor", "execute", "coach", "tour"):
+    for m in ("execute", "coach", "tour", "tracking", "monitor"):
         audit(f"#tabs button[data-m='{m}']", settle=0.3)
 
     # ---- monitor: record a real action so compile/save/run have data
@@ -191,11 +191,22 @@ def test_button_audit(app, browser):
     audit("#tourrun", settle=1.5)
     audit("#tourreplay", precondition=_ensure_tour_list, settle=1.5)
 
+    # ---- tracking
+    goto_mode("tracking")
+    audit("#trackplay", settle=0.8)
+    audit("#trackpause", settle=0.5)
+    audit("#trackreset", settle=0.5)
+
     # ---- center controls
     audit("#fresh", settle=0.5)
 
     # ---- dynamic gate buttons (Allow/Deny appear on an irreversible action)
-    time.sleep(2.5)   # allow tour thread to settle before starting next agent run
+    # Wait for the tour thread to finish completely before starting next agent run
+    try:
+        page.wait_for_selector("#tourlabel:has-text('Tour finished')", timeout=30000)
+    except Exception:
+        pass
+    time.sleep(1.0)
     goto_mode("execute")
     page.fill("#xgoal", "File an Acme office expense of $42")
     page.click("#xstart")

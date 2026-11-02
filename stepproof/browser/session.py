@@ -213,7 +213,7 @@ class TinyBrowser:
             from .observe import observe_page
             return observe_page(p)
         if op == "fill":
-            p.fill(arg["selector"], str(arg.get("text", "")))
+            p.fill(arg["selector"], str(arg.get("text", "")), timeout=int(arg.get("timeout", 1500)))
             return {"ok": True}
         if op == "fill_at":
             x, y = int(arg.get("x", 0)), int(arg.get("y", 0))
@@ -242,7 +242,7 @@ class TinyBrowser:
                 p.keyboard.press("Enter")
             return {"ok": True}
         if op == "select":
-            p.select_option(arg["selector"], arg.get("value"))
+            p.select_option(arg["selector"], arg.get("value"), timeout=int(arg.get("timeout", 1500)))
             return {"ok": True}
         if op == "select_at":
             x, y = int(arg.get("x", 0)), int(arg.get("y", 0))
@@ -266,7 +266,7 @@ class TinyBrowser:
             p.mouse.click(arg["x"], arg["y"])
             return {"ok": True}
         if op == "click_sel":
-            p.click(arg["selector"], force=True)
+            p.click(arg["selector"], force=True, timeout=int(arg.get("timeout", 1500)))
             return {"ok": True}
         if op == "refresh":
             self.loading = True

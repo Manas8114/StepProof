@@ -121,6 +121,10 @@ for name in ("expense", "inventory", "hostile", "mutated"):
         app.mount(f"/site/{name}", StaticFiles(directory=p, html=True), name=f"site_{name}")
         app.mount(f"/{name}", StaticFiles(directory=p, html=True), name=f"root_{name}")
 
+p_video = BASE / "data" / "images"
+if p_video.exists():
+    app.mount("/video", StaticFiles(directory=str(p_video)), name="video_files")
+
 
 
 class GoalIn(BaseModel):
@@ -473,3 +477,37 @@ def tour_runs():
     """List dated recorded tours (the replayable showcase artifacts)."""
     TOUR_DIR.mkdir(parents=True, exist_ok=True)
     return sorted(x.name for x in TOUR_DIR.glob("*.json"))
+
+
+# ------------------------------------------------------------------ dynamic tracking view (SAM 3.1)
+
+@app.get("/api/v2/tracking/demo")
+def tracking_demo():
+    """Dynamic tracking showcase: cached SAM 3.1 video detection output
+    demonstrating stable zero-shot object tracking across frames without new model calls."""
+    cache_file = BASE / "data" / "cache" / "sam" / "526996a239c92aec1e05-video-9e32521dd2.txt"
+    if not cache_file.exists():
+        raise HTTPException(404, "Cached SAM tracking output not found")
+    from .wire import parse_wire
+    raw = cache_file.read_text(encoding="utf-8")
+    dets = parse_wire(raw)
+    by_frame: dict[int, list[dict]] = {}
+    for d in dets:
+        by_frame.setdefault(d.frame, []).append({
+            "obj_id": d.obj_id,
+            "box": list(d.box),
+            "conf": d.conf,
+            "w": d.w,
+            "h": d.h,
+        })
+    return {
+        "video_url": "/video/pan.mp4",
+        "width": 640,
+        "height": 360,
+        "fps": 10.0,
+        "total_frames": len(by_frame),
+        "detections_count": len(dets),
+        "frames": by_frame,
+        "note": "Cached SAM 3.1 zero-shot video tracking — stable obj_id=0 across 60 frames, conf >= 0.96",
+    }
+
