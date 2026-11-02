@@ -33,5 +33,8 @@ PUBLIC_ALLOWED_HOSTS = {
     "saucedemo.com",
     "www.saucedemo.com",
     "demoqa.com",
+    "youtube.com",
+    "www.youtube.com",
+    "m.youtube.com",
 }
 ALLOWED_HOSTS = {h.strip() for h in _e("ALLOWED_HOSTS", "").split(",") if h.strip()}.union(PUBLIC_ALLOWED_HOSTS)

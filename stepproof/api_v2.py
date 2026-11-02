@@ -255,6 +255,20 @@ def browser_start(site: SiteIn, request: Request):
     return {"ok": bool(r.get("ok")), "url": _browser.url}
 
 
+class AllowlistIn(BaseModel):
+    hosts: list[str]
+
+
+@app.post("/api/v2/browser/allowlist")
+def add_allowlist(body: AllowlistIn):
+    for h in body.hosts:
+        h = h.strip()
+        if h:
+            ALLOW.add(h)
+            _browser.allowlist.add(h)
+    return {"ok": True, "allowlist": sorted(ALLOW)}
+
+
 class NavIn(BaseModel):
     op: str      # goto | back | forward | reload
     url: str = ""
