@@ -170,6 +170,8 @@ input[type=range]{accent-color:var(--acc)}
     <div id="events" class="mono"></div>
     <h2 style="margin-top:12px">Run metrics</h2>
     <div id="metrics" class="note mono">—</div>
+    <h2 style="margin-top:12px">Live cost (this session)</h2>
+    <div id="cost" class="note mono">—</div>
     <h2 style="margin-top:12px">Suggestions</h2>
     <div id="sugg" class="note">No data yet — run a task, then use Coach.</div>
   </div>
@@ -338,7 +340,11 @@ function hideAsk(){$('#ask').classList.add('hide');}
 // ---- coach ----
 async function refreshMetrics(){try{const s=await api('/api/v2/agent/state');const m=s.metrics;
   $('#metrics').innerHTML=['steps:'+m.steps,'wall:'+m.wall_s+'s','model calls:'+m.model_calls,
-    'takeovers:'+m.takeovers,'approvals:'+m.approvals].join('<br>');}catch(e){}}
+    'takeovers:'+m.takeovers,'approvals:'+m.approvals].join('<br>');}catch(e){}
+  try{const c=await api('/api/v2/cost');
+    if(!c.enabled)$('#cost').textContent='live meter inert (test/offline mode)';
+    else{const cum=c.cumulative||{};$('#cost').innerHTML=['calls: '+cum.calls,'SAM frames billed: '+cum.billed_frames,'total tokens: '+cum.total_tokens].join('<br>');}
+  }catch(e){}}
 $('#cgo').onclick=async()=>{const c=await api(`/api/v2/coach?human_steps=${$('#hsteps').value}&human_time=${$('#hwall').value}`);
   showSugg('compare',c.deterministic);$('#cbox').innerHTML=renderCompare(c.compare)+'<div>'+renderSugg(c.spoken)+'</div>';};
 function renderCompare(cmp){if(!cmp)return'';return `<h2>Agent vs human</h2>

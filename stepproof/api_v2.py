@@ -76,6 +76,13 @@ _recorder = Recorder(_browser)
 _voice = VoiceCompanion()
 _proc_cache: dict[str, Procedure] = {}
 
+# P1.2b live cost meter: every live provider call (SAM/Muse) the app makes is recorded
+# here so the UI can show real cumulative cost. In tests the meter stays inert.
+from .usage import UsageMeter, set_meter as _set_meter
+_USAGE_METER = UsageMeter() if os.getenv("STEPPROOF_TEST_MODEL") != "1" else None
+if _USAGE_METER is not None:
+    _set_meter(_USAGE_METER)
+
 _vision_selfheal_fn = None
 _healer_info: dict = {"enabled": False, "models": [], "hosts": []}
 if cfg.VISION_SELFHEAL and cfg.MODEL_API_KEY:
@@ -186,6 +193,18 @@ def health_v2():
                 "models": _healer_info["models"],
                 "hosts": _healer_info["hosts"],
             }}
+
+
+@app.get("/api/v2/cost")
+def cost():
+    """P1.2b live cost meter: cumulative measured cost of every live API call this app
+    instance has made (SAM frames billed + model tokens + latency). Honest - it is the
+    meter's own record, not an estimate. A meter that was never set returns zeros."""
+    m = _USAGE_METER
+    if m is None:
+        return {"enabled": False, "summary": {}, "cumulative": {"calls": 0, "billed_frames": 0, "total_tokens": 0}}
+    s = m.summary()
+    return {"enabled": True, "summary": s, "cumulative": m.cumulative()}
 
 
 @app.get("/events")
