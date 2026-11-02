@@ -43,26 +43,25 @@ class Recorder:
         url_a = self.browser.observe().get("url", "")
         self.actions.append(RecordedAction(round(time.time() - self._t0, 3), "click",
                                            {"ok": ok, "detail": detail, "element_name": element_name},
-                                           locators=locators, narration=narration,
-                                           element_name=element_name,
+                                           locators=locators, narration=narration, element_name=element_name,
                                            url_before=url_b, url_after=url_a))
 
-    def type_value(self, locators: list[dict], text: str, narration: str = "") -> None:
+    def type_value(self, locators: list[dict], text: str, narration: str = "", element_name: str = "") -> None:
         url_b = self.browser.observe().get("url", "")
         ok, detail = _try_first_locator(self.browser, locators, "type", text)
         url_a = self.browser.observe().get("url", "")
         self.actions.append(RecordedAction(round(time.time() - self._t0, 3), "type",
-                                           {"text": text, "ok": ok, "detail": detail},
-                                           locators=locators, narration=narration,
+                                           {"text": text, "ok": ok, "detail": detail, "element_name": element_name},
+                                           locators=locators, narration=narration, element_name=element_name,
                                            url_before=url_b, url_after=url_a))
 
-    def select_value(self, locators: list[dict], value: str, narration: str = "") -> None:
+    def select_value(self, locators: list[dict], value: str, narration: str = "", element_name: str = "") -> None:
         url_b = self.browser.observe().get("url", "")
         ok, detail = _try_first_locator(self.browser, locators, "select", value)
         url_a = self.browser.observe().get("url", "")
         self.actions.append(RecordedAction(round(time.time() - self._t0, 3), "select",
-                                           {"value": value, "ok": ok, "detail": detail},
-                                           locators=locators, narration=narration,
+                                           {"value": value, "ok": ok, "detail": detail, "element_name": element_name},
+                                           locators=locators, narration=narration, element_name=element_name,
                                            url_before=url_b, url_after=url_a))
 
     def narrate(self, text: str) -> None:

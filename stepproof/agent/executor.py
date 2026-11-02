@@ -50,7 +50,7 @@ def _resolve_locator(tb, locators: list, text: str = "", tool: str = "click") ->
 
 def execute_procedure(tb, proc, human_demo: dict | None = None,
                       approve_fn: Optional[Callable[[str, dict], bool]] = None,
-                      vision_selfheal: Optional[Callable[[str], Optional[dict]]] = None,
+                      vision_selfheal: Optional[Callable[[Any], Optional[dict]]] = None,
                       max_steps: int = 60) -> ExecResult:
     """Run `proc` on the live browser. `approve_fn(tool, args)->bool` gates irreversible/external
     actions (the UI wires this to the approval-gate flow). `vision_selfheal(concept)->arg|None`
@@ -77,7 +77,7 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
                 res.healed_steps.append({"step": step.id, "action": step.action,
                                         "note": f"locator[{used}] used (self-heal from broken primary)"})
         if not worked and vision_selfheal is not None:
-            healed = vision_selfheal(step.description)
+            healed = vision_selfheal(step)
             if healed:
                 r = execute_action(tb, step.action, healed)
                 worked = r.ok

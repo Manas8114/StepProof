@@ -22,6 +22,7 @@ class Step:
     locators: list[Locator] = field(default_factory=list)  # where the action targets
     success: list[dict] = field(default_factory=list)      # deterministic checks
     note: str = ""
+    vision_concept: str = ""
 
 
 @dataclass
@@ -52,9 +53,13 @@ class Procedure:
     @classmethod
     def from_dict(cls, d: dict) -> "Procedure":
         d = dict(d)
-        d["steps"] = [Step(**s) for s in d.get("steps", [])]
-        for s in d["steps"]:
-            s.locators = [Locator(**l) for l in s.locators]
+        steps = []
+        for s in d.get("steps", []):
+            s_dict = dict(s)
+            s_dict.setdefault("vision_concept", "")
+            locs = [Locator(**l) for l in s_dict.pop("locators", [])]
+            steps.append(Step(**s_dict, locators=locs))
+        d["steps"] = steps
         d["success_checks"] = d.get("success_checks", [])
         return cls(**{k: d.get(k, DEFAULTS[k]) for k in ("goal", "site", "parameters", "source")},
                    steps=d["steps"], success_checks=d["success_checks"])

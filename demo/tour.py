@@ -89,9 +89,9 @@ class Tour:
         """1. Record a human demo on the expense site, compile it to a Procedure."""
         self._mark("learn")
         self.recorder.start(self.site + "/expense/")
-        self.recorder.type_value([{"kind": "css", "value": "#vendor"}], "Acme", "enter the vendor name")
-        self.recorder.type_value([{"kind": "css", "value": "#amount"}], "42", "the amount")
-        self.recorder.select_value([{"kind": "css", "value": "#category"}], "office", "pick the category")
+        self.recorder.type_value([{"kind": "css", "value": "#vendor"}], "Acme", "enter the vendor name", element_name="Vendor")
+        self.recorder.type_value([{"kind": "css", "value": "#amount"}], "42", "the amount", element_name="Amount")
+        self.recorder.select_value([{"kind": "css", "value": "#category"}], "office", "pick the category", element_name="Category")
         self.recorder.click_element([{"kind": "css", "value": "#submit"}], "file the claim", element_name="Submit claim")
         records = self.recorder.stop()
         from stepproof.learn.compile import compile_to_procedure, sanitize

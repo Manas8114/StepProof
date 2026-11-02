@@ -13,6 +13,7 @@ no credentials - only what is visible on the screen.
 from __future__ import annotations
 import json, time
 from pathlib import Path
+from typing import Any
 from .. import config as cfg
 from ..checks import _js
 
@@ -35,13 +36,19 @@ class MuseVisionHealer:
                              timeout=90, max_retries=0)
         self.min_confidence = min_confidence
 
-    def heal(self, screenshot: str, target: str) -> dict | None:
-        """screenshot = data URL (masked). target = short description of the element to find."""
+    def heal(self, screenshot: str, target: Any) -> dict | None:
+        """screenshot = data URL (masked). target = Step or short description of the element to find."""
+        if hasattr(target, "description") and target.description:
+            target_str = target.description
+        elif hasattr(target, "vision_concept") and target.vision_concept:
+            target_str = target.vision_concept
+        else:
+            target_str = str(target)
         msgs = [{"type": "message", "role": "user", "content": [
             {"type": "input_text", "text":
                 "You see a screenshot of a web app. Locate the element described below. "
                 "Return its bounding box in screenshot pixel coordinates (top-left origin). "
-                "If it is not visible, set confidence to 0.\nTARGET: " + target},
+                "If it is not visible, set confidence to 0.\nTARGET: " + target_str},
             {"type": "input_image", "image_url": screenshot},
         ]}]
         r = self.client.responses.create(model=cfg.VISION_MODEL, input=msgs,
@@ -75,8 +82,14 @@ class SamVisionHealer:
         self._tmp = cfg.DATA_DIR / "vision_heal"
         self._tmp.mkdir(parents=True, exist_ok=True)
 
-    def heal(self, screenshot: str, target: str) -> dict | None:
-        concept = self.concept_map.get(target, target)
+    def heal(self, screenshot: str, target: Any) -> dict | None:
+        """screenshot = data URL (masked). target = Step or noun phrase / description."""
+        if hasattr(target, "vision_concept") and target.vision_concept:
+            concept = target.vision_concept
+        elif hasattr(target, "description") and target.description:
+            concept = self.concept_map.get(target.description, target.description)
+        else:
+            concept = self.concept_map.get(str(target), str(target))
         import base64
         m = screenshot.split(",", 1)
         if len(m) != 2:
@@ -92,7 +105,7 @@ class SamVisionHealer:
                 "conf": best.conf, "concept": concept}
 
 
-def chain(ms, sam, target: str, screenshot: str):
+def chain(ms, sam, target: Any, screenshot: str):
     """Muse vision grounding first; SAM 3.1 open-vocab fallback; None when neither grounds it.
     Returns a click_box arg dict for `execute_action`."""
     try:
@@ -112,7 +125,7 @@ def chain(ms, sam, target: str, screenshot: str):
 def make_selfheal(ms, sam, browser):
     """Build the `vision_selfheal(target) -> arg|None` hook the executor calls; it grabs the
     current (password-masked) screenshot from the live browser, tries Muse then SAM."""
-    def vision_selfheal(target: str):
+    def vision_selfheal(target: Any):
         shot = browser.take_screenshot()
         return chain(ms, sam, target, shot)
     return vision_selfheal

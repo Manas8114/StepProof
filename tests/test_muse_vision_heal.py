@@ -69,3 +69,51 @@ def test_muse_healer_no_tool_call():
     healer.client = MagicMock()
     healer.client.responses.create.return_value = _mock_response(has_call=False)
     assert healer.heal("data:image/jpeg;base64,abc", "Button") is None
+
+
+def test_derive_vision_concept():
+    from stepproof.learn.compile import derive_vision_concept
+    assert derive_vision_concept("type", "Vendor") == "Vendor text input"
+    assert derive_vision_concept("type", "Amount") == "Amount number input"
+    assert derive_vision_concept("select", "Category") == "Category dropdown menu"
+    assert derive_vision_concept("click", "Submit claim") == "Submit claim button"
+    # Fallback to css locator
+    assert derive_vision_concept("click", "", [{"kind": "css", "value": "#submit-order"}]) == "Submit Order button"
+
+
+def test_step_vision_concept_serialization():
+    from stepproof.proc import Step, Procedure, Locator
+    s = Step(id="s1", description="Submit", action="click", vision_concept="Submit button",
+             locators=[Locator(kind="css", value="#submit")])
+    p = Procedure(goal="Test", steps=[s])
+    d = p.to_dict()
+    assert d["steps"][0]["vision_concept"] == "Submit button"
+    p2 = Procedure.from_dict(d)
+    assert p2.steps[0].vision_concept == "Submit button"
+
+    # Backward compatibility: missing vision_concept in dict
+    del d["steps"][0]["vision_concept"]
+    p3 = Procedure.from_dict(d)
+    assert p3.steps[0].vision_concept == ""
+
+
+def test_sam_vision_healer_uses_step_concept():
+    from stepproof.browser.vision_heal import SamVisionHealer
+    from stepproof.proc import Step
+    from unittest.mock import MagicMock
+
+    sam = SamVisionHealer()
+    sam.sam = MagicMock()
+    det = MagicMock()
+    det.conf = 0.85
+    det.box = [10, 20, 50, 60]
+    sam.sam.segment_image.return_value = [det]
+
+    step = Step(id="s1", description="click button", vision_concept="Submit claim button")
+    res = sam.heal("data:image/jpeg;base64,YWJj", step)
+    assert res is not None
+    assert res["concept"] == "Submit claim button"
+    assert res["conf"] == 0.85
+    sam.sam.segment_image.assert_called_once()
+    assert sam.sam.segment_image.call_args[0][1] == "Submit claim button"
+

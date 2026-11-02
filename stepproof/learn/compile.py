@@ -11,6 +11,49 @@ from typing import Optional
 from ..proc import Procedure, Step, Locator, DEFAULTS
 
 
+def derive_vision_concept(tool: str, element_name: str = "",
+                          locators: list[dict | Locator] | None = None,
+                          narration: str = "") -> str:
+    """Derive one short noun phrase per step for visual grounding (SAM 3.1).
+    SAM wants short noun phrases (e.g. 'Vendor text input', 'Submit claim button'),
+    never full sentences or instructions."""
+    raw = element_name.strip()
+    if not raw and locators:
+        for l in locators:
+            val = getattr(l, "value", None) or (l.get("value") if isinstance(l, dict) else "")
+            kind = getattr(l, "kind", None) or (l.get("kind") if isinstance(l, dict) else "")
+            if kind in ("text", "role") and val:
+                raw = val.strip()
+                break
+            if kind == "css" and val:
+                m = re.search(r"#([a-zA-Z0-9_-]+)", val)
+                if m:
+                    raw = m.group(1).replace("-", " ").replace("_", " ").title()
+                    break
+    if not raw and narration:
+        m = re.search(r"(?:enter|type|select|pick|click|file|submit|the)\s+([a-zA-Z0-9\s_-]+)", narration, re.I)
+        raw = m.group(1).strip() if m else narration.strip()
+
+    low = raw.lower()
+    if tool in ("type", "fill"):
+        if "input" in low or "field" in low or "box" in low:
+            return raw
+        if any(k in low for k in ("amount", "qty", "quantity", "price", "count")):
+            return f"{raw} number input".strip()
+        return f"{raw} text input".strip()
+    elif tool == "click":
+        if "button" in low:
+            return raw
+        if any(k in low for k in ("row", "table", "item", "entry")):
+            return raw if "row" in low else f"{raw} row"
+        return f"{raw} button".strip()
+    elif tool == "select":
+        if "dropdown" in low or "menu" in low or "select" in low:
+            return raw
+        return f"{raw} dropdown menu".strip()
+    return raw or f"{tool} target"
+
+
 def _action_from_recorded(rec: dict, goal_site: str) -> Step:
     """Map one RecordedAction (from Recorder.stop()) to a Procedure Step. Multi-locator kept."""
     locs = [Locator(kind=l.get("kind", "css"), value=str(l.get("value", "")))
@@ -25,7 +68,9 @@ def _action_from_recorded(rec: dict, goal_site: str) -> Step:
     name = recarg.get("element_name", "") or rec.get("element_name", "")
     if name:
         arg["name"] = name
+    concept = rec.get("vision_concept") or derive_vision_concept(tool, name, locs, rec.get("narration", ""))
     s = Step(id=f"s{len([])+1}", description=rec.get("narration") or f"{tool} via {tool} step",
+             vision_concept=concept,
              action=tool, arg=arg, locators=locs)
     s.id = ""  # renumbered by caller
     return s

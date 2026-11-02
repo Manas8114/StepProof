@@ -96,4 +96,4 @@ self-healing remains the primary, reliable path). The experiment and its numbers
 the repo as an honest result, per the "report failures" rule.
 
 ## Known limits
-Fixed camera and large, distinct parts work best; SAM takes one concept per request; masks are parsed but not yet drawn (boxes only, see PRD stretch P1); phone videos may need re-encoding to H.264 without rotation flags.
+Fixed camera and large, distinct parts work best; SAM takes one concept per request (short noun phrases like `Vendor text input` or `Submit claim button`, not sentences or instructions — carried in `proc.py:Step.vision_concept`); masks are parsed but not yet drawn (boxes only, see PRD stretch P1); phone videos may need re-encoding to H.264 without rotation flags.
