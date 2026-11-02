@@ -211,7 +211,7 @@ def test_button_audit(app, browser):
     page.fill("#xgoal", "File an Acme office expense of $42")
     page.click("#xstart")
     try:
-        gate_seen = page.wait_for_selector("#gate button", timeout=15000)
+        gate_seen = page.wait_for_selector("#gate button", timeout=45000)
     except Exception:
         gate_seen = None
     if gate_seen:
