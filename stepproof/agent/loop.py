@@ -170,12 +170,19 @@ class AgentLoop:
                 break
             shot = self.browser.take_screenshot()
             obs = self.browser.observe()
-            num_el = len(obs.get("elements", []))
+
+            # Pre-flight PII redaction pass: strip emails, credit cards, phones, SSNs
+            from ..redact import get_redactor
+            redactor = get_redactor()
+            redacted_obs, r_boxes = redactor.redact_observation(obs)
+            outbound_shot = redactor.redact_screenshot(shot, r_boxes) if r_boxes else shot
+
+            num_el = len(redacted_obs.get("elements", []))
             self._log_thought(steps + 1, "PERCEPTION", "Inspecting Page State",
                               f"Observed '{self.browser.title}' at {self.browser.url} with {num_el} interactive elements.")
             t0 = time.time()
             try:
-                act = self.model.decide(self.goal, elements_text(obs), shot, self.history)
+                act = self.model.decide(self.goal, elements_text(redacted_obs), outbound_shot, self.history)
                 dt_ms = round((time.time() - t0) * 1000, 1)
                 self.log.model_calls += 1
                 self._consec_errors = 0
@@ -292,3 +299,23 @@ class AgentLoop:
         self.machine = StateMachine()
         self.machine.state = _S(to) if to in ("DONE", "ERROR", "RUNNING") else _S.ERROR
         BUS.publish("done", {"state": self.machine.state.value, **result, "metrics": self.log.metrics()})
+
+        # Record into append-only hash-chained AuditSpine
+        try:
+            from ..audit import get_spine
+            run_id = f"agent-{int(self.log.start*1000)}"
+            verdict = "PASS" if to == "DONE" else "ERROR"
+            get_spine().append(
+                run_id=run_id,
+                verdict=verdict,
+                checks=[],
+                steps=[{"tool": s.get("tool", ""), "ok": s.get("ok", True)} for s in self.log.steps],
+                evidence_paths=[],
+                cost=self.log.metrics().get("usage", {}),
+                model_disclosure={
+                    "active_model": getattr(self.model, "active_model", getattr(self.model, "name", "unknown")),
+                    "fell_back": bool(getattr(self.model, "fell_back", False))
+                }
+            )
+        except Exception:
+            pass

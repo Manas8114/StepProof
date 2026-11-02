@@ -82,6 +82,26 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
     t0 = time.time()
     res = ExecResult(success=False, steps_run=0, wall_s=0.0)
     BUS.publish("exec_start", {"goal": proc.goal})
+
+    # Pre-flight cost estimation and budget breaker tripwire
+    from ..budget import estimate_procedure_cost, get_tripwire
+    from ..audit import get_spine
+    est = estimate_procedure_cost(proc)
+    tripwire = get_tripwire()
+    ok_pre, pre_err = tripwire.check_preflight(est)
+    if not ok_pre:
+        res.error = f"Budget tripwire breached: {pre_err}"
+        BUS.publish("exec_fail", {"error": res.error})
+        get_spine().append(
+            run_id=f"proc-{int(t0*1000)}",
+            verdict="BLOCKED",
+            steps=[],
+            evidence_paths=[],
+            cost=est.to_dict(),
+            model_disclosure={"tripwire_breach": pre_err}
+        )
+        return res
+
     params = getattr(proc, "parameters", {}) or {}
     for i, step in enumerate(proc.steps[:max_steps]):
         step_arg = _fill_slots(step.arg, params)
@@ -103,6 +123,13 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
                 res.healed_steps.append({"step": step.id, "action": step.action,
                                         "note": f"locator[{used}] used (self-heal from broken primary)"})
         if not worked and vision_selfheal is not None:
+            # Tripwire check BEFORE invoking any billing SAM / vision model call
+            ok_v, v_err = tripwire.check_before_vision_call(expected_frames=50)
+            if not ok_v:
+                res.error = f"step {i} vision call blocked: {v_err}"
+                BUS.publish("exec_blocked", {"step": step.id, "reason": "budget_tripwire"})
+                break
+
             healed = vision_selfheal(step)
             if healed:
                 healed = dict(healed)
@@ -164,4 +191,21 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
     res.success = bool(ok and not res.error)
     res.wall_s = round(time.time() - t0, 2)
     BUS.publish("exec_done", {"success": res.success, "metrics": res.metrics()})
+
+    # Record into append-only hash-chained AuditSpine
+    run_id = f"proc-{int(t0*1000)}"
+    verdict = "PASS" if res.success else ("BLOCKED" if "blocked" in res.error else "FAIL")
+    checks_data = [{"name": c.name, "passed": c.passed, "detail": c.detail, "evidence": getattr(c, "evidence", "")}
+                   for c in cresults]
+    ev_paths = [c.evidence for c in cresults if getattr(c, "evidence", "")]
+    get_spine().append(
+        run_id=run_id,
+        verdict=verdict,
+        checks=checks_data,
+        steps=[{"id": s.id, "action": s.action} for s in proc.steps[:res.steps_run]],
+        evidence_paths=ev_paths,
+        cost=est.to_dict(),
+        model_disclosure={"mode": "deterministic_executor", "healed_count": len(res.healed_steps)}
+    )
+
     return res

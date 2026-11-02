@@ -11,7 +11,7 @@ Status 2026-10-31 (end of day): live API access is confirmed and working (B1-B3 
 | A1 | Deterministic rules engine (models perceive, code decides) | `pytest` - `tests/test_rules.py` |
 | A2 | SAM wire parser, including real live wire fixtures | `tests/test_wire.py` + `tests/test_wire_real_fixture.py` |
 | A3 | End-to-end pipeline + evidence + overlay | `tests/test_pipeline.py` |
-| A4 | Full test suite green (103 unit, integration, safety & E2E tests) | `python -m pytest -q` -> `103 passed` |
+| A4 | Full test suite green (121 unit, integration, safety & E2E tests) | `python -m pytest -q` -> `121 passed` |
 | A5 | Synthetic dataset on disk (7 clips + 7 sidecars + 2 procedures + manifest + mock config) | `data/clips/`, `data/procedures/`, `data/manifest/`, `data/stepproof_mock.json`; regenerate: `python -m scripts.make_dataset` |
 | A6 | Offline eval, both modes, no API key needed | `STEPPROOF_PROVIDER=mock STEPPROOF_DATA=data python -m eval.run_eval --manifest data/manifest/manifest.json --mode pipeline` (and `--mode baseline`) |
 | A7 | Web UI boots and compiles offline | `STEPPROOF_PROVIDER=mock uvicorn stepproof.api:app` -> http://localhost:8000 |
@@ -70,6 +70,13 @@ Status 2026-10-31 (end of day): live API access is confirmed and working (B1-B3 
 | V15 | Health & model disclosures | `/api/v2/health` discloses agent model, browser, allowlist, and active healers (`MuseVisionHealer`, `SamVisionHealer`) |
 | V16 | Gated healed actions | `stepproof/agent/executor.py`: visual groundings re-classify visible label at clicked point against irreversible/external hints; unresolvable labels escalate |
 | V17 | Mask evidence overlay & dynamic tracking | `meta_sam_parser` composites one-bit masks onto screenshots in `data/evidence/`; zero-shot video tracking in `/api/v2/tracking/demo` + UI |
+| V18 | Pre-flight PII redaction pass | `stepproof/redact.py`: sanitizes DOM body/inputs/title and visual bounding boxes on screenshots before model perception; `/api/v2/redaction/dry_run` |
+| V19 | Hash-chained Audit Spine | `stepproof/audit.py`: append-only SHA-256 chain of runs, checks, evidence, model fallbacks; `package_run()` creates portable `.zip` bundles |
+| V20 | Pre-flight cost estimator & tripwire | `stepproof/budget.py`: enforces cost caps before run starts and before SAM 50-frame minimum calls; halts pathological procedures before billing |
+| V21 | Cryptographically signed procedures | `stepproof/signing.py`: byte-deterministic canonical manifest + HMAC signature (`Procedure.manifest`/`Procedure.signature`); rejects tampered bundles |
+| V22 | Lead A Self-healing web tests & reports | `stepproof/harness/`: locator drift reporting, self-rewriting procedures (winning locator promoted), JUnit XML + HTML dashboards |
+| V23 | Lead B Standalone proof verifier | `stepproof/verifier/`: zero-server proof verifier walking hash chains and validating evidence; `v1_adapter.py` for physical assembly clips |
+| V24 | Lead C Operator skill compiler & gated re-teach | `stepproof/skills/`: describe-or-demo → `{slot}` parameterised skills; human-gated re-teach flow (never silent retraining) |
 
 ## W. Launch video (/brag)
 | # | Item | Status |
@@ -85,3 +92,4 @@ Status 2026-10-31 (end of day): live API access is confirmed and working (B1-B3 
 | X3 | Vision self-heal is honestly measured and reported (**15/16 = 93.8%**, Muse 15/16, SAM 7/16 on mutated UI); failures are fully documented in `eval/RESULTS.md` §3; DOM multi-locator self-heal remains the primary path, vision is the fallback when selectors mutate. |
 | X4 | Tour approval/takeover clicks: interactive mode waits for a real human; unattended/auto mode labels itself in the trace. |
 | X5 | `live_agent_trace.json` and tour records are dated; replayed ones carry a `REPLAY <date>` label and are not live runs. |
+| X6 | Skill compiler vision understanding on physical footage is explicitly marked **NOT YET MEASURED** (synthetic benchmark only; no claims on real footage). |

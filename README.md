@@ -16,8 +16,47 @@ pip install -r requirements.txt
 python -m playwright install chromium   # one-time: download headless browser
 cp .env.example .env                    # add MODEL_API_KEY
 uvicorn stepproof.api_v2:app --port 8011 # open http://localhost:8011
-pytest -q                               # 103 tests (unit, integration, safety & E2E)
+pytest -q                               # 121 tests (unit, integration, safety & E2E)
 ```
+
+---
+
+## Real Mode: Tripwire, Signed Artifacts, Audit Spine & Three Leads
+
+StepProof "Real Mode" elevates the system from an experimental prototype to enterprise-ready production:
+
+### 1. Pre-Flight PII Redaction
+- **Irreversible local sanitization**: outbound screenshots and DOM accessibility trees pass through regex-based PII redaction (`stepproof/redact.py`) before touching SAM or Muse Spark.
+- **Protected patterns**: email addresses, credit card numbers, phone numbers, SSNs, account numbers, and custom regexes.
+- **Visual masking**: draws solid redaction rectangles over sensitive input bounding boxes on JPEG screenshots.
+- **Dry-run audit**: `/api/v2/redaction/dry_run` shows exactly what would be sent vs redacted.
+
+### 2. Append-Only Hash-Chained Audit Spine
+- **Tamper-evident chain**: every execution verdict, check result, evidence screenshot, and model disclosure is hashed into an append-only SHA-256 chain (`stepproof/audit.py`), stored in SQLite and JSONL.
+- **Portable evidence bundles**: `package_run()` exports a self-contained `.zip` bundle containing `manifest.json`, `audit_entries.json`, and all raw evidence screenshots with verified checksums.
+
+### 3. Tripwire & Pre-Flight Cost Estimator
+- **Guardrail in front of the meter**: `estimate_procedure_cost()` estimates SAM billed frames (50-frame minimum rule) and tokens before a run begins.
+- **Aborts before billing**: a pathological procedure or runaway agent halts at action boundaries and before vision calls if caps are breached, logging a `BLOCKED` audit entry. Configurable via `STEPPROOF_COST_CAP_FRAMES` and `STEPPROOF_COST_CAP_TOKENS`.
+
+### 4. Signed, Portable Procedure Artifacts
+- **Canonical manifest**: byte-deterministic JSON serialization pins field ordering. Replay on another machine yields identical SHA-256 digests (`stepproof/signing.py`).
+- **Cryptographic signatures**: signed via HMAC-SHA256 (`Procedure.signature` and `Procedure.manifest`). `Procedure.from_dict()` rejects tampered steps, locators, or checks.
+- **CLI helper**: `python -m scripts.sign_procedure <proc.json> [--verify]`.
+
+### 5. Lead A — Self-Healing Web Tests
+- **Locator-drift reporting**: tracks which steps required secondary locators or vision-healing (`stepproof/harness/drift.py`).
+- **Self-rewriting procedures**: when vision heal finds an element, the winning locator is synthesized, prepended to the procedure's locator list, and re-signed so subsequent runs require **0 vision/model calls**.
+- **CI Suite Reports**: outputs standard JUnit XML (`<testsuite>`) and dark-themed HTML dashboards (`stepproof/harness/reports.py`).
+
+### 6. Lead B — Proof & Audit Evidence (Independent Verifier)
+- **Zero-server verifier**: `python -m stepproof.verifier.verify <bundle.zip>` independently confirms manifest digests, walks hash chains, and re-validates deterministic checks offline without live models or servers.
+- **Real-footage adapter**: `verify_v1_clip()` connects physical assembly footage directly to the frozen v1 SAM video-verification pipeline.
+
+### 7. Lead C — Operator Skill Compiler
+- **Describe-or-demo onboarding**: compiles ~30s demonstrations or natural-language step descriptions into parameterised `{slot}` skills (`stepproof/skills/compiler.py`).
+- **Human-gated re-teach flow**: when a parameter variant fails, the system requires operator approval before merging corrections and re-signing (never silent retraining).
+- **Honesty guardrail**: explicitly marks vision variant understanding on physical footage as **NOT YET MEASURED** per submission rules X1–X5.
 
 ---
 

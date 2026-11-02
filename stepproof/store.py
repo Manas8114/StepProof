@@ -14,6 +14,28 @@ def init() -> None:
     with _c() as c:
         c.execute("CREATE TABLE IF NOT EXISTS procedures(id TEXT PRIMARY KEY, name TEXT, spec TEXT, created REAL DEFAULT (strftime('%s','now')))")
         c.execute("CREATE TABLE IF NOT EXISTS inspections(id TEXT PRIMARY KEY, procedure_id TEXT, video TEXT, status TEXT, detail TEXT, report TEXT, created REAL DEFAULT (strftime('%s','now')))")
+        c.execute("CREATE TABLE IF NOT EXISTS audit_chain(seq INTEGER PRIMARY KEY, run_id TEXT, prev_hash TEXT, entry_hash TEXT, data TEXT, created REAL DEFAULT (strftime('%s','now')))")
+
+
+def append_audit_entry(entry: dict) -> None:
+    with _c() as c:
+        c.execute("INSERT OR REPLACE INTO audit_chain(seq, run_id, prev_hash, entry_hash, data) VALUES(?,?,?,?,?)",
+                  (entry["seq"], entry["run_id"], entry["prev_hash"], entry["entry_hash"], json.dumps(entry)))
+
+
+def get_audit_entries(run_id: str | None = None) -> list[dict]:
+    with _c() as c:
+        if run_id:
+            rows = c.execute("SELECT data FROM audit_chain WHERE run_id=? ORDER BY seq ASC", (run_id,)).fetchall()
+        else:
+            rows = c.execute("SELECT data FROM audit_chain ORDER BY seq ASC").fetchall()
+    return [json.loads(r["data"]) for r in rows]
+
+
+def get_last_audit_entry() -> dict | None:
+    with _c() as c:
+        row = c.execute("SELECT data FROM audit_chain ORDER BY seq DESC LIMIT 1").fetchone()
+    return json.loads(row["data"]) if row else None
 
 
 def save_procedure(spec: ProcedureSpec) -> str:

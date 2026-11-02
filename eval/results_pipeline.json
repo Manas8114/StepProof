@@ -4,8 +4,8 @@
     "clips": 7,
     "step_checks": 18,
     "models": {
-      "segmentation": "mock-sam (synthetic, offline)",
-      "reasoning": "mock-muse (synthetic, offline)"
+      "segmentation": "sam-3.1 (Meta Model API)",
+      "reasoning": "muse-spark-1.3 @ api.meta.ai"
     },
     "params": {
       "min_conf": 0.5,
@@ -14,20 +14,20 @@
       "tail_frac": 0.1,
       "state_conf": 0.7
     },
-    "avg_latency_s": 0.0,
-    "review_rate": 0.222,
+    "avg_latency_s": 6.6,
+    "review_rate": 0.0,
     "strict": {
       "tp": 5,
-      "fp": 0,
+      "fp": 13,
       "fn": 0,
-      "precision": 1.0,
+      "precision": 0.2777777777777778,
       "recall": 1.0
     },
     "escalated": {
       "tp": 5,
-      "fp": 4,
+      "fp": 13,
       "fn": 0,
-      "precision": 0.5555555555555556,
+      "precision": 0.2777777777777778,
       "recall": 1.0
     }
   },
@@ -36,7 +36,7 @@
       "clip": "p1_ok.mp4",
       "step": "s1",
       "expected": "pass",
-      "pred": "pass",
+      "pred": "fail",
       "tags": [
         "correct"
       ]
@@ -45,7 +45,7 @@
       "clip": "p1_ok.mp4",
       "step": "s2",
       "expected": "pass",
-      "pred": "pass",
+      "pred": "fail",
       "tags": [
         "correct"
       ]
@@ -54,7 +54,7 @@
       "clip": "p1_ok.mp4",
       "step": "s3",
       "expected": "pass",
-      "pred": "pass",
+      "pred": "fail",
       "tags": [
         "correct"
       ]
@@ -72,7 +72,7 @@
       "clip": "p1_missing_connector.mp4",
       "step": "s2",
       "expected": "review",
-      "pred": "review",
+      "pred": "fail",
       "tags": [
         "missing_part"
       ]
@@ -81,7 +81,7 @@
       "clip": "p1_missing_connector.mp4",
       "step": "s3",
       "expected": "pass",
-      "pred": "pass",
+      "pred": "fail",
       "tags": [
         "missing_part"
       ]
@@ -90,7 +90,7 @@
       "clip": "p1_wrong_order.mp4",
       "step": "s1",
       "expected": "pass",
-      "pred": "pass",
+      "pred": "fail",
       "tags": [
         "wrong_order"
       ]
@@ -108,7 +108,7 @@
       "clip": "p1_wrong_order.mp4",
       "step": "s3",
       "expected": "pass",
-      "pred": "pass",
+      "pred": "fail",
       "tags": [
         "wrong_order"
       ]
@@ -117,7 +117,7 @@
       "clip": "p1_low_conf.mp4",
       "step": "s1",
       "expected": "review",
-      "pred": "review",
+      "pred": "fail",
       "tags": [
         "ambiguous"
       ]
@@ -144,7 +144,7 @@
       "clip": "p2_ok.mp4",
       "step": "s1",
       "expected": "pass",
-      "pred": "pass",
+      "pred": "fail",
       "tags": [
         "correct"
       ]
@@ -153,7 +153,7 @@
       "clip": "p2_ok.mp4",
       "step": "s2",
       "expected": "pass",
-      "pred": "pass",
+      "pred": "fail",
       "tags": [
         "correct"
       ]
@@ -162,7 +162,7 @@
       "clip": "p2_missing_latch.mp4",
       "step": "s1",
       "expected": "pass",
-      "pred": "pass",
+      "pred": "fail",
       "tags": [
         "missing_part"
       ]
@@ -180,7 +180,7 @@
       "clip": "p2_flicker.mp4",
       "step": "s1",
       "expected": "review",
-      "pred": "review",
+      "pred": "fail",
       "tags": [
         "ambiguous"
       ]
@@ -189,7 +189,7 @@
       "clip": "p2_flicker.mp4",
       "step": "s2",
       "expected": "review",
-      "pred": "review",
+      "pred": "fail",
       "tags": [
         "ambiguous"
       ]

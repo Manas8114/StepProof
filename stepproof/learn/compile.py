@@ -98,6 +98,7 @@ def compile_to_procedure(records: list[dict], goal: str, site: str = "",
     proc = Procedure(goal=goal or "(no goal text supplied)", site=site or _site_from(records),
                      steps=steps, parameters=parameters or {},
                      success_checks=checks, source="learned")
+    proc.sign()
     if not steps:
         warnings.append("no recorded actions to learn from; procedure has no steps.")
     if not checks:

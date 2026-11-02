@@ -39,6 +39,9 @@ class Procedure:
     parameters: dict = field(default_factory=dict)
     success_checks: list[dict] = field(default_factory=list)   # run at end of run
     source: str = "manual"               # manual | learned | model
+    manifest: dict = field(default_factory=dict)
+    signature: str = ""
+    provenance: dict = field(default_factory=dict)
 
     def success_check_specs(self) -> list[dict]:
         out: list[dict] = []
@@ -50,8 +53,16 @@ class Procedure:
     def to_dict(self) -> dict:
         return asdict(self)
 
+    def sign(self, key: Optional[str] = None) -> "Procedure":
+        from .signing import sign_procedure
+        return sign_procedure(self, key=key)
+
+    def verify(self, key: Optional[str] = None) -> tuple[bool, Optional[str]]:
+        from .signing import verify_procedure
+        return verify_procedure(self, key=key)
+
     @classmethod
-    def from_dict(cls, d: dict) -> "Procedure":
+    def from_dict(cls, d: dict, verify_signature: bool = True) -> "Procedure":
         d = dict(d)
         steps = []
         for s in d.get("steps", []):
@@ -61,8 +72,23 @@ class Procedure:
             steps.append(Step(**s_dict, locators=locs))
         d["steps"] = steps
         d["success_checks"] = d.get("success_checks", [])
-        return cls(**{k: d.get(k, DEFAULTS[k]) for k in ("goal", "site", "parameters", "source")},
-                   steps=d["steps"], success_checks=d["success_checks"])
+        manifest = d.get("manifest", {})
+        signature = d.get("signature", "")
+        provenance = d.get("provenance", {})
+
+        proc = cls(**{k: d.get(k, DEFAULTS[k]) for k in ("goal", "site", "parameters", "source")},
+                   steps=d["steps"], success_checks=d["success_checks"],
+                   manifest=manifest, signature=signature, provenance=provenance)
+
+        # Tamper-evident check: if signature is provided and verify_signature is True, verify integrity
+        if verify_signature and signature and manifest:
+            from .signing import verify_procedure
+            valid, err = verify_procedure(proc)
+            if not valid:
+                raise ValueError(f"Tampered procedure bundle: {err}")
+
+        return proc
 
 
-DEFAULTS = {"goal": "", "site": "", "parameters": {}, "source": "manual"}
+DEFAULTS = {"goal": "", "site": "", "parameters": {}, "source": "manual",
+            "manifest": {}, "signature": "", "provenance": {}}

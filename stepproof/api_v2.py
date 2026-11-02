@@ -187,6 +187,10 @@ def health_v2():
     # AGENT_PROMPT rule 5: keep a model substitution VISIBLE - which model actually
     # answers, and whether the 404 fallback was used, is reported here and never silent
     _fell = bool(getattr(_model, "fell_back", False))
+    from .budget import get_tripwire
+    from .redact import get_redactor
+    budget_info = get_tripwire().health_disclosure()
+    redactor_info = {"enabled": get_redactor().enabled, "patterns": list(get_redactor().patterns.keys())}
     return {"mode": cfg.PROVIDER_MODE, "agent_model": _model.name,
             "browser": "playwright-chromium", "allowlist": sorted(ALLOW),
             "states": ["IDLE", "PLANNING", "RUNNING", "PAUSED_HUMAN",
@@ -200,6 +204,8 @@ def health_v2():
                                f"answering on {getattr(_model, 'active_model', cfg.MUSE_FALLBACK_MODEL)}"
                                if _fell else "primary model"),
             },
+            "budget_breaker": budget_info,
+            "pii_redaction": redactor_info,
             "vision_selfheal": {
                 "enabled": bool(_vision_selfheal_fn is not None),
                 "flag": cfg.VISION_SELFHEAL,
@@ -614,4 +620,165 @@ def tracking_demo():
         "frames": by_frame,
         "note": "Cached SAM 3.1 zero-shot video tracking — stable obj_id=0 across 60 frames, conf >= 0.96",
     }
+
+
+# ------------------------------------------------------------------ redaction endpoints
+class RedactionIn(BaseModel):
+    enabled: Optional[bool] = None
+    patterns: Optional[dict[str, str]] = None
+
+
+@app.get("/api/v2/redaction")
+def get_redaction_config():
+    from .redact import get_redactor
+    r = get_redactor()
+    return {"enabled": r.enabled, "patterns": r.patterns}
+
+
+@app.post("/api/v2/redaction")
+def update_redaction_config(body: RedactionIn):
+    from .redact import get_redactor
+    r = get_redactor()
+    if body.enabled is not None:
+        r.enabled = body.enabled
+    if body.patterns:
+        for k, v in body.patterns.items():
+            r.set_pattern(k, v)
+    return {"enabled": r.enabled, "patterns": r.patterns}
+
+
+@app.post("/api/v2/redaction/dry_run")
+def redaction_dry_run():
+    from .redact import get_redactor
+    obs = _browser.observe()
+    shot = _browser.take_screenshot()
+    return get_redactor().dry_run(obs, shot)
+
+
+# ------------------------------------------------------------------ audit spine endpoints
+@app.get("/api/v2/audit")
+def list_audit_entries(run_id: Optional[str] = None):
+    from .audit import get_spine
+    entries = get_spine().get_entries(run_id)
+    return {"count": len(entries), "entries": [e.to_dict() for e in entries]}
+
+
+@app.post("/api/v2/audit/verify")
+def verify_audit_chain():
+    from .audit import get_spine
+    valid, err = get_spine().verify()
+    entries = get_spine().get_entries()
+    return {"valid": valid, "error": err, "chain_length": len(entries),
+            "last_hash": get_spine().last_hash}
+
+
+class PackageIn(BaseModel):
+    run_id: str
+
+
+@app.post("/api/v2/audit/package")
+def package_audit_run(body: PackageIn):
+    from .audit import get_spine
+    try:
+        zip_path = get_spine().package_run(body.run_id)
+        return {"ok": True, "run_id": body.run_id, "bundle_path": str(zip_path), "bundle_name": zip_path.name}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+# ------------------------------------------------------------------ budget & estimate endpoints
+class EstimateIn(BaseModel):
+    goal: Optional[str] = None
+    proc_name: Optional[str] = None
+
+
+@app.post("/api/v2/budget/estimate")
+def budget_estimate(body: EstimateIn):
+    from .budget import estimate_agent_goal_cost, estimate_procedure_cost, get_tripwire
+    if body.proc_name:
+        proc_file = BASE / "data" / "procedures" / f"{body.proc_name}.json"
+        if proc_file.exists():
+            proc = Procedure.from_dict(json.loads(proc_file.read_text(encoding="utf-8")), verify_signature=False)
+            est = estimate_procedure_cost(proc)
+        else:
+            raise HTTPException(404, f"Procedure {body.proc_name} not found")
+    else:
+        est = estimate_agent_goal_cost()
+    tripwire = get_tripwire()
+    ok_pre, err = tripwire.check_preflight(est)
+    return {"estimate": est.to_dict(), "preflight_pass": ok_pre, "preflight_error": err,
+            "caps": tripwire.health_disclosure()}
+
+
+# ------------------------------------------------------------------ harness endpoints
+class HarnessRunIn(BaseModel):
+    proc_name: str
+    auto_rewrite: bool = False
+
+
+@app.post("/api/v2/harness/run")
+def harness_run(body: HarnessRunIn):
+    from .harness.drift import analyze_drift, self_rewrite_procedure
+    proc_file = BASE / "data" / "procedures" / f"{body.proc_name}.json"
+    if not proc_file.exists():
+        raise HTTPException(404, f"Procedure {body.proc_name} not found")
+    proc = Procedure.from_dict(json.loads(proc_file.read_text(encoding="utf-8")), verify_signature=False)
+
+    if proc.site:
+        _browser.start_site(proc.site)
+    res = execute_procedure(_browser, proc, approve_fn=lambda a, x: True, vision_selfheal=_vision_selfheal_fn)
+    drift = analyze_drift(proc, res)
+    if body.auto_rewrite and drift.drifted_steps > 0:
+        self_rewrite_procedure(proc, drift, tb=_browser)
+        proc_file.write_text(json.dumps(proc.to_dict(), indent=2), encoding="utf-8")
+
+    return {
+        "success": res.success,
+        "drift": drift.to_dict(),
+        "wall_s": res.wall_s,
+        "checks": [{"name": c.name, "passed": c.passed} for c in res.check_results],
+        "rewritten": bool(body.auto_rewrite and drift.drifted_steps > 0)
+    }
+
+
+# ------------------------------------------------------------------ skill compiler endpoints
+class DescribeSkillIn(BaseModel):
+    goal: str
+    site: str
+    steps: list[str]
+    parameters: dict[str, str] = {}
+    save_as: str = ""
+
+
+@app.post("/api/v2/skills/describe")
+def skills_describe(body: DescribeSkillIn):
+    from .skills import describe_skill
+    proc = describe_skill(body.goal, body.site, body.steps, body.parameters)
+    if body.save_as:
+        p_dir = BASE / "data" / "procedures"
+        p_dir.mkdir(parents=True, exist_ok=True)
+        (p_dir / f"{body.save_as}.json").write_text(json.dumps(proc.to_dict(), indent=2), encoding="utf-8")
+    return {"procedure": proc.to_dict(), "signed": bool(proc.signature)}
+
+
+class ReteachIn(BaseModel):
+    proc_name: str
+    failed_step_id: str
+    correction: dict
+    approved: bool = False
+
+
+@app.post("/api/v2/skills/reteach")
+def skills_reteach(body: ReteachIn):
+    from .skills import gated_reteach
+    proc_file = BASE / "data" / "procedures" / f"{body.proc_name}.json"
+    if not proc_file.exists():
+        raise HTTPException(404, f"Procedure {body.proc_name} not found")
+    proc = Procedure.from_dict(json.loads(proc_file.read_text(encoding="utf-8")), verify_signature=False)
+    updated_proc, ok, msg = gated_reteach(proc, body.failed_step_id, body.correction, approved=body.approved)
+    if ok:
+        proc_file.write_text(json.dumps(updated_proc.to_dict(), indent=2), encoding="utf-8")
+    return {"ok": ok, "message": msg, "procedure": updated_proc.to_dict()}
+
+
 

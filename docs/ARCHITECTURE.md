@@ -62,6 +62,13 @@ evidence screenshot. The model is **not** in this decision.
 | `api_v2.py` | FastAPI app: serves demo sites (`/site/*`), `/events`, `/api/v2/*`, and the **tour** endpoints | one command: `uvicorn stepproof.api_v2:app --port 8011` |
 | `demo/tour.py` | 4-beat guided showcase (Learn / Approve / Takeover / Prove) + dated offline replay | records `data/tour_runs/<date>.json` |
 | `demo_sites/` | `expense`, `inventory`, `hostile` | deterministic local targets — repeatable, safe, measurable |
+| `redact.py` | `PIIRedactor` — pre-flight PII sanitization over DOM and screenshots | strips emails, credit cards, phones, SSNs, account numbers before model perception |
+| `audit.py` | `AuditSpine` — append-only, SHA-256 hash-chained audit log | tamper-evident run records, SQLite + JSONL, evidence zip packager |
+| `budget.py` | `BudgetTripwire` & `CostEstimate` — pre-flight estimation + breaker | aborts before billing-triggering API calls (SAM min 50 frames); configurable caps |
+| `signing.py` | `sign_procedure` / `verify_procedure` — canonical SHA-256 manifest | byte-deterministic serialization; rejects tampered steps, locators, or checks |
+| `harness/` | Test harness: drift tracking, self-rewriting procedures, CI reports | promotes winning locators back into procedure; generates JUnit XML & HTML dashboards |
+| `verifier/` | `ProofVerifier` — standalone zero-server proof verifier | walks hash chains, confirms digests and evidence offline; includes v1 video clip adapter |
+| `skills/` | Skill compiler: describe-or-demo → parameterised signed skills | `{slot}` substitution, human-gated re-teach flow, honest non-measured disclosures |
 
 ## The safety model (judges test this)
 - **Allowlist:** `goto` outside the sandbox is *refused and explained* (code, not model).

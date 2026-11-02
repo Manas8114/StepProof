@@ -10,7 +10,7 @@
             "success": true,
             "error": "",
             "steps": 4,
-            "wall_s": 0.13,
+            "wall_s": 0.12,
             "approvals": 0,
             "checks": [
               {
@@ -108,7 +108,7 @@
             "success": true,
             "error": "",
             "steps": 3,
-            "wall_s": 0.11,
+            "wall_s": 0.09,
             "approvals": 0,
             "checks": [
               {

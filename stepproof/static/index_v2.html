@@ -715,6 +715,26 @@ label {
         <div class="gauge-header"><span>Model Calls</span><span id="gauge-calls-txt">0 / 60</span></div>
         <div class="meter"><div id="gauge-calls-bar" style="width:0%"></div></div>
       </div>
+
+      <label style="margin-top:12px;">Cost Tripwire & Pre-Flight Estimate</label>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="lbl">Pre-Flight Est.</div><div class="val" id="telem-est-cost" style="font-size:12px;font-family:monospace;">— frames / — tok</div></div>
+        <div class="stat-card"><div class="lbl">Actual Measured</div><div class="val" id="telem-act-cost" style="font-size:12px;font-family:monospace;">0 frames / 0 tok</div></div>
+      </div>
+      <div style="font-size:11px;color:#a1a1aa;margin-bottom:8px;" id="telem-tripwire-status">Tripwire: Active (max 100 frames / 40k tokens)</div>
+
+      <label style="margin-top:10px;">Audit Spine & Integrity</label>
+      <div class="btnrow" style="margin-bottom:6px;">
+        <button class="ghost" id="audit-verify-btn" style="flex:1;">✓ Verify Hash Chain</button>
+      </div>
+      <div id="audit-status" style="font-size:11px;color:#22c55e;margin-bottom:10px;">Status: Valid (Chain intact)</div>
+
+      <label>Pre-Flight PII Redaction</label>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:#27272a;padding:6px 10px;border-radius:6px;margin-bottom:10px;">
+        <span style="font-size:12px;color:#d4d4d8;">Mask Emails, Cards, Phones</span>
+        <button class="ghost" id="pii-toggle-btn" style="padding:3px 8px;font-size:11px;color:#22c55e;">ON</button>
+      </div>
+
       <div class="btnrow" style="margin-top:10px;">
         <button class="ghost" id="telem-refresh-btn" style="width:100%">⟳ Refresh Backend Health</button>
       </div>
@@ -1297,9 +1317,51 @@ async function updateTelemetryDashboard() {
     const callPct = Math.min(100, Math.round((t.budgets.model_calls_used / t.budgets.max_model_calls) * 100));
     $('#gauge-calls-txt').textContent = `${t.budgets.model_calls_used} / ${t.budgets.max_model_calls}`;
     $('#gauge-calls-bar').style.width = callPct + '%';
+
+    // Tripwire & Pre-flight Estimate update
+    const costData = await api('/api/v2/cost').catch(() => ({}));
+    const cum = (costData && costData.cumulative) || {};
+    $('#telem-act-cost').textContent = `${cum.billed_frames || 0} frames / ${cum.total_tokens || 0} tok`;
+
+    const estData = await api('/api/v2/budget/estimate', 'POST', {}).catch(() => ({}));
+    if (estData && estData.estimate) {
+      $('#telem-est-cost').textContent = `~${estData.estimate.estimated_sam_frames} frames / ~${estData.estimate.estimated_tokens} tok`;
+    }
+    const hData = await api('/api/v2/health').catch(() => ({}));
+    if (hData && hData.budget_breaker) {
+      $('#telem-tripwire-status').textContent = hData.budget_breaker.disclosure || 'Tripwire active';
+    }
+    if (hData && hData.pii_redaction) {
+      $('#pii-toggle-btn').textContent = hData.pii_redaction.enabled ? 'ON' : 'OFF';
+      $('#pii-toggle-btn').style.color = hData.pii_redaction.enabled ? '#22c55e' : '#ef4444';
+    }
   } catch (e) {}
 }
 $('#telem-refresh-btn').onclick = updateTelemetryDashboard;
+
+$('#audit-verify-btn').onclick = async () => {
+  try {
+    const res = await api('/api/v2/audit/verify', 'POST', {});
+    if (res.valid) {
+      $('#audit-status').textContent = `✓ Valid (${res.chain_length} entries, hash: ${res.last_hash.slice(0, 10)}...)`;
+      $('#audit-status').style.color = '#22c55e';
+    } else {
+      $('#audit-status').textContent = `✗ Chain Broken: ${res.error}`;
+      $('#audit-status').style.color = '#ef4444';
+    }
+  } catch (e) {
+    $('#audit-status').textContent = `Error verifying chain: ${e.message}`;
+  }
+};
+
+$('#pii-toggle-btn').onclick = async () => {
+  try {
+    const cur = await api('/api/v2/redaction');
+    const updated = await api('/api/v2/redaction', 'POST', { enabled: !cur.enabled });
+    $('#pii-toggle-btn').textContent = updated.enabled ? 'ON' : 'OFF';
+    $('#pii-toggle-btn').style.color = updated.enabled ? '#22c55e' : '#ef4444';
+  } catch (e) {}
+};
 
 // Coach
 $('#cgo').onclick = async () => {
