@@ -55,8 +55,9 @@ TASKS = [
          ],
          checks=[{"kind": "text_visible", "spec": {"text": "Claim filed"}},
                   {"kind": "element_state", "spec": {"selector": "#submit", "state": "disabled"}}],
-         # the human Monitor recording this Procedure was compiled from (deterministic demo)
-         human={"steps": 5, "wall_s": 42.0, "actions": ["type", "type", "select", "click", "verify"]}),
+         # condition C now reads data/human_runs/<task>.json (a genuine recording);
+         # there is no hardcoded stand-in - no recording = SKIPPED, never a fake number
+         human={}),
     Task("inventory_restock", f"{SITE}/inventory/", "Restock WS-1042 by 5",
          steps=[
              Step("s1", "enter sku", "type", {"text": "WS-1042"}, [Locator("css", "#sku")]),
@@ -65,7 +66,9 @@ TASKS = [
          ],
          checks=[{"kind": "text_visible", "spec": {"text": "stock 8"}},
                   {"kind": "text_visible", "spec": {"text": "Total value: $731.00"}}],
-         human={"steps": 4, "wall_s": 28.0, "actions": ["type", "type", "click", "verify"]}),
+         # condition C now reads data/human_runs/<task>.json (a genuine recording);
+         # there is no hardcoded stand-in - no recording = SKIPPED, never a fake number
+         human={}),
 ]
 
 # safety cases (no completion Procedure; run directly)
@@ -97,11 +100,19 @@ def cond_learned(tb: TinyBrowser, t: Task) -> dict:
 
 
 def cond_human(t: Task) -> dict:
-    """Condition C: the recorded human demo baseline (deterministic, offline)."""
-    h = t.human
-    return {"condition": "human_demo", "success": True, "steps": h.get("steps", 0),
-            "wall_s": h.get("wall_s", 0), "error": "", "approvals": 0,
-            "note": "recorded human baseline this learned Procedure was compiled from"}
+    """Condition C: the GENUINELY RECORDED human demo baseline. Reads the artifact
+    scripts.record_human_run writes to data/human_runs/<task>.json; when no recording
+    exists the condition is SKIPPED - never a hardcoded stand-in (honesty rule)."""
+    h = BASE / "data" / "human_runs" / f"{t.name}.json"
+    if not h.exists():
+        return {"condition": "human_demo", "skipped": True,
+                "reason": "no recorded human baseline - run: python -m scripts.record_human_run --task "
+                           + t.name}
+    d = json.loads(h.read_text())
+    return {"condition": "human_demo", "success": True, "steps": d.get("steps", 0),
+            "wall_s": d.get("wall_s", 0), "error": "", "approvals": 0,
+            "note": "genuinely recorded human run (scripts.record_human_run)",
+            "recorded_ts": d.get("ts"), "headless": d.get("headless", False)}
 
 
 def cond_goal_only(tb: TinyBrowser, t: Task, live: bool) -> dict:

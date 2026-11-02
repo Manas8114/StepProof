@@ -468,3 +468,33 @@ def test_api_v2_health_reports_vision_selfheal():
     assert "flag" in h["vision_selfheal"]
     assert "models" in h["vision_selfheal"]
     assert "hosts" in h["vision_selfheal"]
+
+
+def test_cond_human_skips_when_no_recording(tmp_path, monkeypatch):
+    """Condition C must be SKIPPED (never a hardcoded stand-in) when no genuine
+    human-run artifact exists for the task."""
+    import eval.run_eval_v2 as ev
+    from eval.run_eval_v2 import TASKS
+    monkeypatch.setattr(ev, "BASE", tmp_path)   # point cond_human at an empty tree
+    t = TASKS[0]                                  # expense_filed
+    r = ev.cond_human(t)
+    assert r["skipped"] is True
+    assert "record_human_run" in r["reason"]
+    assert "wall_s" not in r or r.get("wall_s") in (0, None)   # no fabricated number
+
+
+def test_cond_human_reads_genuine_recording(tmp_path, monkeypatch):
+    """When scripts.record_human_run has written data/human_runs/<task>.json, condition C
+    reports the RECORDED wall time and labels itself as a genuine recording."""
+    import eval.run_eval_v2 as ev
+    from eval.run_eval_v2 import TASKS
+    monkeypatch.setattr(ev, "BASE", tmp_path)
+    runs = tmp_path / "data" / "human_runs"
+    runs.mkdir(parents=True)
+    t = TASKS[0]
+    (runs / f"{t.name}.json").write_text(__import__("json").dumps({
+        "task": t.name, "wall_s": 47.3, "steps": 6, "ts": "2026-11-02T15:00:00", "headless": False}))
+    r = ev.cond_human(t)
+    assert r.get("skipped") is not True
+    assert r["wall_s"] == 47.3 and r["steps"] == 6
+    assert "recorded" in r["note"].lower() and r.get("recorded_ts")
