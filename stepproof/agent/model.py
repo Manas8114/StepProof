@@ -6,8 +6,9 @@ from __future__ import annotations
 import json, time
 from dataclasses import dataclass
 from typing import Optional
-from openai import APIConnectionError, APITimeoutError, OpenAI, RateLimitError
+from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI, RateLimitError
 from .. import config as cfg
+from ..model_fallback import responses_with_fallback
 
 TOOLS = [
     {"type": "function", "name": "click",
@@ -71,6 +72,10 @@ class MuseAgentModel:
         # token accounting: accumulated from each response's usage field so a report
         # can show per-run and cumulative-over-N token cost (the "cheaper" claim, measured)
         self.usage = {"input_tokens": 0, "output_tokens": 0, "calls": 0}
+        # model-404 fallback disclosure (AGENT_PROMPT rule 5): which model ACTUALLY
+        # answered + whether we had to substitute. Surfaced in /api/v2/health.
+        self.active_model = cfg.VISION_MODEL
+        self.fell_back = False
 
     def decide(self, goal: str, obs_text: str, screenshot: str, history: list[dict],
                extra: dict | None = None) -> Optional[Action]:
@@ -82,12 +87,23 @@ class MuseAgentModel:
         last: Exception | None = None
         for attempt in range(3):
             try:
-                r = self.client.responses.create(model=cfg.VISION_MODEL, input=msgs, tools=TOOLS)
+                r, model_used, fell_back = responses_with_fallback(
+                    self.client, cfg.VISION_MODEL, input=msgs, tools=TOOLS)
+                self.active_model, self.fell_back = model_used, self.fell_back or fell_back
                 _acc_usage(self.usage, r)
                 return _extract_action(r)
             except (RateLimitError, APIConnectionError, APITimeoutError, json.JSONDecodeError) as e:
                 last = e
                 time.sleep(2 ** attempt)
+            except APIStatusError as e:
+                # the helper already swallowed a 404 (model-not-found -> fallback); if the
+                # FALLBACK also 404s, or the call hits a transient 5xx/429, retry here.
+                # Permanent auth errors (401/403) still fail fast.
+                if e.status_code in (404, 429, 500, 502, 503, 504):
+                    last = e
+                    time.sleep(2 ** attempt)
+                    continue
+                raise
         raise RuntimeError(f"agent model call failed: {last}")
 
     def suggest(self, run_metrics: dict, goal: str) -> dict:
@@ -99,13 +115,14 @@ class MuseAgentModel:
                                                    "apply": {"type": "string", "description": "JSON patch to the procedure, or empty"}},
                   "required": ["what", "why", "expected_saving", "risk"]}
         try:
-            r = self.client.responses.create(
-                model=cfg.VISION_MODEL,
+            r, model_used, fell_back = responses_with_fallback(
+                self.client, cfg.VISION_MODEL,
                 input=[{"type": "message", "role": "user", "content":
                         "Metrics: " + json.dumps(run_metrics) + " | goal: " + goal +
                         " Suggest one concrete efficiency or safety improvement. Do not invent savings."}],
                 tool_choice="json",
                 tools=[{"type": "function", "name": "suggestion", "description": "One improvement", "parameters": schema}])
+            self.active_model, self.fell_back = model_used, self.fell_back or fell_back
             _acc_usage(self.usage, r)
             for i in r.output:
                 if getattr(i, "type", "") == "function_call" and i.name == "suggestion":

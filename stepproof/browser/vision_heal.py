@@ -35,6 +35,10 @@ class MuseVisionHealer:
         self.client = OpenAI(base_url=cfg.META_BASE_URL, api_key=cfg.MODEL_API_KEY or "missing",
                              timeout=90, max_retries=0)
         self.min_confidence = min_confidence
+        # model-404 fallback disclosure (AGENT_PROMPT rule 5): which grounding model
+        # actually answered + whether we substituted. Surfaced in /api/v2/health.
+        self.active_model = cfg.VISION_MODEL
+        self.fell_back = False
 
     def heal(self, screenshot: str, target: Any) -> dict | None:
         """screenshot = data URL (masked). target = Step or short description of the element to find."""
@@ -51,8 +55,11 @@ class MuseVisionHealer:
                 "If it is not visible, set confidence to 0.\nTARGET: " + target_str},
             {"type": "input_image", "image_url": screenshot},
         ]}]
-        r = self.client.responses.create(model=cfg.VISION_MODEL, input=msgs,
-                                         tools=[LOCATE_TOOL], tool_choice="auto")
+        from ..model_fallback import responses_with_fallback
+        r, model_used, fell_back = responses_with_fallback(self.client, cfg.VISION_MODEL,
+                                                            input=msgs, tools=[LOCATE_TOOL],
+                                                            tool_choice="auto")
+        self.active_model, self.fell_back = model_used, self.fell_back or fell_back
         for item in r.output:
             if getattr(item, "type", "") == "function_call" and item.name == "locate_element":
                 a = json.loads(item.arguments) if isinstance(item.arguments, str) else dict(item.arguments or {})
