@@ -45,13 +45,21 @@ class MuseVisionHealer:
             {"type": "input_image", "image_url": screenshot},
         ]}]
         r = self.client.responses.create(model=cfg.VISION_MODEL, input=msgs,
-                                         tools=[LOCATE_TOOL], tool_choice="locate_element")
+                                         tools=[LOCATE_TOOL], tool_choice="auto")
         for item in r.output:
             if getattr(item, "type", "") == "function_call" and item.name == "locate_element":
-                a = json.loads(item.arguments)
-                cx, cy = int(a.get("x", 0)) + int(a.get("w", 0)) // 2, int(a.get("y", 0)) + int(a.get("h", 0)) // 2
-                if a.get("confidence", 0) >= self.min_confidence:
-                    return {"x": cx, "y": cy, "grounded_by": "muse", "box": a}
+                a = json.loads(item.arguments) if isinstance(item.arguments, str) else dict(item.arguments or {})
+                w, h = int(a.get("w", 0)), int(a.get("h", 0))
+                conf = float(a.get("confidence", 0) or 0)
+                if conf <= 0 or w <= 0 or h <= 0:
+                    continue
+                if conf >= self.min_confidence:
+                    cx = int(a.get("x", 0)) + w // 2
+                    cy = int(a.get("y", 0)) + h // 2
+                    return {"x": cx, "y": cy, "grounded_by": "muse", "box": a, "conf": conf}
+
+
+
         return None
 
 

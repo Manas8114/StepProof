@@ -1,15 +1,15 @@
 {
   "n_cases": 12,
   "muse": {
+    "success": 1.0,
+    "of": 12
+  },
+  "sam": {
     "success": null,
     "of": 0
   },
-  "sam": {
-    "success": 0.417,
-    "of": 12
-  },
   "combined": {
-    "success": 0.417,
+    "success": 1.0,
     "of": 12
   },
   "cut_threshold": 0.7,
@@ -23,13 +23,22 @@
         "h": 47
       },
       "muse": {
-        "hit": false,
-        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+        "hit": true,
+        "point": {
+          "x": 102,
+          "y": 441,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.95,
+            "h": 48,
+            "w": 127,
+            "x": 39,
+            "y": 417
+          },
+          "conf": 0.95
+        }
       },
-      "sam": {
-        "hit": false,
-        "point": null
-      }
+      "sam": null
     },
     {
       "target": "the Vendor text input",
@@ -40,19 +49,22 @@
         "h": 43
       },
       "muse": {
-        "hit": false,
-        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
-      },
-      "sam": {
         "hit": true,
         "point": {
-          "x": 359,
-          "y": 190,
-          "grounded_by": "sam",
-          "conf": 0.5241636037826538,
-          "concept": "text input box"
+          "x": 365,
+          "y": 191,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.95,
+            "h": 45,
+            "w": 652,
+            "x": 39,
+            "y": 169
+          },
+          "conf": 0.95
         }
-      }
+      },
+      "sam": null
     },
     {
       "target": "the category dropdown",
@@ -63,13 +75,22 @@
         "h": 40
       },
       "muse": {
-        "hit": false,
-        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+        "hit": true,
+        "point": {
+          "x": 377,
+          "y": 353,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.97,
+            "h": 42,
+            "w": 676,
+            "x": 39,
+            "y": 332
+          },
+          "conf": 0.97
+        }
       },
-      "sam": {
-        "hit": false,
-        "point": null
-      }
+      "sam": null
     },
     {
       "target": "the Amount input",
@@ -80,13 +101,22 @@
         "h": 43
       },
       "muse": {
-        "hit": false,
-        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+        "hit": true,
+        "point": {
+          "x": 365,
+          "y": 274,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.95,
+            "h": 47,
+            "w": 652,
+            "x": 39,
+            "y": 251
+          },
+          "conf": 0.95
+        }
       },
-      "sam": {
-        "hit": false,
-        "point": null
-      }
+      "sam": null
     },
     {
       "target": "the Restock button",
@@ -97,19 +127,22 @@
         "h": 39
       },
       "muse": {
-        "hit": false,
-        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
-      },
-      "sam": {
         "hit": true,
         "point": {
-          "x": 672,
-          "y": 169,
-          "grounded_by": "sam",
-          "conf": 0.6604774594306946,
-          "concept": "button"
+          "x": 710,
+          "y": 170,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.96,
+            "h": 39,
+            "w": 78,
+            "x": 671,
+            "y": 151
+          },
+          "conf": 0.96
         }
-      }
+      },
+      "sam": null
     },
     {
       "target": "the Discard restock button",
@@ -120,19 +153,22 @@
         "h": 35
       },
       "muse": {
-        "hit": false,
-        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
-      },
-      "sam": {
         "hit": true,
         "point": {
-          "x": 100,
-          "y": 214,
-          "grounded_by": "sam",
-          "conf": 0.8439024686813354,
-          "concept": "red button"
+          "x": 99,
+          "y": 188,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.98,
+            "h": 36,
+            "w": 121,
+            "x": 39,
+            "y": 170
+          },
+          "conf": 0.98
         }
-      }
+      },
+      "sam": null
     },
     {
       "target": "the SKU input",
@@ -143,13 +179,22 @@
         "h": 39
       },
       "muse": {
-        "hit": false,
-        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+        "hit": true,
+        "point": {
+          "x": 272,
+          "y": 170,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.96,
+            "h": 38,
+            "w": 198,
+            "x": 173,
+            "y": 151
+          },
+          "conf": 0.96
+        }
       },
-      "sam": {
-        "hit": false,
-        "point": null
-      }
+      "sam": null
     },
     {
       "target": "the quantity input",
@@ -160,13 +205,22 @@
         "h": 39
       },
       "muse": {
-        "hit": false,
-        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+        "hit": true,
+        "point": {
+          "x": 537,
+          "y": 170,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.97,
+            "h": 38,
+            "w": 195,
+            "x": 440,
+            "y": 151
+          },
+          "conf": 0.97
+        }
       },
-      "sam": {
-        "hit": false,
-        "point": null
-      }
+      "sam": null
     },
     {
       "target": "the WS-1042 table row",
@@ -177,19 +231,22 @@
         "h": 40
       },
       "muse": {
-        "hit": false,
-        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
-      },
-      "sam": {
-        "hit": false,
+        "hit": true,
         "point": {
-          "x": 419,
-          "y": 382,
-          "grounded_by": "sam",
-          "conf": 0.7620818018913269,
-          "concept": "table row"
+          "x": 425,
+          "y": 307,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.95,
+            "h": 40,
+            "w": 772,
+            "x": 39,
+            "y": 287
+          },
+          "conf": 0.95
         }
-      }
+      },
+      "sam": null
     },
     {
       "target": "the Finish task button",
@@ -200,19 +257,22 @@
         "h": 21
       },
       "muse": {
-        "hit": false,
-        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
-      },
-      "sam": {
         "hit": true,
         "point": {
-          "x": 79,
-          "y": 190,
-          "grounded_by": "sam",
-          "conf": 0.7460317611694336,
-          "concept": "button"
+          "x": 81,
+          "y": 191,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.98,
+            "h": 23,
+            "w": 84,
+            "x": 39,
+            "y": 180
+          },
+          "conf": 0.98
         }
-      }
+      },
+      "sam": null
     },
     {
       "target": "the Submit claim button",
@@ -223,13 +283,22 @@
         "h": 47
       },
       "muse": {
-        "hit": false,
-        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
+        "hit": true,
+        "point": {
+          "x": 103,
+          "y": 411,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.98,
+            "h": 45,
+            "w": 130,
+            "x": 38,
+            "y": 389
+          },
+          "conf": 0.98
+        }
       },
-      "sam": {
-        "hit": false,
-        "point": null
-      }
+      "sam": null
     },
     {
       "target": "the Restock button",
@@ -240,19 +309,22 @@
         "h": 39
       },
       "muse": {
-        "hit": false,
-        "error": "BadRequestError: Error code: 400 - {'error': {'code': None, 'message': '`tool_choice` did not match any supported typ"
-      },
-      "sam": {
         "hit": true,
         "point": {
-          "x": 672,
-          "y": 169,
-          "grounded_by": "sam",
-          "conf": 0.675126850605011,
-          "concept": "button"
+          "x": 681,
+          "y": 170,
+          "grounded_by": "muse",
+          "box": {
+            "confidence": 0.97,
+            "h": 37,
+            "w": 76,
+            "x": 643,
+            "y": 152
+          },
+          "conf": 0.97
         }
-      }
+      },
+      "sam": null
     }
   ]
 }
