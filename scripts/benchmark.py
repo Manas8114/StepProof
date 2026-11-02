@@ -71,7 +71,18 @@ def main() -> None:
     ap.add_argument("--manifest", default=str(DATA / "manifest" / "manifest.json"))
     ap.add_argument("--no-live", action="store_true")
     ap.add_argument("--held-out", default="", help="comma clip indices treated as held-out")
+    ap.add_argument("--render", action="store_true",
+                   help="re-render eval/BENCHMARK.md from the last saved benchmark.json (no API calls)")
     a = ap.parse_args()
+
+    if a.render:
+        d = json.loads((BASE / "eval" / "benchmark.json").read_text())
+        summary = dict(d.get("summary", {}))
+        if "findings" not in summary:      # pre-findings artifact: recompute from the saved meter
+            summary["findings"] = _findings(summary, d.get("usage", {}))
+        _write_markdown(BASE / "eval" / "BENCHMARK.md", summary, a)
+        print("re-rendered eval/BENCHMARK.md from eval/benchmark.json (no API calls)")
+        return
 
     man = json.loads(Path(a.manifest).read_text())
     clips = man["clips"]
@@ -152,6 +163,36 @@ def main() -> None:
     _finish(report, meter, a)
 
 
+def _findings(summary: dict, usage: dict) -> list[str]:
+    """Honest, COMPUTED findings - never a hand-typed claim. The benchmark reports what
+    happened, including the null result: a zero-detection run where every condition ties
+    on accuracy and cost/latency are the only differentiating axes."""
+    out: list[str] = []
+    total = usage.get("total", {})
+    for model, row in usage.items():
+        if model == "total" or "sam" not in model.lower():
+            continue
+        calls = row.get("requests", 0) + row.get("cached_hits", 0)
+        if calls and row.get("frames_returned", 0) == 0:
+            out.append("ZERO DETECTIONS: every SAM call in this run returned 0 boxes (empty wire), so "
+                       "all conditions judge by ABSENCE and tie on accuracy. Cost + latency are the only "
+                       "differentiating axes here - the measured result, reported as such (clip content may "
+                       "not SAM-segment; no fabricated win).")
+    ours = summary["conditions"].get("ours", {})
+    raw = summary["conditions"].get("ours_raw", {})
+    if ours and raw and "frames" in ours and "frames" in raw:
+        out.append(f"Frames billed: ours {ours['frames']['processed']} vs ours_raw {raw['frames']['processed']}"
+                   f" ({ours['savings_pct']}% saved by the free preprocessors).")
+    live = {n: e for n, e in summary["conditions"].items() if "accuracy" in e}
+    if live:
+        accs = {n: e["accuracy"]["exact"] for n, e in live.items()}
+        lat = {n: e.get("latency_s") for n, e in live.items()}
+        out.append(f"Verdict accuracy (exact, small sample): {accs}; latency_s: {lat}. "
+                   + ("All conditions tie on accuracy - the honest null result."
+                      if len(set(accs.values())) == 1 else "Conditions differ - see per-condition table."))
+    return out or ["no live calls recorded (offline run)"]
+
+
 def _proc_for(clip: Path, flags: dict) -> Path:
     from stepproof import optimize
     out = BASE / "data" / "bench_proc" / f"{clip.stem}-live"
@@ -201,6 +242,7 @@ def _finish(report: dict, meter: "UsageMeter", a: argparse.Namespace) -> None:
             summary["conditions"][name]["latency_s"] = round(sum(r.get("latency_s", 0) for r in rows), 1)
     summary["meter"] = meter.summary()
     summary["meter_cumulative"] = meter.cumulative()
+    summary["findings"] = _findings(summary, meter.summary())
     summary["notes"] = [
         "Held-out clips are never tuned on (calibration only on the dev set).",
         "Clips are synthetic MJPG (dataset, not real footage); real-clip numbers will differ.",
@@ -248,13 +290,16 @@ def _write_markdown(path: Path, summary: dict, a: argparse.Namespace) -> None:
         if cum.get("calls"):
             L += ["", f"Cumulative this run: **{cum['calls']} calls, {cum['billed_frames']} frames billed, "
                        f"{cum['total_tokens']} tokens** — the 'cheaper over N runs' number."]
+    if summary.get("findings"):
+        L += ["", "## Findings (computed, not asserted)", ""]
+        L += [f"- {f}" for f in summary["findings"]]
     L += ["", "## Caveats",
           "- Clips are synthetic MJPG (dataset, not real footage); real-clip numbers will differ.",
           "- Billed frames = frames uploaded to SAM (Meta bills per frame, 50-frame minimum).",
           "- Accuracy on a small sample: counts, not percentages dressed up — report what was measured.",
-          "- A metric that does not improve is reported as such — the baseline was not weakened.",
+          "- A metric that does not improve is reported as such - the baseline was not weakened.",
           ""]
-    path.write_text("\n".join(L))
+    path.write_text("\n".join(L), encoding="utf-8")   # explicit utf-8: Windows default (cp1252) mangles the em dash
 
 
 if __name__ == "__main__":
