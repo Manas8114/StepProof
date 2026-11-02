@@ -29,6 +29,21 @@ class ExecResult:
                 "result": {"success": self.success, "error": self.error}}
 
 
+def _label_at_point(tb, x: int, y: int) -> str | None:
+    """Resolve the visible label of the element at (x,y) via document.elementFromPoint.
+    Returns None if unresolvable."""
+    expr = ("(([cx, cy]) => {"
+            "const el = document.elementFromPoint(cx, cy);"
+            "if (!el) return null;"
+            "return (el.textContent || el.getAttribute('aria-label') || el.id || el.getAttribute('title') || '').trim().slice(0, 60);"
+            "})([%d, %d])" % (x, y))
+    try:
+        val = tb.act("eval", {"expr": expr})
+        return str(val).strip() if val is not None else None
+    except Exception:
+        return None
+
+
 def _resolve_locator(tb, locators: list, text: str = "", tool: str = "click") -> tuple[bool, dict, int]:
     """Try each locator in order; return (worked, winning-arg, index) - the self-heal."""
     def L(x, k, d=None):
@@ -85,6 +100,28 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
                     healed["text"] = val
                     if "enter" in step.arg:
                         healed["enter"] = step.arg["enter"]
+                elif step.action in ("click", "select"):
+                    from ..browser.actions import classify_element_text
+                    hx, hy = int(healed.get("x", 0)), int(healed.get("y", 0))
+                    label = _label_at_point(tb, hx, hy)
+                    orig_label = str(step.arg.get("name", "") or step.arg.get("selector", "") or "")
+                    desc_irrev, desc_ext = classify_element_text(step.description)
+                    orig_irrev, orig_ext = classify_element_text(orig_label)
+                    if label is None:
+                        h_irrev, h_ext = True, True
+                    else:
+                        lbl_irrev, lbl_ext = classify_element_text(label)
+                        h_irrev = lbl_irrev or desc_irrev or orig_irrev
+                        h_ext = lbl_ext or desc_ext or orig_ext
+                    if h_irrev or h_ext:
+                        gate_arg = {**healed, "label": label or "unresolvable", "healed": True}
+                        if approve_fn is None or not approve_fn(step.action, gate_arg):
+                            res.error = f"step {i} ({step.action}) healed target blocked: not approved"
+                            BUS.publish("exec_blocked", {"step": step.id, "action": step.action, "healed": True})
+                            break
+                        if h_irrev:
+                            res.healed_steps.append({"step": step.id, "action": step.action,
+                                                     "note": "approved vision-healed irreversible"})
                 r = execute_action(tb, step.action, healed)
                 worked = r.ok
                 res.healed_steps.append({"step": step.id, "action": step.action,
