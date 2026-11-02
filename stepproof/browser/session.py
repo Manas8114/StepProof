@@ -89,6 +89,10 @@ class TinyBrowser:
         """Run a low-level page op on the worker thread (actions/agent use this)."""
         return self._call(op, arg)
 
+    def fill_at(self, x: int, y: int, text: str, enter: bool = False) -> dict:
+        """Type into element at (x,y) visually; refuses password fields."""
+        return self._call("fill_at", {"x": x, "y": y, "text": text, "enter": enter})
+
     def observe(self) -> dict:
         """Compact interactive-element + text snapshot for the model (a11y-derived)."""
         return self._call("observe", None)
@@ -108,6 +112,8 @@ class TinyBrowser:
         if kind == "drag":
             return self._call("fdrag", (payload.get("x0", 0), payload.get("y0", 0),
                                          payload.get("x1", 0), payload.get("y1", 0)))
+        if kind == "fill_at":
+            return self._call("fill_at", payload)
         return {"ok": False, "error": f"unknown input kind {kind!r}"}
 
     def take_screenshot(self) -> str:
@@ -204,6 +210,32 @@ class TinyBrowser:
             return observe_page(p)
         if op == "fill":
             p.fill(arg["selector"], str(arg.get("text", "")))
+            return {"ok": True}
+        if op == "fill_at":
+            x, y = int(arg.get("x", 0)), int(arg.get("y", 0))
+            text = str(arg.get("text", ""))
+            enter = bool(arg.get("enter", False))
+            check = p.evaluate("""([cx, cy]) => {
+                const el = document.elementFromPoint(cx, cy);
+                if (!el) return { ok: false, error: "no element at coordinates" };
+                if (el.matches('input[type="password"]') || el.closest('input[type="password"]')) {
+                    return { ok: false, error: "refusing to type into password field" };
+                }
+                const tag = el.tagName.toLowerCase();
+                const isInput = tag === 'input' && !['submit', 'button', 'checkbox', 'radio', 'file', 'image', 'reset'].includes(el.type);
+                const isTextarea = tag === 'textarea';
+                const isEditable = el.isContentEditable || el.getAttribute('role') === 'textbox';
+                if (!isInput && !isTextarea && !isEditable) {
+                    return { ok: false, error: "refusing to type into unknown/non-input field: " + tag };
+                }
+                return { ok: true };
+            }""", [x, y])
+            if not check.get("ok"):
+                return {"ok": False, "error": check.get("error", "fill_at check failed")}
+            p.mouse.click(x, y)
+            p.keyboard.type(text)
+            if enter:
+                p.keyboard.press("Enter")
             return {"ok": True}
         if op == "select":
             p.select_option(arg["selector"], arg.get("value"))

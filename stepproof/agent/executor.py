@@ -79,6 +79,12 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
         if not worked and vision_selfheal is not None:
             healed = vision_selfheal(step)
             if healed:
+                healed = dict(healed)
+                if step.action in ("type", "fill"):
+                    val = step.arg.get("text", "") or step.arg.get("value", "")
+                    healed["text"] = val
+                    if "enter" in step.arg:
+                        healed["enter"] = step.arg["enter"]
                 r = execute_action(tb, step.action, healed)
                 worked = r.ok
                 res.healed_steps.append({"step": step.id, "action": step.action,

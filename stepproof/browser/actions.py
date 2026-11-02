@@ -95,8 +95,20 @@ def execute_action(tb, name: str, arg: dict) -> ActionResult:
             else:
                 raise ValueError("click needs 'selector', 'name', or (x,y) coordinates")
         elif name in ("type", "fill"):
-            tb.act("fill", {"selector": arg["selector"], "text": arg.get("text", "")})
-            detail = f"typed into {arg['selector']}"
+            sel = arg.get("selector")
+            if sel:
+                tb.act("fill", {"selector": sel, "text": arg.get("text", "")})
+                detail = f"typed into {sel}"
+            elif "x" in arg and "y" in arg:
+                res = tb.act("fill_at", {"x": int(arg["x"]), "y": int(arg["y"]),
+                                         "text": str(arg.get("text", "") or arg.get("value", "")),
+                                         "enter": bool(arg.get("enter", False))})
+                if isinstance(res, dict) and not res.get("ok"):
+                    raise RuntimeError(res.get("error", "fill_at failed"))
+                grounded = arg.get("grounded_by", "vision")
+                detail = f"typed into @({arg['x']},{arg['y']}) ({grounded} healed)"
+            else:
+                raise ValueError("type/fill needs 'selector' or (x,y) coordinates")
         elif name in ("key", "press"):
             tb.act("press", {"key": arg.get("key", "Enter")})
             detail = f"pressed {arg.get('key', 'Enter')}"
