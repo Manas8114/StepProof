@@ -96,6 +96,7 @@ if cfg.VISION_SELFHEAL and cfg.MODEL_API_KEY:
                     "y": hit.get("y"),
                     "box": hit.get("box"),
                     "conf": hit.get("conf"),
+                    "evidence_path": hit.get("evidence_path") or hit.get("mask_path") or "",
                     "msg": f"locators exhausted → {hit.get('grounded_by', 'vision').upper()} grounded '{target_desc}' @ ({hit.get('x')},{hit.get('y')}) conf {hit.get('conf')}"
                 })
             return hit

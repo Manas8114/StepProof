@@ -101,8 +101,53 @@ class SamVisionHealer:
             return None
         best = max(dets, key=lambda d: (d.conf or 0))
         x1, y1, x2, y2 = best.box
-        return {"x": (x1 + x2) // 2, "y": (y1 + y2) // 2, "grounded_by": "sam",
-                "conf": best.conf, "concept": concept}
+        out = {"x": (x1 + x2) // 2, "y": (y1 + y2) // 2, "grounded_by": "sam",
+               "conf": best.conf, "concept": concept, "box": {"x": x1, "y": y1, "w": x2 - x1, "h": y2 - y1}}
+        ev_path = self._render_mask_overlay(p, best, concept)
+        if ev_path:
+            out["evidence_path"] = str(ev_path)
+            out["mask_path"] = str(ev_path)
+        return out
+
+    def _render_mask_overlay(self, image_path: Path, det, concept: str) -> Path | None:
+        """Decode SAM one_bit mask with meta_sam_parser and composite onto the evidence
+        screenshot in data/evidence/. Box outline is fallback when decode fails."""
+        try:
+            from PIL import Image, ImageDraw
+            import numpy as np
+            import re
+            img = Image.open(image_path).convert("RGBA")
+            iw, ih = img.size
+            x1, y1, x2, y2 = det.box
+            mask_applied = False
+            if getattr(det, "mask", None):
+                try:
+                    from meta_sam_parser import SegmentationMask, decode_mask_to_raster
+                    m = re.search(r"data=(\d+),(\d+),(.*)", det.mask)
+                    if m:
+                        mh, mw, payload = int(m.group(1)), int(m.group(2)), m.group(3)
+                        sm = SegmentationMask(encoding="one_bit", payload=payload, width=mw, height=mh)
+                        raster = decode_mask_to_raster(sm)
+                        mask_arr = np.frombuffer(raster, dtype=np.uint8).reshape((mh, mw))
+                        overlay = Image.new("RGBA", (iw, ih), (0, 0, 0, 0))
+                        color_mask = np.zeros((mh, mw, 4), dtype=np.uint8)
+                        color_mask[mask_arr == 1] = [59, 130, 246, 120]  # translucent blue
+                        mask_img = Image.fromarray(color_mask, "RGBA")
+                        overlay.paste(mask_img, (x1, y1), mask_img)
+                        img = Image.alpha_composite(img, overlay)
+                        mask_applied = True
+                except Exception:
+                    mask_applied = False
+            rgb_img = img.convert("RGB")
+            draw = ImageDraw.Draw(rgb_img)
+            draw.rectangle([x1, y1, x2, y2], outline=(37, 99, 235), width=2)
+            ev_dir = cfg.EVIDENCE
+            ev_dir.mkdir(parents=True, exist_ok=True)
+            out_path = ev_dir / f"sam_mask_{int(time.time()*1000)}.jpg"
+            rgb_img.save(out_path, quality=85)
+            return out_path
+        except Exception:
+            return None
 
 
 def chain(ms, sam, target: Any, screenshot: str):
