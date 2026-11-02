@@ -1,0 +1,243 @@
+{
+  "summary": {
+    "notes": [
+      "Held-out clips are never tuned on (calibration only on dev)."
+    ],
+    "conditions": {
+      "ours": {
+        "frames": {
+          "orig": 200,
+          "processed": 34
+        },
+        "savings_pct": 83.0,
+        "latency_s": 0
+      },
+      "ours_nofps": {
+        "frames": {
+          "orig": 200,
+          "processed": 42
+        },
+        "savings_pct": 79.0,
+        "latency_s": 0
+      },
+      "ours_notrim": {
+        "frames": {
+          "orig": 200,
+          "processed": 160
+        },
+        "savings_pct": 20.0,
+        "latency_s": 0
+      },
+      "ours_nods": {
+        "frames": {
+          "orig": 200,
+          "processed": 34
+        },
+        "savings_pct": 83.0,
+        "latency_s": 0
+      },
+      "ours_raw": {
+        "frames": {
+          "orig": 200,
+          "processed": 200
+        },
+        "savings_pct": 0.0,
+        "latency_s": 0
+      }
+    },
+    "meter": {
+      "total": {
+        "calls": 0,
+        "network_requests": 0,
+        "billed_frames": 0,
+        "tokens": 0
+      }
+    },
+    "meter_cumulative": {
+      "calls": 0,
+      "billed_frames": 0,
+      "total_tokens": 0
+    }
+  },
+  "conditions": {
+    "ours": {
+      "per_clip": [
+        {
+          "clip": "p1_ok_h264.mp4",
+          "orig_frames": 100,
+          "processed_frames": 33,
+          "info": {
+            "trim": {
+              "kept": 41,
+              "dropped": 59
+            },
+            "cap_fps": {
+              "kept": 33,
+              "dropped": 8
+            },
+            "downscale": {
+              "width": 320,
+              "height": 240,
+              "scale": 1.0
+            }
+          }
+        },
+        {
+          "clip": "p1_low_conf.mp4",
+          "orig_frames": 100,
+          "processed_frames": 1,
+          "info": {
+            "trim": {
+              "kept": 1,
+              "dropped": 99
+            },
+            "cap_fps": {
+              "kept": 1,
+              "dropped": 0
+            },
+            "downscale": {
+              "width": 320,
+              "height": 240,
+              "scale": 1.0
+            }
+          }
+        }
+      ]
+    },
+    "ours_nofps": {
+      "per_clip": [
+        {
+          "clip": "p1_ok_h264.mp4",
+          "orig_frames": 100,
+          "processed_frames": 41,
+          "info": {
+            "trim": {
+              "kept": 41,
+              "dropped": 59
+            },
+            "downscale": {
+              "width": 320,
+              "height": 240,
+              "scale": 1.0
+            }
+          }
+        },
+        {
+          "clip": "p1_low_conf.mp4",
+          "orig_frames": 100,
+          "processed_frames": 1,
+          "info": {
+            "trim": {
+              "kept": 1,
+              "dropped": 99
+            },
+            "downscale": {
+              "width": 320,
+              "height": 240,
+              "scale": 1.0
+            }
+          }
+        }
+      ]
+    },
+    "ours_notrim": {
+      "per_clip": [
+        {
+          "clip": "p1_ok_h264.mp4",
+          "orig_frames": 100,
+          "processed_frames": 80,
+          "info": {
+            "cap_fps": {
+              "kept": 80,
+              "dropped": 20
+            },
+            "downscale": {
+              "width": 320,
+              "height": 240,
+              "scale": 1.0
+            }
+          }
+        },
+        {
+          "clip": "p1_low_conf.mp4",
+          "orig_frames": 100,
+          "processed_frames": 80,
+          "info": {
+            "cap_fps": {
+              "kept": 80,
+              "dropped": 20
+            },
+            "downscale": {
+              "width": 320,
+              "height": 240,
+              "scale": 1.0
+            }
+          }
+        }
+      ]
+    },
+    "ours_nods": {
+      "per_clip": [
+        {
+          "clip": "p1_ok_h264.mp4",
+          "orig_frames": 100,
+          "processed_frames": 33,
+          "info": {
+            "trim": {
+              "kept": 41,
+              "dropped": 59
+            },
+            "cap_fps": {
+              "kept": 33,
+              "dropped": 8
+            }
+          }
+        },
+        {
+          "clip": "p1_low_conf.mp4",
+          "orig_frames": 100,
+          "processed_frames": 1,
+          "info": {
+            "trim": {
+              "kept": 1,
+              "dropped": 99
+            },
+            "cap_fps": {
+              "kept": 1,
+              "dropped": 0
+            }
+          }
+        }
+      ]
+    },
+    "ours_raw": {
+      "per_clip": [
+        {
+          "clip": "p1_ok_h264.mp4",
+          "orig_frames": 100,
+          "processed_frames": 100,
+          "info": {}
+        },
+        {
+          "clip": "p1_low_conf.mp4",
+          "orig_frames": 100,
+          "processed_frames": 100,
+          "info": {}
+        }
+      ]
+    }
+  },
+  "usage": {
+    "total": {
+      "calls": 0,
+      "network_requests": 0,
+      "billed_frames": 0,
+      "tokens": 0
+    }
+  },
+  "cumulative": {
+    "calls": 0,
+    "billed_frames": 0,
+    "total_tokens": 0
+  }
+}

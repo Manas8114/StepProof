@@ -69,14 +69,21 @@ def static_head_tail_trim(video: Path, out: Path, threshold: float = 1.0) -> dic
     return {"kept": len(sel), "dropped": len(frames) - len(sel)}
 
 
-def cap_fps(video: Path, out: Path, target_fps: float) -> dict:
-    """Resample to `target_fps` by keeping one frame per 1/target_fps source frames."""
+def cap_fps(video: Path, out: Path, target_fps: float, keep_duration: bool = True) -> dict:
+    """Resample to `target_fps` by keeping one frame per 1/target_fps source frames.
+    With `keep_duration` the kept frames are written at `target_fps` AND trimmed so the
+    output covers the same time span (redundant frames drop off the end, never the
+    timeline) - re-encoding at a lower fps WITHOUT this would silently stretch the clip,
+    which would shift every frame index and make the verdicts uncomparable."""
     fps, frames = _read_all(video)
     if target_fps >= fps:
         _write(frames, fps, out)
         return {"kept": len(frames), "dropped": 0}
     step = max(1, int(round(fps / target_fps)))
     sel = frames[::step]
+    if keep_duration:
+        orig_dur = len(frames) / fps
+        sel = sel[:max(1, int(round(orig_dur * target_fps)))]   # same time span, redundant tail off
     _write(sel, target_fps, out)
     return {"kept": len(sel), "dropped": len(frames) - len(sel)}
 

@@ -102,7 +102,7 @@ def naive_vlm_verdicts(client: OpenAI, spec: ProcedureSpec, frame_paths: list[Pa
     u = getattr(r, "usage", None)
     _record("vlm", time.time() - t0, 0, 0,
             int(getattr(u, "prompt_tokens", 0) or 0), int(getattr(u, "completion_tokens", 0) or 0))
-    data = __import__("json").loads(r.choices[0].message.content)
+    data = json.loads(r.choices[0].message.content)
     return {s["step_id"]: ("review" if s["verdict"] == "uncertain" else s["verdict"]) for s in data["steps"]}
 
 
