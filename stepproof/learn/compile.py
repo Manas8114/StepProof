@@ -78,7 +78,8 @@ def _action_from_recorded(rec: dict, goal_site: str) -> Step:
 
 def compile_to_procedure(records: list[dict], goal: str, site: str = "",
                          success_checks: Optional[list[dict]] = None,
-                         model=None, transcript: str = "") -> tuple[Procedure, list[str]]:
+                         model=None, transcript: str = "",
+                         parameters: Optional[dict] = None) -> tuple[Procedure, list[str]]:
     """Deterministic path: records + goal -> Procedure with multi-locator steps + checks.
 
     `model` (optional) phrases the goal and picks which recorded actions to keep; without
@@ -95,7 +96,8 @@ def compile_to_procedure(records: list[dict], goal: str, site: str = "",
         steps.append(st)
     checks = success_checks or _default_checks(records)
     proc = Procedure(goal=goal or "(no goal text supplied)", site=site or _site_from(records),
-                     steps=steps, success_checks=checks, source="learned")
+                     steps=steps, parameters=parameters or {},
+                     success_checks=checks, source="learned")
     if not steps:
         warnings.append("no recorded actions to learn from; procedure has no steps.")
     if not checks:
@@ -105,7 +107,8 @@ def compile_to_procedure(records: list[dict], goal: str, site: str = "",
 
 def compile_from_agent_trace(steps: list[dict], goal: str, site: str = "",
                              success_checks: Optional[list[dict]] = None,
-                             transcript: str = "") -> tuple[Procedure, list[str]]:
+                             transcript: str = "",
+                             parameters: Optional[dict] = None) -> tuple[Procedure, list[str]]:
     """Learn-from-own-run (Agent-Workflow-Memory step, one function): turn a successful
     goal-only agent trace into a reusable, deterministic Procedure.
 
@@ -135,7 +138,7 @@ def compile_from_agent_trace(steps: list[dict], goal: str, site: str = "",
                              "element_name": a.get("name", "")}})
     if not recs:
         warnings.append("no usable actuating steps in the agent trace; procedure is empty.")
-    proc, w2 = compile_to_procedure(recs, goal, site, success_checks or [])
+    proc, w2 = compile_to_procedure(recs, goal, site, success_checks or [], parameters=parameters)
     return proc, warnings + w2
 
 

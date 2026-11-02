@@ -37,6 +37,7 @@ class Budgets:
 class RunLog:
     start: float = field(default_factory=time.time)
     steps: list[dict] = field(default_factory=list)
+    thinking_log: list[dict] = field(default_factory=list)
     model_calls: int = 0
     takeovers: int = 0
     approvals: int = 0
@@ -51,7 +52,8 @@ class RunLog:
                 "approvals": self.approvals, "backtracks": self.backtracks,
                 "idle_s": round(self.idle_s, 2), "result": self.result,
                 "usage": getattr(self, "_usage", {}) or {},
-                "actions": [s["tool"] for s in self.steps]}
+                "actions": [s["tool"] for s in self.steps],
+                "thinking_log": list(self.thinking_log)}
 
 
 class AgentLoop:
@@ -134,9 +136,23 @@ class AgentLoop:
 
     # ---- the loop ----
 
+    def _log_thought(self, step: int, phase: str, title: str, thought: str, details: dict | None = None) -> dict:
+        entry = {
+            "ts": round(time.time(), 3),
+            "step": step,
+            "phase": phase,
+            "title": title,
+            "thought": thought,
+            "details": details or {}
+        }
+        self.log.thinking_log.append(entry)
+        BUS.publish("thought", entry)
+        return entry
+
     def _thread(self) -> None:
         self.machine.transition(State.PLANNING, "start")
         BUS.publish("state", {"state": "PLANNING"})
+        self._log_thought(0, "PLANNING", "Goal Initialization", f"Starting run for goal: '{self.goal}' on site {self.browser.url}")
         self.machine.transition(State.RUNNING, "planned")
         BUS.publish("state", {"state": "RUNNING"})
         steps = 0
@@ -145,6 +161,7 @@ class AgentLoop:
             exceeded = self.budgets.exceeded(steps, time.time() - self.log.start, self.log.model_calls)
             if exceeded:
                 BUS.publish("budget", {"reason": exceeded})
+                self._log_thought(steps, "BUDGET_HALT", "Budget Exceeded", f"Execution halted: {exceeded}")
                 self._stop("ERROR", {"error": "budget", "detail": exceeded})
                 return
             # model decides one action
@@ -153,13 +170,21 @@ class AgentLoop:
                 break
             shot = self.browser.take_screenshot()
             obs = self.browser.observe()
+            num_el = len(obs.get("elements", []))
+            self._log_thought(steps + 1, "PERCEPTION", "Inspecting Page State",
+                              f"Observed '{self.browser.title}' at {self.browser.url} with {num_el} interactive elements.")
+            t0 = time.time()
             try:
                 act = self.model.decide(self.goal, elements_text(obs), shot, self.history)
+                dt_ms = round((time.time() - t0) * 1000, 1)
                 self.log.model_calls += 1
                 self._consec_errors = 0
             except Exception as e:
                 self._consec_errors += 1
-                BUS.publish("decision_error", {"error": f"{type(e).__name__}: {str(e)[:160]}"})
+                err_msg = f"{type(e).__name__}: {str(e)[:160]}"
+                self._log_thought(steps + 1, "MODEL_ERROR", "Deliberation Error",
+                                  f"Model failed ({self._consec_errors}/{self._max_consec_errors}): {err_msg}")
+                BUS.publish("decision_error", {"error": err_msg})
                 if self._consec_errors >= self._max_consec_errors:
                     self._stop("ERROR", {"error": "model circuit breaker",
                                           "detail": f"{self._consec_errors} consecutive failures: {str(e)[:120]}"})
@@ -168,36 +193,57 @@ class AgentLoop:
                 continue
             if act is None:
                 act = Action("finish", {"summary": "model returned no action"})
-            BUS.publish("decision", {"tool": act.tool, "args": act.args})
+            
+            thought_desc = act.thought or f"Targeting tool '{act.tool}' with args {json.dumps(act.args)} to advance goal."
+            self._log_thought(steps + 1, "DELIBERATION", f"Tool Selection: {act.tool}", thought_desc,
+                              details={"tool": act.tool, "args": act.args, "latency_ms": dt_ms})
+            BUS.publish("decision", {"tool": act.tool, "args": act.args, "thought": thought_desc})
 
             if act.is_finish:
-                self._stop("DONE", {"summary": act.args.get("summary", "")})
+                summary = act.args.get("summary", "")
+                self._log_thought(steps + 1, "COMPLETION", "Task Finished", f"Achieved goal '{self.goal}': {summary}")
+                self._stop("DONE", {"summary": summary})
                 return
 
             if act.is_ask:
+                self._log_thought(steps + 1, "HUMAN_ASK", "Agent Inquiring", f"Prompting operator: {act.args.get('question', '')}")
                 self._handle_ask(act)
                 continue
 
             # safety gate FIRST (code-first; model can only escalate)
             irrev, ext = classify_action(act.tool, act.args, tb=self.browser)
             if irrev or ext:
+                reason = "Action is " + ("IRREVERSIBLE" if irrev else "") + (" & " if (irrev and ext) else "") + ("EXTERNAL" if ext else "")
+                self._log_thought(steps + 1, "SAFETY_GATE", "Approval Gate Triggered",
+                                  f"{reason}: halting for explicit operator confirmation before executing {act.tool}.",
+                                  details={"args": act.args})
                 ok = self._approval_gate(act, irrev, ext)
                 if not ok:
+                    self._log_thought(steps + 1, "SAFETY_GATE", "Action Refused", "Human operator rejected the action. Bypassing.", details={"args": act.args})
                     self.history.append({"tool": act.tool, "args": act.args, "ok": False, "detail": "not approved"})
                     continue
+                else:
+                    self._log_thought(steps + 1, "SAFETY_GATE", "Action Permitted", "Human operator approved the action.", details={"args": act.args})
+            else:
+                self._log_thought(steps + 1, "SAFETY_EVAL", "Safety Gate Clear", "Deterministic code check: action is safe, reversible, and allowlisted.")
 
             result = execute_action(self.browser, act.tool, act.args)
             # action recovery: if the actuation missed (element not settled / gone), re-observe
             # and retry once - a code-level self-heal, reported transparently
             if not result.ok and act.tool in ("click", "type", "select"):
+                self._log_thought(steps + 1, "RETRY_HEAL", "Actuation Missed", f"Initial {act.tool} missed ({result.detail}). Re-observing and attempting retry self-heal.")
                 self.browser.observe()
                 r2 = execute_action(self.browser, act.tool, act.args)
                 if r2.ok:
                     r2.detail = "recovered on retry: " + r2.detail
                     result = r2
+                    self._log_thought(steps + 1, "RETRY_HEAL", "Retry Succeeded", f"Code self-heal succeeded: {r2.detail}")
             rec = {"tool": act.tool, "args": act.args, "ok": result.ok, "detail": result.detail}
             self.history.append(rec)
             self.log.steps.append(rec)          # so metrics().actions reports the agent's own actions
+            self._log_thought(steps + 1, "ACTUATION", f"Actuation: {act.tool}",
+                              f"{'Succeeded' if result.ok else 'Failed'}: {result.detail}",
+                              details={"tool": act.tool, "ok": result.ok, "detail": result.detail})
             BUS.publish("action", {"tool": act.tool, "ok": result.ok, "detail": result.detail})
             steps += 1
 

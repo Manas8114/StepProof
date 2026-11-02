@@ -40,6 +40,8 @@ def app():
             time.sleep(0.2)
     yield server
     server.should_exit = True
+    t.join(timeout=3.0)
+    time.sleep(0.5)
 
 
 @pytest.fixture(scope="module")

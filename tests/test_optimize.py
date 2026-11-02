@@ -8,7 +8,7 @@ import numpy as np
 from stepproof import optimize
 from stepproof.video import probe
 
-CLIP = Path("data/clips/p1_ok.mp4")   # synthetic MJPG, 100 frames @ 10 fps
+CLIP = (Path(__file__).resolve().parent.parent / "data" / "clips" / "p1_ok.mp4")   # synthetic MJPG, 100 frames @ 10 fps
 
 
 def _write_tmp_clip(path: Path, n: int = 24, move_every: int = 3) -> Path:

@@ -51,6 +51,7 @@ AGENT_SYSTEM = (
 class Action:
     tool: str
     args: dict
+    thought: str = ""
 
     @property
     def is_finish(self) -> bool:
@@ -154,10 +155,20 @@ def _acc_usage(acc: dict, resp) -> None:
 
 
 def _extract_action(r) -> Optional[Action]:
-    for i in r.output:
+    thought_text = ""
+    for i in getattr(r, "output", []):
+        t = getattr(i, "type", "")
+        if t in ("thought", "reasoning"):
+            thought_text += getattr(i, "thought", "") or getattr(i, "content", "") or ""
+        elif t == "message":
+            for c in getattr(i, "content", []):
+                if getattr(c, "type", "") in ("text", "thought"):
+                    thought_text += getattr(c, "text", "") or getattr(c, "thought", "") or ""
+    for i in getattr(r, "output", []):
         if getattr(i, "type", "") == "function_call":
             args = json.loads(i.arguments) if isinstance(i.arguments, str) else dict(i.arguments or {})
-            return Action(tool=i.name, args=args)
+            th = args.get("thought") or args.get("rationale") or thought_text.strip()
+            return Action(tool=i.name, args=args, thought=th)
     return None
 
 

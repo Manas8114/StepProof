@@ -1,7 +1,7 @@
 # /brag plan — StepProof v2
 
 > NOTE: This plan was authored from the project code (no live URL needed, per the skill).
-> The final `.mp4` is rendered by the `hyperframes` tool. To render: `cd brag-output/composition && npx hyperframes check && npx hyperframes render`.
+> The final `.mp4` is rendered by the `hyperframes` tool. To render: `cd docs/media/composition && npx hyperframes check && npx hyperframes render`.
 > Tone: `polished` (this is a reliability-first system, not a joke). Format: `landscape`, ~20s.
 
 ## 9-question rubric

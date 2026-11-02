@@ -145,7 +145,8 @@ on top of which three product modes are built: **A self-healing web tests**,
     in one process); one-byte flip → rejected; procedure edit after signing
     → SHA mismatch; provenance fields present on a live-learned procedure.
 - **I3 — Hash-chained audit log + evidence bundles** (`stepproof/audit.py`,
-  `scripts/bundle_run.py`, `scripts/verify_bundle.py`).
+  `stepproof/verify_bundle.py` + `scripts/bundle_run.py` / `scripts/verify_bundle.py`
+  thin CLIs over it).
   - Append-only JSONL (`data/audit/runs.jsonl`): one record per run/abort/
     heal/fallback, each `{seq, prev_hash, ts, kind, verdict, checks[],
     evidence_paths[], model, fell_back, budget_status}` with

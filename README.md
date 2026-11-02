@@ -1,106 +1,102 @@
-# StepProof
+# StepProof v2 — Learn · Execute · Verify
 
-Describe a manual procedure in plain English. StepProof compiles it into a checkable spec, verifies a video of it with **SAM 3.1** (open-vocabulary segmentation and tracking), uses **Muse Spark** only for language compilation and ambiguous state checks, and lets **deterministic rules** make the pass / fail / needs-review decision. No per-part training data.
+> A browser procedure companion powered by **Meta Muse Spark** and **SAM 3.1**: watches you do a task, does it better with you in charge, self-heals broken locators visually, and proves the outcome with deterministic code.
 
-## Quick start
+StepProof operates on a core safety invariant: **Models perceive, code decides.** The model proposes; deterministic rules, domain allowlists, and approval gates enforce safety before execution.
+
+---
+
+## Quick Start (v2 Companion)
+
+One command boots the v2 companion app, local demo sites, and the sandboxed browser:
+
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python -m playwright install chromium   # one-time: download the browser the tiny browser drives
-cp .env.example .env            # add MODEL_API_KEY
-python -m scripts.smoke_test path/to/image.jpg "red connector"   # access check, run this first
-uvicorn stepproof.api:app --reload                               # http://localhost:8000
-pytest -q                                                        # offline tests (v1 pipeline + wire + rules)
+python -m playwright install chromium   # one-time: download headless browser
+cp .env.example .env                    # add MODEL_API_KEY
+uvicorn stepproof.api_v2:app --port 8011 # open http://localhost:8011
+pytest -q                               # 103 tests (unit, integration, safety & E2E)
 ```
 
-## How a verdict is made
-1. Muse Spark turns your sentence into steps (`concept`, count range, `after`, optional `state_question`).
-2. One SAM 3.1 request per concept returns boxes, confidences and tracked ids per frame.
-3. `rules.py` decides: stable count range, still true at the end, ordering, confidence; anything doubtful becomes **needs review**.
-4. Muse Spark answers a yes/no state question only when a step needs one, on a cropped evidence frame.
+---
 
-## Evaluate
+## Seven UI Modes (`http://localhost:8011`)
+
+1. **Monitor (Learn)**: Perform a task in the live view. StepProof captures multi-locator actions (`role+name`, `text`, `css`, `box`), merges user narration, and compiles an editable, parameterised **Procedure** (`{slot}` substitutions supported).
+2. **Execute (Do)**: Enter an intent via text or spoken push-to-talk. Muse Spark drives the browser with a kill switch, pause/takeover at any action boundary, and code-first approval gates before any irreversible or external action.
+3. **Thoughts (Deliberation Trace)**: Live structured Chain-of-Thought (CoT) tracking every phase (`PERCEPTION`, `DELIBERATION`, `SAFETY_GATE`, `ACTUATION`, `RETRY_HEAL`, `COMPLETION`) with model latency, rationale, and exportable Markdown logs.
+4. **Telemetry (Backend Bridge)**: Real-time gauges for step, time, and model call budgets, live token accounting, SAM frames billed, and active allowlist status.
+5. **Coach (Compare & Suggest)**: Deterministic detectors compare agent runs against genuine human baselines; Muse Spark phrases actionable suggestions without inventing savings.
+6. **Tour (Guided Showcase)**: A one-click, 5-beat showcase (learn $\to$ execute+gate $\to$ takeover $\to$ prove $\to$ visual heal) streaming to the live event feed, writing a dated offline replay.
+7. **Tracking (SAM 3.1)**: Zero-shot video tracking via SAM 3.1 video segmentation with stable object IDs and confidence overlays across 60 frames.
+
+---
+
+## Safety Architecture (Code-First)
+
+- **Domain Allowlist**: `TinyBrowser.goto()` and `start_site()` enforce allowlists in Python code before navigation begins; off-allowlist URLs (e.g. `evil.example`) are refused before firing network requests.
+- **Approval Gates**: Irreversible actions (e.g. `#submit`, `#discard`, `#restock`) require explicit human confirmation. Selector-based clicks inspect DOM labels so `#submit` gates identically to a named button.
+- **Prompt Injection Defense**: All page text is treated as untrusted data (`demo_sites/hostile/`). Verified in `tests/test_v2.py`.
+- **Parameterised Slots**: `Procedure.parameters` substitutes `{slot}` variables (e.g. `{vendor}`, `{amount}`) at execution time, enabling one learned procedure to cover a task family.
+- **Credential Protection**: Observation trees exclude `input[type=password]` values by construction; visual fill refuses password fields.
+
+---
+
+## Vision Self-Heal (Measured 93.8% Recovery)
+
+When recorded DOM locators fail due to page mutation or re-rendering (`stepproof/browser/vision_heal.py`):
+1. **Multi-locator fall-through**: `role+name` $\to$ `text` $\to$ `css` $\to$ `box`.
+2. **Visual Grounding Fallback**: Muse Spark visual grounding locates target coordinates on a screenshot, falling back to SAM 3.1 open-vocabulary segmentation.
+3. **Measured Performance**: Evaluated across 16 screenshots on standard, hostile, and mutated sites (`eval/vision_heal_results.json`): **15/16 (93.8%)** recovery rate.
+4. **Visual Fill**: `fill_at` types visually into fields while preserving password protections.
+
+---
+
+## Evaluation & Metrics
+
+StepProof evaluates three distinct conditions:
+- **Condition B (Learned Replay)**: Deterministic execution of a saved Procedure (offline, no model calls, $pass^5 = 1.0$).
+- **Condition C (Human Baseline)**: Measured from genuine recordings via `python -m scripts.record_human_run` into `data/human_runs/` (SKIPPED if missing; no fake constants).
+- **Condition A (Live Agent)**: Open-ended Muse Spark goal-only agent (measured live, tracking token costs and overclaim rates).
+- **A3 No-Safety Control**: Hostile page evaluation with safety gates off (`python -m eval.run_eval_v2 --no-safety`), quantifying the injection threat the safety layer prevents.
+
+Run the evaluation:
 ```bash
+python -m eval.run_eval_v2 --no-live   # offline B + C + safety cases
+python -m eval.run_eval_v2             # includes live condition A if API reachable
+```
+
+---
+
+## Verification & Disclosures
+
+- **Verification Record**: See [`docs/VERIFIED.md`](docs/VERIFIED.md) for full verification against Meta documentation (SAM pricing/billing, Responses API shapes, MCP supervisor consumption).
+- **Model Disclosures**:
+  - Reasoning: `muse-spark-1.3` via `api.meta.ai` Responses API (flat tool calling). Auto-fallback to `muse-spark-1.1` on HTTP 404 with full disclosure in `/api/v2/health`.
+  - Segmentation & Tracking: `sam-3.1` (open-vocabulary video/image segmentation).
+  - Speech-to-Text: Meta `muse-voice-transcribe-1.0` when reachable, falling back to browser Web Speech.
+  - Text-to-Speech: Browser native `speechSynthesis`.
+
+---
+
+## Launch Video & Media
+
+- **Launch video**: Rendered at [`docs/media/brag.mp4`](docs/media/brag.mp4) (20s, 1080p@30, SFX + music) with poster [`docs/media/brag.jpg`](docs/media/brag.jpg).
+- Storyboard and plan: [`docs/media/brag-plan.md`](docs/media/brag-plan.md) and [`docs/media/share-copy.txt`](docs/media/share-copy.txt).
+- Re-render composition:
+  ```bash
+  cd docs/media/composition && npx hyperframes check && npx hyperframes render
+  ```
+
+---
+
+## StepProof v1 (Physical Assembly Verification)
+
+The v1 camera-verification pipeline verifies physical manual procedures from video clips using SAM 3.1 and Muse Spark:
+```bash
+python -m scripts.smoke_test path/to/image.jpg "red connector"
+uvicorn stepproof.api:app --port 8000
 python -m eval.run_eval --manifest eval/manifest.json --mode pipeline
-python -m eval.run_eval --manifest eval/manifest.json --mode baseline   # Muse Spark alone on 8 sampled frames
 ```
-See `eval/manifest.example.json`. Report failures, not just wins.
-
-## Reproducible demo
-Raw SAM text and Muse JSON are cached under `data/cache`. `PROVIDER_MODE=replay` serves the demo from cache with no network. Cached results are real API outputs from earlier runs.
-
-## Offline synthetic dataset (no API key, no network)
-When the Meta Model API is unreachable, a fully synthetic dataset lets the whole system run offline and deterministically:
-```bash
-python -m scripts.make_dataset                       # writes data/clips, data/procedures, data/manifest, mock config
-STEPPROOF_PROVIDER=mock STEPPROOF_DATA=data python -m eval.run_eval --manifest data/manifest/manifest.json --mode pipeline
-STEPPROOF_PROVIDER=mock STEPPROOF_DATA=data python -m eval.run_eval --manifest data/manifest/manifest.json --mode baseline
-```
-Each clip is a short MJPG video with coloured parts on authored schedules, plus a `<clip>.dets.json` sidecar holding ground-truth detections (concept -> present frames, box, confidence, object ids), the Muse-alone baseline verdicts and the expected per-step verdicts. `MockSam`/`MockMuse` serve these sidecars; the pipeline, rules engine, API and UI are exercised exactly as in live mode. **The dataset is synthetic - its numbers demonstrate mechanics, not measured model performance, and must never be reported as such.**
-
-## Disclosure
-`/api/health` and every report list the exact models and hosts used. If the Muse Spark endpoint is replaced by a gateway (`VISION_BASE_URL`), say so in your submission. SAM has no fallback in this repo.
-
-## StepProof v2 — Learn · Execute · Verify (browser companion + voice)
-One command starts the v2 companion app, the two demo sites and the tiny browser:
-```bash
-uvicorn stepproof.api_v2:app --port 8011      # open http://localhost:8011
-python -m pytest -q                            # 35 tests incl. 13 v2 integration tests
-```
-Five modes in the UI: **Monitor** (do the task yourself in the live view - the app records
-multi-locator actions + your narration and compiles a reusable, editable Procedure),
-**Execute** (an aim, typed or via push-to-talk; Muse Spark drives the same tiny browser
-with a kill switch, pause/takeover at any moment, and approval gates before irreversible or
-external actions), **Coach** (deterministic detectors measure where you can go faster;
-the model only phrases it), **Tour** (a one-click, 5-beat guided showcase that streams
-learn / execute+gate / takeover / prove / heal onto the live event feed, then records a dated,
-replayable trace you can re-watch offline), and **Tracking** (zero-shot video object
-tracking via cached SAM 3.1 video segmentation with stable object IDs and confidence-tinted
-bounding box overlay across 60 frames). **Verify** is always code, never the model:
-success = deterministic checks (URL / visible text / element state / extracted value) over
-browser state, each verdict linked to before/after screenshots.
-
-Safety (enforced in code, tested): domain allowlist, approval gates, credentials are never
-read/stored/logged, per-run budgets, full action log, and page text is treated as
-untrusted data (hostile-page injection test in `tests/test_v2.py` + `eval/run_eval_v2.py`).
-
-Live-agent numbers: `eval/RESULTS.md` (done in 13 s, 4 actions, 5 model calls, gate
-triggered on Submit - measured, single session). The v2 evaluation is deterministic +
-offline: `python -m eval.run_eval_v2` (no API key).
-
-**Disclosures:** reasoning = `muse-spark-1.3` via `api.meta.ai` Responses API (flat tool
-shape - Meta variant); computer-use observe/act loop follows Meta's docs; STT = Meta
-`muse-voice-transcribe-1.0` when reachable, else browser Web Speech (disclosed in UI);
-TTS = browser `speechSynthesis` (no dependency). The v1 camera-verify path is frozen and
-optional.
-
-## Guided tour + launch video
-- Run the 5-beat showcase (real approval-gate, takeover, and mutated-UI visual heal clicks, then a dated offline replay):
-```bash
-uvicorn stepproof.api_v2:app --port 8011   # open http://localhost:8011 -> Tour tab -> Run guided tour
-```
-  Unattended/scripted: `python -m scripts.run_tour` (writes `data/tour_runs/<date>.json`).
-- **Launch video: rendered.** `brag-output/brag.mp4` (20 s, 1920x1080@30, music + SFX, idle
-  thumbnail = the baked PASS poster) with `brag-output/brag.jpg` as its frame-0 poster. Built
-  from the `/brag` plan: `brag-output/brag-plan.md` (storyboard), `composition-brief.md`,
-  and `share-copy.txt` (the caption). Re-render any time with:
-```bash
-cd brag-output/composition && npx hyperframes check && npx hyperframes render
-```
-
-## Vision self-heal (measured & KEPT — 93.8% combined)
-When every recorded DOM locator for a step fails, a visual fallback re-locates the target
-on a fresh screenshot (`stepproof/browser/vision_heal.py`): Muse Spark grounding first,
-SAM 3.1 open-vocabulary as the fallback. Measured on 16 real screenshots across standard,
-hostile, and mutated sites (`eval/vision_heal_results.json`): Muse grounding 15/16 (93.8%),
-SAM 3.1 7/16 (43.8%), combined **15/16 (93.8%)** — exceeding the 70% keep threshold.
-
-Wired into the live app via `STEPPROOF_VISION_SELFHEAL=1` (default stays off in offline tests for determinism):
-- **Visual Fill:** `fill_at` types visually into fields, with strict refusal on password fields (`input[type=password]`).
-- **Safety Gate:** Re-evaluates visible label at clicked coordinates; irreversible/external hints (`Submit`, `Discard`) or unresolvable labels escalate to the approval gate before execution.
-- **Mask Evidence Overlay:** SAM 3.1 one-bit segmentation masks are decoded with `meta-sam-parser` (`decode_mask_to_raster`) and composited onto screenshots in `data/evidence/` with bounding box fallback.
-- **Mutated UI Showcase:** BEAT 5 · HEAL in `demo/tour.py` runs against `/mutated/` where all DOM IDs/classes are regenerated and DOM order is shuffled on every load, proving locator fallthrough → visual grounding → gated healed click → fill_at on renamed inputs → deterministic verification.
-- **Dynamic Tracking View:** Read-only UI mode in `/api/v2/tracking/demo` animates tracked boxes over a 60-frame clip with stable object IDs and confidence-tinted outlines from cache (0 new model calls).
-
-## Known limits
-Fixed camera and large, distinct parts work best; SAM takes one concept per request (short noun phrases like `Vendor text input` or `Submit claim button`, not sentences or instructions — carried in `proc.py:Step.vision_concept`); phone videos may need re-encoding to H.264 without rotation flags.
+Synthetic offline datasets (`scripts/make_dataset.py`) allow complete offline development without network or API keys.

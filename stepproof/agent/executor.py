@@ -63,6 +63,15 @@ def _resolve_locator(tb, locators: list, text: str = "", tool: str = "click") ->
     return False, {}, len(locators)
 
 
+def _fill_slots(arg: dict, params: dict) -> dict:
+    if not params:
+        return arg
+    import re
+    def sub(v):
+        return re.sub(r"\{([a-zA-Z0-9_]+)\}", lambda m: str(params.get(m.group(1), m.group(0))), str(v))
+    return {k: (sub(v) if isinstance(v, str) else v) for k, v in arg.items()}
+
+
 def execute_procedure(tb, proc, human_demo: dict | None = None,
                       approve_fn: Optional[Callable[[str, dict], bool]] = None,
                       vision_selfheal: Optional[Callable[[Any], Optional[dict]]] = None,
@@ -73,10 +82,12 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
     t0 = time.time()
     res = ExecResult(success=False, steps_run=0, wall_s=0.0)
     BUS.publish("exec_start", {"goal": proc.goal})
+    params = getattr(proc, "parameters", {}) or {}
     for i, step in enumerate(proc.steps[:max_steps]):
-        irrev, ext = classify_action(step.action, step.arg, tb=tb)
+        step_arg = _fill_slots(step.arg, params)
+        irrev, ext = classify_action(step.action, step_arg, tb=tb)
         if irrev or ext:
-            if approve_fn is None or not approve_fn(step.action, step.arg):
+            if approve_fn is None or not approve_fn(step.action, step_arg):
                 res.error = f"step {i} ({step.action}) blocked: not approved"
                 BUS.publish("exec_blocked", {"step": step.id, "action": step.action})
                 break
@@ -84,7 +95,7 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
                 res.healed_steps.append({"step": step.id, "action": step.action, "note": "approved irreversible"})
         # self-heal: fall through locators (the resolver already actuated the winning one);
         # optional vision fallback if every recorded locator failed
-        text = step.arg.get("text", "") if step.action in ("type", "fill") else step.arg.get("value", "")
+        text = step_arg.get("text", "") if step.action in ("type", "fill") else step_arg.get("value", "")
         worked, winning, used = (False, {}, 0)
         if step.locators:
             worked, winning, used = _resolve_locator(tb, step.locators, text, step.action)
@@ -96,18 +107,18 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
             if healed:
                 healed = dict(healed)
                 if step.action in ("type", "fill"):
-                    val = step.arg.get("text", "") or step.arg.get("value", "")
+                    val = step_arg.get("text", "") or step_arg.get("value", "")
                     healed["text"] = val
-                    if "enter" in step.arg:
-                        healed["enter"] = step.arg["enter"]
+                    if "enter" in step_arg:
+                        healed["enter"] = step_arg["enter"]
                 elif step.action == "select":
-                    val = step.arg.get("value", "") or step.arg.get("text", "")
+                    val = step_arg.get("value", "") or step_arg.get("text", "")
                     healed["value"] = val
                 elif step.action in ("click", "select"):
                     from ..browser.actions import classify_element_text
                     hx, hy = int(healed.get("x", 0)), int(healed.get("y", 0))
                     label = _label_at_point(tb, hx, hy)
-                    orig_label = str(step.arg.get("name", "") or step.arg.get("selector", "") or "")
+                    orig_label = str(step_arg.get("name", "") or step_arg.get("selector", "") or "")
                     desc_irrev, desc_ext = classify_element_text(step.description)
                     orig_irrev, orig_ext = classify_element_text(orig_label)
                     if label is None:

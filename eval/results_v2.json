@@ -1,6 +1,6 @@
 {
-  "api_available": true,
-  "runs_per_condition": 5,
+  "api_available": false,
+  "runs_per_condition": 1,
   "tasks": {
     "expense_filed": {
       "learned": {
@@ -10,91 +10,7 @@
             "success": true,
             "error": "",
             "steps": 4,
-            "wall_s": 0.12,
-            "approvals": 0,
-            "checks": [
-              {
-                "name": "text_visible",
-                "passed": true,
-                "detail": "body contains 'claim filed': True"
-              },
-              {
-                "name": "element_state",
-                "passed": true,
-                "detail": "'#submit' 'disabled': observed=True"
-              }
-            ],
-            "cause": "ok"
-          },
-          {
-            "condition": "learned",
-            "success": true,
-            "error": "",
-            "steps": 4,
-            "wall_s": 0.09,
-            "approvals": 0,
-            "checks": [
-              {
-                "name": "text_visible",
-                "passed": true,
-                "detail": "body contains 'claim filed': True"
-              },
-              {
-                "name": "element_state",
-                "passed": true,
-                "detail": "'#submit' 'disabled': observed=True"
-              }
-            ],
-            "cause": "ok"
-          },
-          {
-            "condition": "learned",
-            "success": true,
-            "error": "",
-            "steps": 4,
-            "wall_s": 0.12,
-            "approvals": 0,
-            "checks": [
-              {
-                "name": "text_visible",
-                "passed": true,
-                "detail": "body contains 'claim filed': True"
-              },
-              {
-                "name": "element_state",
-                "passed": true,
-                "detail": "'#submit' 'disabled': observed=True"
-              }
-            ],
-            "cause": "ok"
-          },
-          {
-            "condition": "learned",
-            "success": true,
-            "error": "",
-            "steps": 4,
-            "wall_s": 0.09,
-            "approvals": 0,
-            "checks": [
-              {
-                "name": "text_visible",
-                "passed": true,
-                "detail": "body contains 'claim filed': True"
-              },
-              {
-                "name": "element_state",
-                "passed": true,
-                "detail": "'#submit' 'disabled': observed=True"
-              }
-            ],
-            "cause": "ok"
-          },
-          {
-            "condition": "learned",
-            "success": true,
-            "error": "",
-            "steps": 4,
-            "wall_s": 0.08,
+            "wall_s": 0.13,
             "approvals": 0,
             "checks": [
               {
@@ -112,8 +28,8 @@
           }
         ],
         "skipped": false,
-        "success": 5,
-        "of": 5,
+        "success": 1,
+        "of": 1,
         "pass_at_1": 1.0,
         "pass_pow_5": 1.0,
         "overclaims": null,
@@ -132,55 +48,15 @@
         "runs": [
           {
             "condition": "human_demo",
-            "success": true,
-            "steps": 5,
-            "wall_s": 42.0,
-            "error": "",
-            "approvals": 0,
-            "note": "recorded human baseline this learned Procedure was compiled from"
-          },
-          {
-            "condition": "human_demo",
-            "success": true,
-            "steps": 5,
-            "wall_s": 42.0,
-            "error": "",
-            "approvals": 0,
-            "note": "recorded human baseline this learned Procedure was compiled from"
-          },
-          {
-            "condition": "human_demo",
-            "success": true,
-            "steps": 5,
-            "wall_s": 42.0,
-            "error": "",
-            "approvals": 0,
-            "note": "recorded human baseline this learned Procedure was compiled from"
-          },
-          {
-            "condition": "human_demo",
-            "success": true,
-            "steps": 5,
-            "wall_s": 42.0,
-            "error": "",
-            "approvals": 0,
-            "note": "recorded human baseline this learned Procedure was compiled from"
-          },
-          {
-            "condition": "human_demo",
-            "success": true,
-            "steps": 5,
-            "wall_s": 42.0,
-            "error": "",
-            "approvals": 0,
-            "note": "recorded human baseline this learned Procedure was compiled from"
+            "skipped": true,
+            "reason": "no recorded human baseline - run: python -m scripts.record_human_run --task expense_filed"
           }
         ],
-        "skipped": false,
-        "success": 5,
-        "of": 5,
-        "pass_at_1": 1.0,
-        "pass_pow_5": 1.0,
+        "skipped": true,
+        "success": 0,
+        "of": 0,
+        "pass_at_1": 0.0,
+        "pass_pow_5": 0.0,
         "overclaims": null,
         "usage": {
           "input_tokens": 0,
@@ -188,8 +64,8 @@
           "calls": 0,
           "total_tokens": 0
         },
-        "avg_steps": 5.0,
-        "avg_wall_s": 42.0,
+        "avg_steps": 0.0,
+        "avg_wall_s": 0.0,
         "avg_model_calls": null,
         "causes": []
       },
@@ -197,322 +73,31 @@
         "runs": [
           {
             "condition": "goal_only_agent",
-            "success": true,
-            "state": "DONE",
-            "error": "",
-            "steps": 5,
-            "wall_s": 15.01,
-            "model_calls": 6,
-            "usage": {
-              "input_tokens": 13165,
-              "output_tokens": 1732,
-              "calls": 6
-            },
-            "model_said_done": true,
-            "check_passed": true,
-            "overclaim": false,
-            "trace": [
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[name=vendor]",
-                  "text": "Acme"
-                },
-                "ok": true,
-                "detail": "typed into input[name=vendor]"
-              },
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[name=amount]",
-                  "text": "42"
-                },
-                "ok": true,
-                "detail": "typed into input[name=amount]"
-              },
-              {
-                "tool": "select",
-                "args": {
-                  "selector": "select[name=category]",
-                  "value": "Office"
-                },
-                "ok": true,
-                "detail": "selected Office in select[name=category]"
-              },
-              {
-                "tool": "click",
-                "args": {
-                  "name": "Submit claim"
-                },
-                "ok": true,
-                "detail": "clicked 'Submit claim'"
-              }
-            ],
-            "success_check": true,
-            "cause": "done"
-          },
-          {
-            "condition": "goal_only_agent",
-            "success": true,
-            "state": "DONE",
-            "error": "",
-            "steps": 5,
-            "wall_s": 16.01,
-            "model_calls": 6,
-            "usage": {
-              "input_tokens": 13174,
-              "output_tokens": 2043,
-              "calls": 6
-            },
-            "model_said_done": true,
-            "check_passed": true,
-            "overclaim": false,
-            "trace": [
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[name=\"vendor\"]",
-                  "text": "Acme"
-                },
-                "ok": true,
-                "detail": "typed into input[name=\"vendor\"]"
-              },
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[name=\"amount\"]",
-                  "text": "42"
-                },
-                "ok": true,
-                "detail": "typed into input[name=\"amount\"]"
-              },
-              {
-                "tool": "select",
-                "args": {
-                  "selector": "select[name=\"category\"]",
-                  "value": "Office"
-                },
-                "ok": true,
-                "detail": "selected Office in select[name=\"category\"]"
-              },
-              {
-                "tool": "click",
-                "args": {
-                  "name": "Submit claim"
-                },
-                "ok": true,
-                "detail": "clicked 'Submit claim'"
-              }
-            ],
-            "success_check": true,
-            "cause": "done"
-          },
-          {
-            "condition": "goal_only_agent",
-            "success": true,
-            "state": "DONE",
-            "error": "",
-            "steps": 4,
-            "wall_s": 11.0,
-            "model_calls": 5,
-            "usage": {
-              "input_tokens": 10793,
-              "output_tokens": 1234,
-              "calls": 5
-            },
-            "model_said_done": true,
-            "check_passed": true,
-            "overclaim": false,
-            "trace": [
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[name=vendor]",
-                  "text": "Acme"
-                },
-                "ok": true,
-                "detail": "typed into input[name=vendor]"
-              },
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[name=amount]",
-                  "text": "42"
-                },
-                "ok": true,
-                "detail": "typed into input[name=amount]"
-              },
-              {
-                "tool": "select",
-                "args": {
-                  "selector": "select[name=category]",
-                  "value": "Office"
-                },
-                "ok": true,
-                "detail": "selected Office in select[name=category]"
-              },
-              {
-                "tool": "click",
-                "args": {
-                  "name": "Submit claim"
-                },
-                "ok": true,
-                "detail": "clicked 'Submit claim'"
-              }
-            ],
-            "success_check": true,
-            "cause": "done"
-          },
-          {
-            "condition": "goal_only_agent",
-            "success": true,
-            "state": "DONE",
-            "error": "",
-            "steps": 5,
-            "wall_s": 11.0,
-            "model_calls": 6,
-            "usage": {
-              "input_tokens": 13174,
-              "output_tokens": 1256,
-              "calls": 6
-            },
-            "model_said_done": true,
-            "check_passed": true,
-            "overclaim": false,
-            "trace": [
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[name=\"vendor\"]",
-                  "text": "Acme"
-                },
-                "ok": true,
-                "detail": "typed into input[name=\"vendor\"]"
-              },
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[name=\"amount\"]",
-                  "text": "42"
-                },
-                "ok": true,
-                "detail": "typed into input[name=\"amount\"]"
-              },
-              {
-                "tool": "select",
-                "args": {
-                  "selector": "select[name=\"category\"]",
-                  "value": "Office"
-                },
-                "ok": true,
-                "detail": "selected Office in select[name=\"category\"]"
-              },
-              {
-                "tool": "click",
-                "args": {
-                  "name": "Submit claim"
-                },
-                "ok": true,
-                "detail": "clicked 'Submit claim'"
-              }
-            ],
-            "success_check": true,
-            "cause": "done"
-          },
-          {
-            "condition": "goal_only_agent",
-            "success": true,
-            "state": "DONE",
-            "error": "",
-            "steps": 4,
-            "wall_s": 10.0,
-            "model_calls": 5,
-            "usage": {
-              "input_tokens": 10784,
-              "output_tokens": 1200,
-              "calls": 5
-            },
-            "model_said_done": true,
-            "check_passed": true,
-            "overclaim": false,
-            "trace": [
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "[name=vendor]",
-                  "text": "Acme"
-                },
-                "ok": true,
-                "detail": "typed into [name=vendor]"
-              },
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "[name=amount]",
-                  "text": "42"
-                },
-                "ok": true,
-                "detail": "typed into [name=amount]"
-              },
-              {
-                "tool": "select",
-                "args": {
-                  "selector": "[name=category]",
-                  "value": "Office"
-                },
-                "ok": true,
-                "detail": "selected Office in [name=category]"
-              },
-              {
-                "tool": "click",
-                "args": {
-                  "name": "Submit claim"
-                },
-                "ok": true,
-                "detail": "clicked 'Submit claim'"
-              }
-            ],
-            "success_check": true,
-            "cause": "done"
+            "skipped": true,
+            "reason": "live API not requested/reachable"
           }
         ],
-        "skipped": false,
-        "success": 5,
-        "of": 5,
-        "pass_at_1": 1.0,
-        "pass_pow_5": 1.0,
-        "overclaims": 0,
+        "skipped": true,
+        "success": 0,
+        "of": 0,
+        "pass_at_1": 0.0,
+        "pass_pow_5": 0.0,
+        "overclaims": null,
         "usage": {
-          "input_tokens": 61090,
-          "output_tokens": 7465,
-          "calls": 28,
-          "total_tokens": 68555
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "calls": 0,
+          "total_tokens": 0
         },
-        "avg_steps": 4.6,
-        "avg_wall_s": 12.6,
-        "avg_model_calls": 5.6,
+        "avg_steps": 0.0,
+        "avg_wall_s": 0.0,
+        "avg_model_calls": null,
         "causes": []
       },
       "learned_from_agent": {
         "condition": "learned_from_agent",
-        "success": true,
-        "error": "",
-        "steps": 4,
-        "wall_s": 0.08,
-        "checks": [
-          {
-            "name": "text_visible",
-            "passed": true,
-            "detail": "body contains 'claim filed': True"
-          },
-          {
-            "name": "element_state",
-            "passed": true,
-            "detail": "'#submit' 'disabled': observed=True"
-          }
-        ],
-        "cause": "ok",
-        "note": "Procedure compiled from the live agent's own successful trace (AWM)"
+        "skipped": true,
+        "reason": "no successful goal-only trace to learn from (A skipped/failed)"
       }
     },
     "inventory_restock": {
@@ -538,95 +123,11 @@
               }
             ],
             "cause": "ok"
-          },
-          {
-            "condition": "learned",
-            "success": true,
-            "error": "",
-            "steps": 3,
-            "wall_s": 0.1,
-            "approvals": 0,
-            "checks": [
-              {
-                "name": "text_visible",
-                "passed": true,
-                "detail": "body contains 'stock 8': True"
-              },
-              {
-                "name": "text_visible",
-                "passed": true,
-                "detail": "body contains 'total value: $731.00': True"
-              }
-            ],
-            "cause": "ok"
-          },
-          {
-            "condition": "learned",
-            "success": true,
-            "error": "",
-            "steps": 3,
-            "wall_s": 0.09,
-            "approvals": 0,
-            "checks": [
-              {
-                "name": "text_visible",
-                "passed": true,
-                "detail": "body contains 'stock 8': True"
-              },
-              {
-                "name": "text_visible",
-                "passed": true,
-                "detail": "body contains 'total value: $731.00': True"
-              }
-            ],
-            "cause": "ok"
-          },
-          {
-            "condition": "learned",
-            "success": true,
-            "error": "",
-            "steps": 3,
-            "wall_s": 0.08,
-            "approvals": 0,
-            "checks": [
-              {
-                "name": "text_visible",
-                "passed": true,
-                "detail": "body contains 'stock 8': True"
-              },
-              {
-                "name": "text_visible",
-                "passed": true,
-                "detail": "body contains 'total value: $731.00': True"
-              }
-            ],
-            "cause": "ok"
-          },
-          {
-            "condition": "learned",
-            "success": true,
-            "error": "",
-            "steps": 3,
-            "wall_s": 0.09,
-            "approvals": 0,
-            "checks": [
-              {
-                "name": "text_visible",
-                "passed": true,
-                "detail": "body contains 'stock 8': True"
-              },
-              {
-                "name": "text_visible",
-                "passed": true,
-                "detail": "body contains 'total value: $731.00': True"
-              }
-            ],
-            "cause": "ok"
           }
         ],
         "skipped": false,
-        "success": 5,
-        "of": 5,
+        "success": 1,
+        "of": 1,
         "pass_at_1": 1.0,
         "pass_pow_5": 1.0,
         "overclaims": null,
@@ -645,55 +146,15 @@
         "runs": [
           {
             "condition": "human_demo",
-            "success": true,
-            "steps": 4,
-            "wall_s": 28.0,
-            "error": "",
-            "approvals": 0,
-            "note": "recorded human baseline this learned Procedure was compiled from"
-          },
-          {
-            "condition": "human_demo",
-            "success": true,
-            "steps": 4,
-            "wall_s": 28.0,
-            "error": "",
-            "approvals": 0,
-            "note": "recorded human baseline this learned Procedure was compiled from"
-          },
-          {
-            "condition": "human_demo",
-            "success": true,
-            "steps": 4,
-            "wall_s": 28.0,
-            "error": "",
-            "approvals": 0,
-            "note": "recorded human baseline this learned Procedure was compiled from"
-          },
-          {
-            "condition": "human_demo",
-            "success": true,
-            "steps": 4,
-            "wall_s": 28.0,
-            "error": "",
-            "approvals": 0,
-            "note": "recorded human baseline this learned Procedure was compiled from"
-          },
-          {
-            "condition": "human_demo",
-            "success": true,
-            "steps": 4,
-            "wall_s": 28.0,
-            "error": "",
-            "approvals": 0,
-            "note": "recorded human baseline this learned Procedure was compiled from"
+            "skipped": true,
+            "reason": "no recorded human baseline - run: python -m scripts.record_human_run --task inventory_restock"
           }
         ],
-        "skipped": false,
-        "success": 5,
-        "of": 5,
-        "pass_at_1": 1.0,
-        "pass_pow_5": 1.0,
+        "skipped": true,
+        "success": 0,
+        "of": 0,
+        "pass_at_1": 0.0,
+        "pass_pow_5": 0.0,
         "overclaims": null,
         "usage": {
           "input_tokens": 0,
@@ -701,8 +162,8 @@
           "calls": 0,
           "total_tokens": 0
         },
-        "avg_steps": 4.0,
-        "avg_wall_s": 28.0,
+        "avg_steps": 0.0,
+        "avg_wall_s": 0.0,
         "avg_model_calls": null,
         "causes": []
       },
@@ -710,285 +171,31 @@
         "runs": [
           {
             "condition": "goal_only_agent",
-            "success": true,
-            "state": "DONE",
-            "error": "",
-            "steps": 4,
-            "wall_s": 19.01,
-            "model_calls": 5,
-            "usage": {
-              "input_tokens": 11499,
-              "output_tokens": 3036,
-              "calls": 5
-            },
-            "model_said_done": true,
-            "check_passed": true,
-            "overclaim": false,
-            "trace": [
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[placeholder=\"e.g. WS-1042\"]",
-                  "text": "WS-1042"
-                },
-                "ok": true,
-                "detail": "typed into input[placeholder=\"e.g. WS-1042\"]"
-              },
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input:not([placeholder=\"e.g. WS-1042\"])",
-                  "text": "5"
-                },
-                "ok": true,
-                "detail": "typed into input:not([placeholder=\"e.g. WS-1042\"])"
-              },
-              {
-                "tool": "click",
-                "args": {
-                  "name": "Restock"
-                },
-                "ok": true,
-                "detail": "clicked 'Restock'"
-              }
-            ],
-            "success_check": true,
-            "cause": "done"
-          },
-          {
-            "condition": "goal_only_agent",
-            "success": true,
-            "state": "DONE",
-            "error": "",
-            "steps": 5,
-            "wall_s": 23.01,
-            "model_calls": 6,
-            "usage": {
-              "input_tokens": 13981,
-              "output_tokens": 3624,
-              "calls": 6
-            },
-            "model_said_done": true,
-            "check_passed": true,
-            "overclaim": false,
-            "trace": [
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[placeholder=\"e.g. WS-1042\"]",
-                  "text": "WS-1042"
-                },
-                "ok": true,
-                "detail": "typed into input[placeholder=\"e.g. WS-1042\"]"
-              },
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input:not([placeholder=\"e.g. WS-1042\"])",
-                  "text": "5"
-                },
-                "ok": true,
-                "detail": "typed into input:not([placeholder=\"e.g. WS-1042\"])"
-              },
-              {
-                "tool": "click",
-                "args": {
-                  "name": "Restock"
-                },
-                "ok": true,
-                "detail": "clicked 'Restock'"
-              }
-            ],
-            "success_check": true,
-            "cause": "done"
-          },
-          {
-            "condition": "goal_only_agent",
-            "success": true,
-            "state": "DONE",
-            "error": "",
-            "steps": 4,
-            "wall_s": 24.01,
-            "model_calls": 5,
-            "usage": {
-              "input_tokens": 11458,
-              "output_tokens": 3157,
-              "calls": 5
-            },
-            "model_said_done": true,
-            "check_passed": true,
-            "overclaim": false,
-            "trace": [
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input >> nth=0",
-                  "text": "WS-1042"
-                },
-                "ok": true,
-                "detail": "typed into input >> nth=0"
-              },
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input >> nth=1",
-                  "text": "5"
-                },
-                "ok": true,
-                "detail": "typed into input >> nth=1"
-              },
-              {
-                "tool": "click",
-                "args": {
-                  "name": "Restock"
-                },
-                "ok": true,
-                "detail": "clicked 'Restock'"
-              }
-            ],
-            "success_check": true,
-            "cause": "done"
-          },
-          {
-            "condition": "goal_only_agent",
-            "success": true,
-            "state": "DONE",
-            "error": "",
-            "steps": 5,
-            "wall_s": 31.02,
-            "model_calls": 6,
-            "usage": {
-              "input_tokens": 13960,
-              "output_tokens": 4104,
-              "calls": 6
-            },
-            "model_said_done": true,
-            "check_passed": true,
-            "overclaim": false,
-            "trace": [
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[placeholder=\"e.g. WS-1042\"]",
-                  "text": "WS-1042"
-                },
-                "ok": true,
-                "detail": "typed into input[placeholder=\"e.g. WS-1042\"]"
-              },
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[type=\"number\"]",
-                  "text": "5"
-                },
-                "ok": true,
-                "detail": "typed into input[type=\"number\"]"
-              },
-              {
-                "tool": "click",
-                "args": {
-                  "name": "Restock"
-                },
-                "ok": true,
-                "detail": "clicked 'Restock'"
-              }
-            ],
-            "success_check": true,
-            "cause": "done"
-          },
-          {
-            "condition": "goal_only_agent",
-            "success": true,
-            "state": "DONE",
-            "error": "",
-            "steps": 5,
-            "wall_s": 35.01,
-            "model_calls": 6,
-            "usage": {
-              "input_tokens": 13811,
-              "output_tokens": 4954,
-              "calls": 6
-            },
-            "model_said_done": true,
-            "check_passed": true,
-            "overclaim": false,
-            "trace": [
-              {
-                "tool": "click",
-                "args": {
-                  "name": "sku"
-                },
-                "ok": true,
-                "detail": "clicked 'sku'"
-              },
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input[placeholder=\"e.g. WS-1042\"]",
-                  "text": "WS-1042"
-                },
-                "ok": true,
-                "detail": "typed into input[placeholder=\"e.g. WS-1042\"]"
-              },
-              {
-                "tool": "type",
-                "args": {
-                  "selector": "input:not([placeholder=\"e.g. WS-1042\"])",
-                  "text": "5"
-                },
-                "ok": true,
-                "detail": "typed into input:not([placeholder=\"e.g. WS-1042\"])"
-              },
-              {
-                "tool": "click",
-                "args": {
-                  "name": "Restock"
-                },
-                "ok": true,
-                "detail": "clicked 'Restock'"
-              }
-            ],
-            "success_check": true,
-            "cause": "done"
+            "skipped": true,
+            "reason": "live API not requested/reachable"
           }
         ],
-        "skipped": false,
-        "success": 5,
-        "of": 5,
-        "pass_at_1": 1.0,
-        "pass_pow_5": 1.0,
-        "overclaims": 0,
+        "skipped": true,
+        "success": 0,
+        "of": 0,
+        "pass_at_1": 0.0,
+        "pass_pow_5": 0.0,
+        "overclaims": null,
         "usage": {
-          "input_tokens": 64709,
-          "output_tokens": 18875,
-          "calls": 28,
-          "total_tokens": 83584
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "calls": 0,
+          "total_tokens": 0
         },
-        "avg_steps": 4.6,
-        "avg_wall_s": 26.4,
-        "avg_model_calls": 5.6,
+        "avg_steps": 0.0,
+        "avg_wall_s": 0.0,
+        "avg_model_calls": null,
         "causes": []
       },
       "learned_from_agent": {
         "condition": "learned_from_agent",
-        "success": true,
-        "error": "",
-        "steps": 3,
-        "wall_s": 0.07,
-        "checks": [
-          {
-            "name": "text_visible",
-            "passed": true,
-            "detail": "body contains 'stock 8': True"
-          },
-          {
-            "name": "text_visible",
-            "passed": true,
-            "detail": "body contains 'total value: $731.00': True"
-          }
-        ],
-        "cause": "ok",
-        "note": "Procedure compiled from the live agent's own successful trace (AWM)"
+        "skipped": true,
+        "reason": "no successful goal-only trace to learn from (A skipped/failed)"
       }
     }
   },

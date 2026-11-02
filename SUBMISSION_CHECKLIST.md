@@ -11,7 +11,7 @@ Status 2026-10-31 (end of day): live API access is confirmed and working (B1-B3 
 | A1 | Deterministic rules engine (models perceive, code decides) | `pytest` - `tests/test_rules.py` |
 | A2 | SAM wire parser, including real live wire fixtures | `tests/test_wire.py` + `tests/test_wire_real_fixture.py` |
 | A3 | End-to-end pipeline + evidence + overlay | `tests/test_pipeline.py` |
-| A4 | All 22 tests green | `python -m pytest -q` -> `22 passed` |
+| A4 | Full test suite green (103 unit, integration, safety & E2E tests) | `python -m pytest -q` -> `103 passed` |
 | A5 | Synthetic dataset on disk (7 clips + 7 sidecars + 2 procedures + manifest + mock config) | `data/clips/`, `data/procedures/`, `data/manifest/`, `data/stepproof_mock.json`; regenerate: `python -m scripts.make_dataset` |
 | A6 | Offline eval, both modes, no API key needed | `STEPPROOF_PROVIDER=mock STEPPROOF_DATA=data python -m eval.run_eval --manifest data/manifest/manifest.json --mode pipeline` (and `--mode baseline`) |
 | A7 | Web UI boots and compiles offline | `STEPPROOF_PROVIDER=mock uvicorn stepproof.api:app` -> http://localhost:8000 |
@@ -74,8 +74,8 @@ Status 2026-10-31 (end of day): live API access is confirmed and working (B1-B3 
 ## W. Launch video (/brag)
 | # | Item | Status |
 |---|---|---|
-| W1 | `/brag` plan + storyboard + share copy | DONE - `brag-output/brag-plan.md`, `brag-output/share-copy.txt` |
-| W2 | Rendered `.mp4` | DONE - `brag-output/brag.mp4` (20 s, 1920x1080@30, music + 2 SFX, idle thumbnail = PASS poster baked as frame 0) from `brag-output/composition/` (`npx hyperframes check` passed, 0 errors); poster `brag-output/brag.jpg` |
+| W1 | `/brag` plan + storyboard + share copy | DONE - `docs/media/brag-plan.md`, `docs/media/share-copy.txt` |
+| W2 | Rendered `.mp4` | DONE - `docs/media/brag.mp4` (20 s, 1920x1080@30, music + 2 SFX, idle thumbnail = PASS poster baked as frame 0) from `docs/media/composition/` (`npx hyperframes check` passed, 0 errors); poster `docs/media/brag.jpg` |
 
 ## X. v2 honesty guardrails
 | # | Rule |

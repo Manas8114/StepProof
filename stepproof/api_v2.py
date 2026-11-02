@@ -352,6 +352,78 @@ def agent_state():
             "metrics": _agent.log.metrics()}
 
 
+@app.get("/api/v2/agent/thoughts")
+def agent_thoughts():
+    """Retrieve the full structured chain-of-thought and deliberation log."""
+    return {
+        "goal": _agent.goal,
+        "state": _agent.machine.state.value,
+        "count": len(_agent.log.thinking_log),
+        "thoughts": _agent.log.thinking_log,
+    }
+
+
+@app.get("/api/v2/agent/thoughts/export")
+def agent_thoughts_export(format: str = "json"):
+    """Export the thought log as formatted Markdown or JSON."""
+    from fastapi.responses import PlainTextResponse
+    if format.lower() == "md":
+        lines = [f"# StepProof Reasoning Trace: {_agent.goal or 'No Goal Set'}\n",
+                 f"**State:** {_agent.machine.state.value} | **Recorded Steps:** {len(_agent.log.steps)} | **Thoughts Logged:** {len(_agent.log.thinking_log)}\n",
+                 "| # | Phase | Title | Rationale / Thought | Details |",
+                 "|---|---|---|---|---|"]
+        for t in _agent.log.thinking_log:
+            dtls = json.dumps(t.get("details", {})).replace("|", "\\|")
+            th = t.get("thought", "").replace("\n", " ").replace("|", "\\|")
+            lines.append(f"| {t.get('step', 0)} | `{t.get('phase', '')}` | {t.get('title', '')} | {th} | `{dtls}` |")
+        return PlainTextResponse("\n".join(lines), media_type="text/markdown")
+    return {"goal": _agent.goal, "state": _agent.machine.state.value, "thoughts": _agent.log.thinking_log}
+
+
+@app.get("/api/v2/telemetry")
+def backend_telemetry():
+    """Unified telemetry metrics bridging live frontend to backend internals."""
+    import time
+    m = _agent.log.metrics()
+    c = cost()
+    return {
+        "timestamp": round(time.time(), 3),
+        "agent": {
+            "state": _agent.machine.state.value,
+            "goal": _agent.goal,
+            "running": _agent._running,
+            "model": _model.name,
+            "active_model": getattr(_model, "active_model", cfg.VISION_MODEL),
+            "fallback_used": bool(getattr(_model, "fell_back", False)),
+        },
+        "metrics": m,
+        "budgets": {
+            "max_steps": _agent.budgets.max_steps,
+            "max_wall_s": _agent.budgets.max_wall_s,
+            "max_model_calls": _agent.budgets.max_model_calls,
+            "steps_used": len(_agent.log.steps),
+            "wall_used": round(time.time() - _agent.log.start, 2) if _agent.log.start else 0.0,
+            "model_calls_used": _agent.log.model_calls,
+            "pct_steps": round((len(_agent.log.steps) / _agent.budgets.max_steps) * 100, 1),
+        },
+        "cost": c,
+        "browser": {
+            "url": _browser.url,
+            "title": _browser.title,
+            "loading": _browser.loading,
+        },
+        "bus": {
+            "history_count": len(BUS.history()),
+            "subscribers": len(BUS._subs),
+        },
+        "safety": {
+            "allowlist": sorted(ALLOW),
+            "approvals_logged": m.get("approvals", 0),
+            "takeovers_logged": m.get("takeovers", 0),
+        }
+    }
+
+
 # ------------------------------------------------------------------ monitor + execute
 
 @app.post("/api/v2/monitor/start")

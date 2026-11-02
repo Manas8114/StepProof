@@ -16,12 +16,13 @@ Read in this order:
 | `eval/results_v2.json` | completion + safety + condition matrix (offline B/C, live A when available) |
 | `eval/live_agent_v2.json` | one live goal-only agent run (DONE, 4 actions, 13.0 s, gate on Submit) |
 | `eval/live_agent_trace.json` | a dated full event trace of a live agent run |
-| `eval/vision_heal_results.json` | the CUT vision-self-heal experiment (5/12, 41.7% < 70%) |
+| `eval/vision_heal_results.json` | the visual self-heal experiment (15/16, 93.8% >= 70%) |
 | `data/tour_runs/<date>.json` | dated, replayable guided-tour recordings |
-| `brag-output/brag-plan.md` | the `/brag` launch-video plan + storyboard |
-| `brag-output/share-copy.txt` | the launch-video share copy |
-| `brag-output/brag.mp4` + `brag.jpg` | **the rendered launch video** (20 s) with its baked frame-0 poster |
-| `brag-output/composition/` | the Hyperframes composition (re-render with `npx hyperframes check && npx hyperframes render`) |
+| `docs/VERIFIED.md` | verification record against Meta documentation (SAM, Responses API, MCP) |
+| `docs/media/brag-plan.md` | the `/brag` launch-video plan + storyboard |
+| `docs/media/share-copy.txt` | the launch-video share copy |
+| `docs/media/brag.mp4` + `brag.jpg` | **the rendered launch video** (20 s) with its baked frame-0 poster |
+| `docs/media/composition/` | the Hyperframes composition (re-render with `npx hyperframes check && npx hyperframes render`) |
 
 ## One-line project summary
 StepProof v2 is a browser "procedure companion": **learn** a task by watching, **do** it with the

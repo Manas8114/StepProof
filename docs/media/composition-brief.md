@@ -4,8 +4,8 @@
 A short launch-style brag video for StepProof v2 — the browser "procedure companion".
 
 ## Output
-- Composition directory: `brag-output/composition/`
-- Rendered video: `brag-output/brag.mp4`
+- Composition directory: `docs/media/composition/`
+- Rendered video: `docs/media/brag.mp4`
 - Format: landscape 1920x1080, 20s, 30fps
 
 ## Source Material

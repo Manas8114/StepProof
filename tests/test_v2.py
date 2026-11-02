@@ -14,13 +14,23 @@ def site_server():
     """Serve demo_sites/ at localhost:8011 (the allowlist host)."""
     import os
     os.chdir(DEMO)  # SimpleHTTPRequestHandler serves from CWD
-    httpd = socketserver.TCPServer(("127.0.0.1", 8011),
-                                   lambda *a, **k: http.server.SimpleHTTPRequestHandler(*a, directory=str(DEMO), **k))
+    socketserver.TCPServer.allow_reuse_address = True
+    httpd = None
+    for attempt in range(20):
+        try:
+            httpd = socketserver.TCPServer(("127.0.0.1", 8011),
+                                           lambda *a, **k: http.server.SimpleHTTPRequestHandler(*a, directory=str(DEMO), **k))
+            break
+        except OSError:
+            time.sleep(0.3)
+    if httpd is None:
+        raise RuntimeError("could not bind demo server to :8011 after 20 attempts")
     t = threading.Thread(target=httpd.serve_forever, daemon=True)
     t.start()
     time.sleep(0.3)
     yield "http://127.0.0.1:8011"
     httpd.shutdown()
+    httpd.server_close()
 
 
 def _browser(site, **kw):
@@ -498,3 +508,41 @@ def test_cond_human_reads_genuine_recording(tmp_path, monkeypatch):
     assert r.get("skipped") is not True
     assert r["wall_s"] == 47.3 and r["steps"] == 6
     assert "recorded" in r["note"].lower() and r.get("recorded_ts")
+
+
+def test_executor_fills_parameterised_slots(site_server):
+    from stepproof.proc import Procedure, Step, Locator
+    from stepproof.agent.executor import execute_procedure
+    proc = Procedure(goal="File {vendor} {amount} claim", site=site_server + "/expense/",
+                     parameters={"vendor": "Globex", "amount": "7", "cat": "office"},
+                     steps=[
+                         Step("s1", "vendor", "type", {"text": "{vendor}"}, [Locator("css", "#vendor")]),
+                         Step("s2", "amount", "type", {"text": "{amount}"}, [Locator("css", "#amount")]),
+                         Step("s3", "category", "select", {"value": "{cat}"}, [Locator("css", "#category")]),
+                         Step("s4", "submit", "click", {"name": "Submit claim"}, [Locator("css", "#submit")]),
+                     ],
+                     success_checks=[{"kind": "text_visible", "spec": {"text": "Claim filed"}}])
+    tb = _browser(site_server)
+    res = execute_procedure(tb, proc, approve_fn=lambda a, x: True)
+    obs = tb.observe()
+    assert res.success, res.error
+    assert "Globex" in obs.get("body_text", "") and "EXP-" in obs.get("body_text", "")
+    tb.stop()
+
+
+def test_learned_never_follows_injection(site_server):
+    from stepproof.proc import Procedure, Step, Locator
+    from stepproof.agent.executor import execute_procedure
+    from stepproof.browser import TinyBrowser
+    proc = Procedure(goal="Finish task on a hostile page", site=site_server + "/hostile/",
+                     steps=[Step("s1", "click legit marker", "click", {"name": "Finish task"},
+                                 [Locator("css", "#legit"), Locator("text", "Finish task")])],
+                     success_checks=[{"kind": "text_visible", "spec": {"text": "done-42"}}])
+    tb = TinyBrowser(allowlist={"127.0.0.1:8011"})
+    tb.start_site(site_server + "/hostile/")
+    res = execute_procedure(tb, proc, approve_fn=lambda a, x: True)
+    obs = tb.observe()
+    assert res.success, res.error
+    assert "done-42" in obs.get("body_text", "")
+    assert "evil.example" not in tb.url
+    tb.stop()

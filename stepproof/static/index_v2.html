@@ -1,107 +1,726 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>StepProof v2 — Learn · Execute · Verify</title>
 <style>
-:root{--paper:#0f1416;--panel:#182124;--line:#2b383c;--ink:#e7ecec;--mut:#8fa3a0;
-      --ok:#3fb97f;--warn:#e0a13c;--err:#e0616b;--acc:#4aa3ff;--focus:#4aa3ff}
-*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);
-  font:14px/1.5 ui-sans-serif,system-ui,"Segoe UI",sans-serif}
-header{padding:14px 20px 8px;border-bottom:1px solid var(--line)}
-h1{margin:0;font-size:19px}header p{margin:3px 0 0;color:var(--mut);font-size:13px}
-#hmodel{color:var(--mut);font-size:12px}
-main{display:grid;grid-template-columns:300px 1fr 320px;gap:12px;padding:12px 16px}
-@media(max-width:980px){main{grid-template-columns:1fr}}
-.col{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
-h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 8px}
-.tabs{display:flex;gap:6px;margin-bottom:10px}
-.tabs button{flex:1;padding:7px;border:1px solid var(--line);background:transparent;color:var(--mut);
-  border-radius:7px;cursor:pointer;font:inherit}
-.tabs button.on{background:var(--acc);color:#04121e;border-color:var(--acc);font-weight:700}
-button{cursor:pointer}textarea,input,select{width:100%;background:#0c1113;border:1px solid var(--line);
-  color:var(--ink);border-radius:6px;padding:8px;font:inherit}
-label{display:block;color:var(--mut);font-size:12px;margin:8px 0 3px}
-#stage{position:relative;background:#000;border-radius:8px;overflow:hidden;aspect-ratio:1024/640}
-#stage img{width:100%;height:100%;object-fit:contain;display:block}
-#stage .chip{position:absolute;top:8px;left:8px;background:#0009;padding:3px 8px;border-radius:6px;font-size:11px;pointer-events:none}
-#state{position:absolute;top:8px;right:8px;padding:3px 9px;border-radius:6px;font-weight:700;font-size:12px;pointer-events:none}
-.state-RUNNING{background:var(--ok)} .state-PLANNING{background:var(--acc)}
-.state-PAUSED_HUMAN{background:var(--warn)} .state-AWAITING_APPROVAL{background:var(--warn)}
-.state-DONE{background:var(--ok)} .state-ERROR{background:var(--err)}
-.state-IDLE{background:#555}
-.mono{font:12px/1.5 ui-monospace,monospace}
-.evt{border-left:2px solid var(--line);padding:3px 8px;margin:3px 0;font-size:12px}
-.evt b{color:var(--acc)}
-#events{max-height:360px;overflow:auto}
-.urlbar{display:flex;gap:5px;margin:8px 0}
-.urlbar input{flex:1;min-width:0}
-.urlbar button{background:#223034;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:6px 10px}
-#errbanner{background:#2a1616;border:1px solid var(--err);border-radius:8px;padding:8px;margin:8px 0;font:12px/1.4 ui-monospace,monospace;white-space:pre-wrap}
-#loading{position:absolute;bottom:8px;left:8px;background:#000c;padding:3px 8px;border-radius:6px;font-size:11px;pointer-events:none}
-.btnrow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
-.btnrow button{background:#223034;border:1px solid var(--line);color:var(--ink);padding:6px 10px;border-radius:6px}
-.btnrow button.primary{background:var(--acc);color:#04121e;font-weight:700;border-color:var(--acc)}
-.btnrow button.danger{background:var(--err);color:#04121e;border-color:var(--err);font-weight:700}
-.gate{background:#2a2216;border:1px solid var(--warn);border-radius:8px;padding:9px;margin:8px 0}
-.gate .q{font-weight:700;margin-bottom:6px}
-.meter{height:8px;background:#0c1113;border-radius:4px;overflow:hidden;margin:3px 0}
-.meter div{height:100%;background:var(--acc)}
-.sugg{border:1px solid var(--line);border-radius:8px;padding:9px;margin:7px 0}
-.sugg .w{font-weight:700}
-.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;background:#0c1113;border:1px solid var(--line)}
-.row{display:flex;justify-content:space-between;margin:4px 0}
-.hide{display:none}
-.note{color:var(--mut);font-size:12px}
-input[type=range]{accent-color:var(--acc)}
+:root {
+  --paper: #0b0f12;
+  --panel: #13191d;
+  --panel-elevated: #1a2328;
+  --panel-subtle: #0f1519;
+  --line: #223036;
+  --line-strong: #2e4149;
+  --ink: #eef3f3;
+  --mut: #8b9ea0;
+  --mut-dark: #586a6d;
+  --ok: #2ecc71;
+  --ok-bg: #112d20;
+  --ok-border: #1e633d;
+  --warn: #f39c12;
+  --warn-bg: #2d200e;
+  --warn-border: #704b11;
+  --err: #e74c3c;
+  --err-bg: #2d1314;
+  --err-border: #6d1e23;
+  --acc: #38bdf8;
+  --acc-glow: rgba(56, 189, 248, 0.15);
+  --purple: #a855f7;
+  --purple-bg: #271438;
+  --cyan: #06b6d4;
+  --focus: #38bdf8;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 13.5px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+
+header {
+  padding: 12px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-badge {
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  color: #04121e;
+  font-weight: 800;
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+header p {
+  margin: 2px 0 0;
+  color: var(--mut);
+  font-size: 12.5px;
+}
+
+.header-status-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel-subtle);
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  color: var(--mut);
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 6px var(--ok);
+  display: inline-block;
+}
+.status-dot.pulsing {
+  animation: pulse-dot 1.8s infinite;
+}
+@keyframes pulse-dot {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+main {
+  display: grid;
+  grid-template-columns: 320px 1fr 340px;
+  gap: 14px;
+  padding: 14px 18px 24px;
+  align-items: start;
+}
+@media (max-width: 1180px) {
+  main { grid-template-columns: 320px 1fr; }
+  .col-events { grid-column: 1 / -1; }
+}
+@media (max-width: 860px) {
+  main { grid-template-columns: 1fr; }
+}
+
+.col {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+h2 {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mut);
+  margin: 0 0 8px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 5px;
+  background: var(--paper);
+  padding: 4px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.tabs button {
+  flex: 1 1 auto;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--mut);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.tabs button:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.04);
+}
+.tabs button.on {
+  background: var(--acc);
+  color: #04121e;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+}
+
+/* Forms & Inputs */
+button {
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font: inherit;
+}
+textarea, input, select {
+  width: 100%;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 7px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+textarea:focus, input:focus, select:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 2px var(--acc-glow);
+}
+label {
+  display: block;
+  color: var(--mut);
+  font-size: 11.5px;
+  font-weight: 600;
+  margin: 8px 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Stage & Browser View */
+#stage {
+  position: relative;
+  background: #050708;
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: 1024/640;
+  border: 1px solid var(--line);
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+}
+#stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  cursor: crosshair;
+}
+#stage .chip {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(11, 15, 18, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 4px 10px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  pointer-events: none;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#state {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 11px;
+  border-radius: 7px;
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+}
+.state-RUNNING { background: var(--ok); color: #041a0e; }
+.state-PLANNING { background: var(--acc); color: #04121e; }
+.state-PAUSED_HUMAN { background: var(--warn); color: #241402; }
+.state-AWAITING_APPROVAL { background: var(--warn); color: #241402; animation: pulse-warn 1.5s infinite; }
+.state-DONE { background: var(--ok); color: #041a0e; }
+.state-ERROR { background: var(--err); color: #fff; }
+.state-IDLE { background: #334147; color: var(--mut); }
+
+@keyframes pulse-warn {
+  0% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.9; }
+}
+
+@keyframes ripple-anim {
+  0% { transform: scale(0.4); opacity: 1; }
+  100% { transform: scale(2.0); opacity: 0; }
+}
+
+#hud-crosshair {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(11, 15, 18, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: var(--acc);
+  border: 1px solid var(--line);
+  pointer-events: none;
+}
+
+#hud-thought-banner {
+  margin-top: 8px;
+  background: var(--panel-subtle);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--purple);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#hud-thought-banner .icon { font-size: 14px; }
+#hud-thought-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Navigation Bar */
+.urlbar {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0 6px;
+}
+.urlbar input {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  background: var(--paper);
+}
+.urlbar button {
+  background: var(--panel-elevated);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-weight: 600;
+}
+.urlbar button:hover {
+  background: var(--line-strong);
+  border-color: var(--mut);
+}
+
+/* Action Buttons & Rows */
+.btnrow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 6px 0;
+}
+.btnrow button {
+  background: var(--panel-elevated);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 7px 12px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.btnrow button:hover {
+  background: var(--line-strong);
+}
+.btnrow button.primary {
+  background: var(--acc);
+  color: #04121e;
+  border-color: var(--acc);
+}
+.btnrow button.primary:hover {
+  filter: brightness(1.1);
+}
+.btnrow button.danger {
+  background: var(--err-bg);
+  color: #ff8b8b;
+  border-color: var(--err-border);
+}
+.btnrow button.danger:hover {
+  background: var(--err);
+  color: #fff;
+}
+.btnrow button.ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--mut);
+}
+
+/* Gate & Dialogs */
+.gate {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: 9px;
+  padding: 12px;
+  margin: 10px 0;
+  box-shadow: 0 4px 16px rgba(243, 156, 18, 0.15);
+}
+.gate .q {
+  font-weight: 700;
+  color: #fbd38d;
+  margin-bottom: 6px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#errbanner {
+  background: var(--err-bg);
+  border: 1px solid var(--err-border);
+  color: #ff9d9d;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 8px 0;
+  font: 12px/1.45 ui-monospace, monospace;
+  white-space: pre-wrap;
+}
+
+/* Event Feed */
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+#events {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-right: 4px;
+}
+.evt {
+  border-left: 2px solid var(--line);
+  padding: 5px 9px;
+  border-radius: 0 6px 6px 0;
+  background: rgba(255, 255, 255, 0.015);
+  font-size: 11.5px;
+  transition: all 0.15s ease;
+  word-break: break-word;
+}
+.evt:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.evt b { color: var(--acc); font-weight: 700; }
+.evt-thought { border-left-color: var(--purple); }
+.evt-thought b { color: var(--purple); }
+.evt-action { border-left-color: var(--ok); }
+.evt-action b { color: var(--ok); }
+.evt-gate { border-left-color: var(--warn); }
+.evt-gate b { color: var(--warn); }
+.evt-heal { border-left-color: var(--cyan); }
+.evt-heal b { color: var(--cyan); }
+
+/* Thinking Log Cards */
+#thought-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.thought-card {
+  background: var(--panel-subtle);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: all 0.15s ease;
+}
+.thought-card:hover {
+  border-color: var(--line-strong);
+  background: var(--panel-elevated);
+}
+.thought-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.thought-phase-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--purple-bg);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+.thought-phase-tag.phase-PERCEPTION { background: rgba(6, 182, 212, 0.15); color: #67e8f9; border-color: rgba(6, 182, 212, 0.3); }
+.thought-phase-tag.phase-DELIBERATION { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border-color: rgba(56, 189, 248, 0.3); }
+.thought-phase-tag.phase-SAFETY_GATE { background: rgba(243, 156, 18, 0.15); color: #fde047; border-color: rgba(243, 156, 18, 0.3); }
+.thought-phase-tag.phase-ACTUATION { background: rgba(46, 204, 113, 0.15); color: #86efac; border-color: rgba(46, 204, 113, 0.3); }
+.thought-phase-tag.phase-COMPLETION { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.3); }
+
+.thought-title {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+.thought-body {
+  color: var(--mut);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.thought-details-toggle {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--acc);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Stat & Telemetry Grid */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 8px 0;
+}
+.stat-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.stat-card .val {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: ui-monospace, monospace;
+}
+.stat-card .lbl {
+  font-size: 11px;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Progress Gauges */
+.gauge-box {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 6px 0;
+}
+.gauge-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  margin-bottom: 4px;
+}
+.meter {
+  height: 6px;
+  background: #06090a;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.meter div {
+  height: 100%;
+  background: var(--acc);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Coach Suggestions */
+.sugg {
+  border: 1px solid var(--line);
+  background: var(--panel-subtle);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 6px 0;
+}
+.sugg .w { font-weight: 700; color: var(--ink); font-size: 12.5px; }
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--mut);
+}
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+.hide { display: none !important; }
+.note { color: var(--mut); font-size: 12px; line-height: 1.4; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--mut-dark); }
 </style>
 </head>
 <body>
+
 <header>
-  <h1>StepProof <span style="color:var(--acc)">v2</span> · Learn · Execute · Verify</h1>
-  <p>Watches you do a task, does it better with you in charge, and proves the outcome. <span id="hmodel"></span></p>
+  <div class="brand-wrap">
+    <span class="brand-badge">Engine v2</span>
+    <h1>StepProof <span style="color:var(--acc);font-weight:400">·</span> Learn · Execute · Verify</h1>
+  </div>
+  <div class="header-status-group">
+    <div class="status-pill" id="backend-status-pill">
+      <span class="status-dot pulsing" id="backend-dot"></span>
+      <span id="backend-text">SSE Live</span>
+    </div>
+    <div class="status-pill mono" id="model-pill">
+      <span id="hmodel">agent: muse-spark-1.3</span>
+    </div>
+    <button class="btnrow danger" id="hdr-kill" style="margin:0;padding:4px 10px;font-size:11px;" onclick="$('#xkill').click()">⚡ Kill Switch</button>
+  </div>
 </header>
+
 <main>
-  <!-- LEFT: control + modes -->
+  <!-- LEFT: Control panels & Mode tabs -->
   <div class="col">
+    <h2>Modes & Control</h2>
     <div class="tabs" id="tabs">
       <button data-m="monitor" class="on">Monitor</button>
       <button data-m="execute">Execute</button>
+      <button data-m="thoughts">🧠 Thoughts</button>
+      <button data-m="telemetry">📈 Telemetry</button>
       <button data-m="coach">Coach</button>
       <button data-m="tour">Tour</button>
       <button data-m="tracking">Tracking</button>
     </div>
 
+    <!-- Monitor Tab -->
     <div id="m-monitor">
-      <h2>Monitor (learn)</h2>
-      <label>Site</label><select id="msite">
+      <h2>Monitor (learn from human)</h2>
+      <label>Site</label>
+      <select id="msite">
         <option value="/site/expense">Expense claim</option>
         <option value="/site/inventory">Inventory ledger</option>
       </select>
-      <button class="btnrow" id="mrec" style="width:100%">● Start recording</button>
-      <p class="note">Click the browser below to record actions. Narrate each step (optional):</p>
-      <label>Narration</label><input id="mnar" placeholder="why are you doing this step?">
-      <label>Goal (compile into a Procedure)</label><input id="mgoal" placeholder="e.g. File an Acme office expense of $42">
-      <div class="btnrow"><button class="primary" id="mcompile">Compile → Procedure</button><button id="msave">Save</button><button id="mrun">Run learned</button></div>
+      <button class="btnrow primary" id="mrec" style="width:100%;margin-top:6px;">● Start recording</button>
+      <p class="note" style="margin-top:6px">Click the live browser view below to record actions. Optional narration:</p>
+      <label>Narration</label>
+      <input id="mnar" placeholder="e.g., Click the Category dropdown">
+      <label>Goal (compile into Procedure)</label>
+      <input id="mgoal" placeholder="e.g. File an Acme office expense of $42">
+      <div class="btnrow" style="margin-top:8px">
+        <button class="primary" id="mcompile">Compile → Procedure</button>
+        <button id="msave">Save</button>
+        <button id="mrun">Run learned</button>
+      </div>
       <p class="note" id="msaved"></p>
     </div>
 
+    <!-- Execute Tab -->
     <div id="m-execute" class="hide">
-      <h2>Execute (do)</h2>
-      <label>Goal (typed or spoken)</label><input id="xgoal" placeholder="Restock WS-1042 by 5, then confirm">
-      <label>Site</label><select id="xsite">
+      <h2>Execute (autonomous agent)</h2>
+      <label>Goal (typed or spoken)</label>
+      <input id="xgoal" placeholder="Restock WS-1042 by 5, then confirm">
+      <label>Site</label>
+      <select id="xsite">
         <option value="/site/expense">Expense claim</option>
         <option value="/site/inventory">Inventory ledger</option>
         <option value="/site/hostile">Hostile page (injection test)</option>
       </select>
-      <div class="btnrow"><button class="primary" id="xstart">Start agent</button>
-        <button id="xpause">Pause / take over</button>
+      <div class="btnrow" style="margin-top:8px">
+        <button class="primary" id="xstart">Start agent</button>
+        <button id="xpause">Pause / takeover</button>
         <button id="xresume">Hand back</button>
-        <button class="danger" id="xkill">Kill switch</button></div>
+        <button class="danger" id="xkill">Kill switch</button>
+      </div>
       <label>Spoken goal (push-to-talk)</label>
       <div class="btnrow"><button id="xppt">🎙 Record goal</button></div>
     </div>
 
+    <!-- Thoughts Tab (Dedicated CoT & Deliberation Log) -->
+    <div id="m-thoughts" class="hide">
+      <h2>Agent Thinking Log <span class="tag" id="thought-count-badge">0 thoughts</span></h2>
+      <p class="note">Complete structured trace of the agent's perception, deliberation, safety gate checks, and recoveries.</p>
+      <div class="btnrow" style="margin:4px 0 8px;">
+        <button class="ghost" style="padding:4px 8px;font-size:11px;" id="filter-all-btn">All</button>
+        <button class="ghost" style="padding:4px 8px;font-size:11px;" id="filter-delib-btn">Deliberations</button>
+        <button class="ghost" style="padding:4px 8px;font-size:11px;" id="filter-gate-btn">Safety Gates</button>
+        <button class="ghost" style="padding:4px 8px;font-size:11px;" id="export-thoughts-btn">Export Markdown</button>
+      </div>
+      <div id="thought-list">
+        <div class="note" style="text-align:center;padding:20px 0;">No thoughts logged yet. Start an agent or run a tour to view real-time deliberation.</div>
+      </div>
+    </div>
+
+    <!-- Telemetry Tab (Backend Bridge & Metrics) -->
+    <div id="m-telemetry" class="hide">
+      <h2>Backend Telemetry Bridge</h2>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="lbl">Agent State</div><div class="val" id="telem-state">IDLE</div></div>
+        <div class="stat-card"><div class="lbl">API Calls</div><div class="val" id="telem-calls">0</div></div>
+        <div class="stat-card"><div class="lbl">Total Tokens</div><div class="val" id="telem-tokens">0</div></div>
+        <div class="stat-card"><div class="lbl">Bus Backlog</div><div class="val" id="telem-events">0</div></div>
+      </div>
+      <label>Budget Monitors</label>
+      <div class="gauge-box">
+        <div class="gauge-header"><span>Step Budget</span><span id="gauge-steps-txt">0 / 40</span></div>
+        <div class="meter"><div id="gauge-steps-bar" style="width:0%"></div></div>
+      </div>
+      <div class="gauge-box">
+        <div class="gauge-header"><span>Time Budget</span><span id="gauge-time-txt">0s / 300s</span></div>
+        <div class="meter"><div id="gauge-time-bar" style="width:0%"></div></div>
+      </div>
+      <div class="gauge-box">
+        <div class="gauge-header"><span>Model Calls</span><span id="gauge-calls-txt">0 / 60</span></div>
+        <div class="meter"><div id="gauge-calls-bar" style="width:0%"></div></div>
+      </div>
+      <div class="btnrow" style="margin-top:10px;">
+        <button class="ghost" id="telem-refresh-btn" style="width:100%">⟳ Refresh Backend Health</button>
+      </div>
+    </div>
+
+    <!-- Coach Tab -->
     <div id="m-coach" class="hide">
       <h2>Coach (suggest + compare)</h2>
       <label>Human baseline steps</label><input id="hsteps" type="number" value="6">
@@ -109,19 +728,22 @@ input[type=range]{accent-color:var(--acc)}
       <div class="btnrow"><button class="primary" id="cgo">Run detectors + compare</button></div>
       <div id="cbox"></div>
     </div>
+
+    <!-- Tour Tab -->
     <div id="m-tour" class="hide">
       <h2>Guided tour</h2>
-      <p class="note">One-click showcase: Learn → Execute+gate → Takeover → Prove, streamed live on the event feed. Click Allow/Deny and Hand back when the beats prompt you.</p>
+      <p class="note">One-click showcase: Learn → Execute+gate → Takeover → Prove, streamed live on the event feed.</p>
       <div class="btnrow"><button class="primary" id="tourrun">▶ Run guided tour</button></div>
-      <h2>Replay (offline, dated)</h2>
+      <h2 style="margin-top:12px">Replay (offline, dated)</h2>
       <label>Recorded runs</label><select id="tourlist"></select>
       <div class="btnrow"><button id="tourreplay">↺ Replay selected</button></div>
       <p class="note" id="tourlabel"></p>
     </div>
 
+    <!-- Tracking Tab -->
     <div id="m-tracking" class="hide">
       <h2>SAM 3.1 Video Tracking</h2>
-      <p class="note">Dynamic tracking proof: SAM 3.1 maintains stable object IDs across frames without any training data. Tracked boxes and confidence are served from cache (no new model calls).</p>
+      <p class="note">Zero-shot dynamic tracking: stable object IDs across frames without retraining.</p>
       <div style="position:relative;width:100%;aspect-ratio:640/360;background:#000;border-radius:8px;overflow:hidden;margin-bottom:8px;">
         <video id="trackvideo" src="/video/pan.mp4" loop playsinline muted style="width:100%;height:100%;object-fit:contain;display:block;"></video>
         <canvas id="trackcanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
@@ -139,18 +761,26 @@ input[type=range]{accent-color:var(--acc)}
         <div class="row"><span>SAM 3.1 Confidence</span><span class="mono" id="trackconf">0.97</span></div>
       </div>
     </div>
-
   </div>
 
-  <!-- CENTER: live browser -->
+  <!-- CENTER: Live Browser View & Stage -->
   <div class="col">
-    <h2>Live view <span class="note">(record here in Monitor mode)</span></h2>
+    <h2>Live Browser View <span class="note">(interactive)</span></h2>
     <div id="stage">
       <img id="shot" alt="browser view">
       <span class="chip" id="url">—</span>
       <span id="state" class="state-IDLE">IDLE</span>
-      <span id="loading" class="chip hide" style="top:auto;bottom:8px;left:8px">loading…</span>
+      <span id="loading" class="chip hide" style="top:auto;bottom:10px;left:10px">loading…</span>
+      <span id="hud-crosshair">X: — Y: —</span>
     </div>
+
+    <!-- HUD Active Thought -->
+    <div id="hud-thought-banner">
+      <span class="icon">🧠</span>
+      <span id="hud-thought-text" class="mono">Agent waiting for goal or instruction...</span>
+    </div>
+
+    <!-- URL Bar -->
     <div class="urlbar">
       <button id="navback" title="Back (history, allowlist-verified)">←</button>
       <input id="urlinput" value="" placeholder="URL (allowlist-gated)" aria-label="address">
@@ -158,339 +788,708 @@ input[type=range]{accent-color:var(--acc)}
       <button id="navgo" title="Navigate (allowlist-gated)">Go</button>
       <button id="navreload" title="Reload">⟳</button>
     </div>
-    <div class="btnrow"><button id="fresh">Refresh view</button><span class="note">In PAUSED_HUMAN, clicks/keys here forward to the page.</span></div>
+    <div class="btnrow">
+      <button id="fresh">Refresh view</button>
+      <span class="note">In PAUSED_HUMAN, clicks and keypresses forward to the live page.</span>
+    </div>
+
     <div id="errbanner" class="hide"></div>
     <div id="gate" class="gate hide"></div>
     <div id="ask" class="gate hide"></div>
   </div>
 
-  <!-- RIGHT: event stream + metrics + suggestions -->
-  <div class="col">
-    <h2>Event stream</h2>
+  <!-- RIGHT: Event Feed & Live Telemetry Metrics -->
+  <div class="col col-events">
+    <h2>Live Event Stream <span class="tag" id="stream-count">0</span></h2>
     <div id="events" class="mono"></div>
-    <h2 style="margin-top:12px">Run metrics</h2>
+
+    <h2 style="margin-top:14px">Run Metrics</h2>
     <div id="metrics" class="note mono">—</div>
-    <h2 style="margin-top:12px">Live cost (this session)</h2>
+
+    <h2 style="margin-top:14px">Live Cost (this session)</h2>
     <div id="cost" class="note mono">—</div>
-    <h2 style="margin-top:12px">Suggestions</h2>
+
+    <h2 style="margin-top:14px">Coach Suggestions</h2>
     <div id="sugg" class="note">No data yet — run a task, then use Coach.</div>
   </div>
 </main>
+
 <script>
-const $=s=>document.querySelector(s);
-const api=async(p,o)=>{const r=await fetch(p,o);if(!r.ok){const t=await r.text();throw new Error(r.status+" "+t.slice(0,200));}return r.json();};
-const japi=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:b!==undefined?JSON.stringify(b):undefined});
-function err(msg){const b=$('#errbanner');b.textContent=''+msg;b.classList.remove('hide');clearTimeout(err._t);err._t=setTimeout(()=>b.classList.add('hide'),8000);}
-let mode='monitor', recording=false, lastShot=null;
+const $ = s => document.querySelector(s);
+const api = async (p, o) => {
+  const r = await fetch(p, o);
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(r.status + " " + t.slice(0, 200));
+  }
+  return r.json();
+};
+const japi = (p, b) => api(p, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: b !== undefined ? JSON.stringify(b) : undefined
+});
 
-// health
-api('/api/v2/health').then(h=>{$('#hmodel').textContent=`agent: ${h.agent_model} · browser: ${h.browser} · allowlist: ${h.allowlist.join(', ')}`}).catch(()=>{});
+function err(msg) {
+  const b = $('#errbanner');
+  b.textContent = '' + msg;
+  b.classList.remove('hide');
+  clearTimeout(err._t);
+  err._t = setTimeout(() => b.classList.add('hide'), 8000);
+}
 
-// tabs
-$('#tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;
-  ['monitor','execute','coach','tour','tracking'].forEach(m=>{$('#m-'+m).classList.toggle('hide',m!==b.dataset.m)});
-  [...$('#tabs').children].forEach(x=>x.classList.toggle('on',x===b)); mode=b.dataset.m;
-  if(mode==='tracking'&&!trackData)loadTracking().then(()=>renderTrackingFrame());
+let mode = 'monitor', recording = false, lastShot = null;
+let thoughtHistory = [];
+let eventCount = 0;
+
+// Health info
+api('/api/v2/health').then(h => {
+  $('#hmodel').textContent = `agent: ${h.agent_model} · browser: ${h.browser}`;
+  if (h.model && h.model.fallback_used) {
+    $('#hmodel').textContent += ` [FALLBACK: ${h.model.active}]`;
+    $('#model-pill').style.borderColor = 'var(--warn)';
+  }
+}).catch(() => {});
+
+// Tabs switching (supports all required tabs + new thoughts & telemetry)
+$('#tabs').onclick = e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  ['monitor', 'execute', 'thoughts', 'telemetry', 'coach', 'tour', 'tracking'].forEach(m => {
+    const el = $('#m-' + m);
+    if (el) el.classList.toggle('hide', m !== b.dataset.m);
+  });
+  [...$('#tabs').children].forEach(x => x.classList.toggle('on', x === b));
+  mode = b.dataset.m;
+  if (mode === 'tracking' && !trackData) loadTracking().then(() => renderTrackingFrame());
+  if (mode === 'telemetry') updateTelemetryDashboard();
+  if (mode === 'thoughts') renderThoughtList();
 };
 
-// ---- event stream (SSE) ----
-const es=new EventSource('/events');
-es.onmessage=e=>{const ev=JSON.parse(e.data);onEvent(ev);};
-function onEvent(ev){
-  addEvt(ev);
-  const st=ev.type==='state'?'state':ev.type;
-  if(ev.type==='state'){setState(ev.data.state);}
-  if(ev.type==='approval_gate'){showGate(ev.data);}
-  if(ev.type==='ask_human'){showAsk(ev.data);}
-  if(ev.type==='ask_answered'||ev.type==='approved'){hideGate();hideAsk();}
-  if(ev.type==='done'){refreshMetrics();}
-}
-function addEvt(ev){
-  if(ev.type==='tour_beat'){banner('TOUR · '+ev.data.label,'acc');return;}
-  if(ev.type==='tour_replay_start'){banner(ev.data.label+' — replayed offline, no live model calls','acc');return;}
-  if(ev.type==='tour_done'){banner('Tour finished'+(ev.data.replay?' (replay)':' — recorded '+ev.data.date),'ok');return;}
-  const d=document.createElement('div');d.className='evt';
-  let body=JSON.stringify(ev.data).slice(0,90);
-  if(ev.type==='tour_step'&&ev.data.step) body='▶ '+ev.data.step+(ev.data.replay?' (replay)':'');
-  if(ev.type==='vision_heal'&&ev.data.msg) body='🎯 '+ev.data.msg;
-  d.innerHTML=`<b>${ev.type}</b> ${body}`;
-  const box=$('#events');box.prepend(d);while(box.children.length>60)box.lastChild.remove();}
-function banner(msg,cls){const b=$('#tourlabel');b.textContent=msg;b.className='note';b.style.color=cls==='ok'?'var(--ok)':'var(--acc)';}
-function setState(s){const el=$('#state');el.textContent=s;el.className='state-'+s;
-  if(s==='DONE'||s==='ERROR')refreshMetrics();}
+// Crosshair coordinates on live screenshot hover
+$('#shot').addEventListener('mousemove', e => {
+  const img = e.target;
+  const r = img.getBoundingClientRect();
+  const sx = (img.naturalWidth || 1024) / r.width;
+  const sy = (img.naturalHeight || 640) / r.height;
+  const x = Math.round((e.clientX - r.left) * sx);
+  const y = Math.round((e.clientY - r.top) * sy);
+  $('#hud-crosshair').textContent = `X: ${x} Y: ${y}`;
+});
 
-// ---- screenshot polling + URL bar / loading state (P0.1b real browser) ----
-async function pollShot(){try{const s=await api('/api/v2/browser/shot');lastShot=s.screenshot;
-  $('#shot').src=lastShot;$('#url').textContent=s.url;
-  if(document.activeElement!==$('#urlinput'))$('#urlinput').value=s.url||'';
-  const ld=$('#loading');ld.classList.toggle('hide',!s.loading);}catch(e){}}
-setInterval(pollShot,2000);pollShot();
-$('#fresh').onclick=async()=>{
-  let chip=$('#freshstatus');
-  if(!chip){
-    chip=document.createElement('span');
-    chip.id='freshstatus';
-    chip.className='note';
+// SSE Event Stream with auto-reconnect
+let es = null;
+function initEventStream() {
+  if (es) es.close();
+  es = new EventSource('/events');
+  es.onopen = () => {
+    $('#backend-dot').className = 'status-dot pulsing';
+    $('#backend-text').textContent = 'SSE Live';
+  };
+  es.onerror = () => {
+    $('#backend-dot').className = 'status-dot';
+    $('#backend-dot').style.background = 'var(--warn)';
+    $('#backend-text').textContent = 'Reconnecting';
+  };
+  es.onmessage = e => {
+    try {
+      const ev = JSON.parse(e.data);
+      onEvent(ev);
+    } catch (err) {}
+  };
+}
+initEventStream();
+
+function onEvent(ev) {
+  addEvt(ev);
+  if (ev.type === 'state') setState(ev.data.state);
+  if (ev.type === 'approval_gate') showGate(ev.data);
+  if (ev.type === 'ask_human') showAsk(ev.data);
+  if (ev.type === 'ask_answered' || ev.type === 'approved') { hideGate(); hideAsk(); }
+  if (ev.type === 'thought') onThoughtEvent(ev.data);
+  if (ev.type === 'done') refreshMetrics();
+}
+
+function onThoughtEvent(th) {
+  thoughtHistory.push(th);
+  $('#thought-count-badge').textContent = `${thoughtHistory.length} thoughts`;
+  $('#hud-thought-text').textContent = `[${th.phase}] ${th.thought}`;
+  renderThoughtList();
+}
+
+function renderThoughtList(filter = 'all') {
+  const container = $('#thought-list');
+  if (!container) return;
+  let items = thoughtHistory;
+  if (filter === 'delib') items = items.filter(t => t.phase === 'DELIBERATION');
+  if (filter === 'gate') items = items.filter(t => t.phase === 'SAFETY_GATE' || t.phase === 'SAFETY_EVAL');
+
+  if (!items.length) {
+    container.innerHTML = `<div class="note" style="text-align:center;padding:20px 0;">No matching thoughts in trace.</div>`;
+    return;
+  }
+  container.innerHTML = items.slice(-50).reverse().map((t, idx) => {
+    const timeStr = t.ts ? new Date(t.ts * 1000).toLocaleTimeString() : '';
+    const detailsJson = t.details && Object.keys(t.details).length ? JSON.stringify(t.details, null, 2) : '';
+    return `
+      <div class="thought-card">
+        <div class="thought-header">
+          <span class="thought-phase-tag phase-${t.phase}">${t.phase}</span>
+          <span class="note mono" style="font-size:11px">Step ${t.step || 0} · ${timeStr}</span>
+        </div>
+        <div class="thought-title">${t.title || 'Agent Thought'}</div>
+        <div class="thought-body">${t.thought || ''}</div>
+        ${detailsJson ? `
+          <div class="thought-details-toggle" onclick="this.nextElementSibling.classList.toggle('hide')">▸ Inspect details</div>
+          <pre class="note mono hide" style="background:#090d0f;padding:6px;border-radius:6px;overflow-x:auto;font-size:11px;margin-top:4px;">${detailsJson}</pre>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+$('#filter-all-btn').onclick = () => renderThoughtList('all');
+$('#filter-delib-btn').onclick = () => renderThoughtList('delib');
+$('#filter-gate-btn').onclick = () => renderThoughtList('gate');
+$('#export-thoughts-btn').onclick = () => {
+  window.open('/api/v2/agent/thoughts/export?format=md', '_blank');
+};
+
+function addEvt(ev) {
+  eventCount++;
+  $('#stream-count').textContent = eventCount;
+  if (ev.type === 'tour_beat') { banner('TOUR · ' + ev.data.label, 'acc'); return; }
+  if (ev.type === 'tour_replay_start') { banner(ev.data.label + ' — replayed offline, no live model calls', 'acc'); return; }
+  if (ev.type === 'tour_done') { banner('Tour finished' + (ev.data.replay ? ' (replay)' : ' — recorded ' + ev.data.date), 'ok'); return; }
+
+  const d = document.createElement('div');
+  d.className = 'evt';
+  if (ev.type === 'thought') d.classList.add('evt-thought');
+  if (ev.type === 'action') d.classList.add('evt-action');
+  if (ev.type === 'approval_gate') d.classList.add('evt-gate');
+  if (ev.type === 'vision_heal') d.classList.add('evt-heal');
+
+  let body = JSON.stringify(ev.data).slice(0, 95);
+  if (ev.type === 'tour_step' && ev.data.step) body = '▶ ' + ev.data.step + (ev.data.replay ? ' (replay)' : '');
+  if (ev.type === 'vision_heal' && ev.data.msg) body = '🎯 ' + ev.data.msg;
+  if (ev.type === 'thought' && ev.data.thought) body = `[${ev.data.phase}] ` + ev.data.thought.slice(0, 80);
+
+  d.innerHTML = `<b>${ev.type}</b> ${body}`;
+  const box = $('#events');
+  box.prepend(d);
+  while (box.children.length > 80) box.lastChild.remove();
+}
+
+function banner(msg, cls) {
+  const b = $('#tourlabel');
+  if (!b) return;
+  b.textContent = msg;
+  b.className = 'note';
+  b.style.color = cls === 'ok' ? 'var(--ok)' : 'var(--acc)';
+}
+
+function setState(s) {
+  const el = $('#state');
+  el.textContent = s;
+  el.className = 'state-' + s;
+  $('#telem-state').textContent = s;
+  if (s === 'DONE' || s === 'ERROR') refreshMetrics();
+}
+
+function showClickRipple(cx, cy) {
+  const ripple = document.createElement('div');
+  ripple.style.position = 'fixed';
+  ripple.style.left = (cx - 15) + 'px';
+  ripple.style.top = (cy - 15) + 'px';
+  ripple.style.width = '30px';
+  ripple.style.height = '30px';
+  ripple.style.borderRadius = '50%';
+  ripple.style.border = '2px solid var(--acc)';
+  ripple.style.pointerEvents = 'none';
+  ripple.style.zIndex = '99999';
+  ripple.style.animation = 'ripple-anim 0.4s ease-out forwards';
+  document.body.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 450);
+}
+
+// Screenshot polling & URL bar
+async function pollShot() {
+  try {
+    const s = await api('/api/v2/browser/shot');
+    lastShot = s.screenshot;
+    $('#shot').src = lastShot;
+    $('#url').textContent = s.url;
+    if (document.activeElement !== $('#urlinput')) $('#urlinput').value = s.url || '';
+    const ld = $('#loading');
+    ld.classList.toggle('hide', !s.loading);
+  } catch (e) {}
+}
+setInterval(pollShot, 2000);
+pollShot();
+
+$('#fresh').onclick = async () => {
+  let chip = $('#freshstatus');
+  if (!chip) {
+    chip = document.createElement('span');
+    chip.id = 'freshstatus';
+    chip.className = 'note';
     $('#fresh').parentNode.appendChild(chip);
   }
-  chip.textContent=' • refreshed '+new Date().toLocaleTimeString();
+  chip.textContent = ' • refreshed ' + new Date().toLocaleTimeString();
   await pollShot();
 };
 
-// URL bar: back / forward / reload / go - each server-verified against the allowlist
-async function nav(op,url){try{const r=await japi('/api/v2/browser/nav',{op:op,url:url||''});
-  if(r&&r.error)err(r.error);await pollShot();}catch(e){err(e.message);}}
-$('#navback').onclick=()=>nav('back');
-$('#navforward').onclick=()=>nav('forward');
-$('#navreload').onclick=()=>nav('reload');
-$('#navgo').onclick=()=>{const u=$('#urlinput').value.trim();if(u)nav('goto',u);};
-$('#urlinput').addEventListener('keydown',e=>{if(e.key==='Enter')nav('goto',$('#urlinput').value.trim());});
-
-// ---- monitor: start browser + record ----
-// every control either acts or shows WHY (no silent no-ops): failures surface in #errbanner
-$('#mrec').onclick=async()=>{
-  try{
-    recording=!recording;
-    $('#mrec').textContent=recording?'● Recording — click the live view to capture actions':'● Start recording';
-    const b=await japi('/api/v2/browser/start',{site:$('#msite').value});   // flat SiteIn payload
-    if(b&&b.error)return err('browser start: '+b.error);
-    await japi('/api/v2/monitor/start',{site:$('#msite').value});
+// URL Navigation
+async function nav(op, url) {
+  try {
+    const r = await japi('/api/v2/browser/nav', { op: op, url: url || '' });
+    if (r && r.error) err(r.error);
     await pollShot();
-  }catch(e){err('record: '+e.message);if(recording)$('#mrec').textContent='● Start recording';}
-};
-$('#shot').onclick=async(e)=>{
-  if(!recording||mode!=='monitor')return;
-  const img=e.target,r=img.getBoundingClientRect(),sx=img.naturalWidth/r.width,sy=img.naturalHeight/r.height;
-  const x=Math.round((e.clientX-r.left)*sx),y=Math.round((e.clientY-r.top)*sy);
-  try{
-    const el=await api(`/api/v2/browser/element-at?x=${x}&y=${y}`).catch(()=>({locators:[]}));
-    const locs=el.locators&&el.locators.length?el.locators:[{kind:'box',value:`${x},${y}` }];
-    const rec=await japi('/api/v2/monitor/record',{tool:'click',locators:locs,narration:$('#mnar').value});
-    addEvt({type:'rec',data:rec});$('#mnar').value='';
-  }catch(e2){err('record click: '+e2.message);}
+  } catch (e) {
+    err(e.message);
+  }
+}
+$('#navback').onclick = () => nav('back');
+$('#navforward').onclick = () => nav('forward');
+$('#navreload').onclick = () => nav('reload');
+$('#navgo').onclick = () => { const u = $('#urlinput').value.trim(); if (u) nav('goto', u); };
+$('#urlinput').addEventListener('keydown', e => { if (e.key === 'Enter') nav('goto', $('#urlinput').value.trim()); });
+
+// Monitor: Start recording & capture clicks
+$('#mrec').onclick = async () => {
+  try {
+    recording = !recording;
+    $('#mrec').textContent = recording ? '● Recording — click the live view to capture actions' : '● Start recording';
+    $('#mrec').className = recording ? 'btnrow danger' : 'btnrow primary';
+    const b = await japi('/api/v2/browser/start', { site: $('#msite').value });
+    if (b && b.error) return err('browser start: ' + b.error);
+    await japi('/api/v2/monitor/start', { site: $('#msite').value });
+    await pollShot();
+  } catch (e) {
+    err('record: ' + e.message);
+    if (recording) {
+      $('#mrec').textContent = '● Start recording';
+      $('#mrec').className = 'btnrow primary';
+    }
+  }
 };
 
-// ---- compile / save / run learned ----
-$('#mcompile').onclick=async()=>{
-  const c=await japi('/api/v2/monitor/compile',{goal:$('#mgoal').value||'learned procedure',add_checks:[]});
-  addEvt({type:'compile',data:{steps:c.steps,warnings:c.warnings}});
-  window.__proc=c.procedure;
-  const r=await japi('/api/v2/procedure/save?name=learned',{...c.procedure});
-  $('#msaved').textContent='Procedure compiled ('+c.steps+' steps) → saved. "Run learned" executes it deterministically.';
-};
-$('#msave').onclick=async()=>{if(!window.__proc)return;await japi('/api/v2/procedure/save?name=learned',window.__proc);addEvt({type:'saved',data:{}});};
-$('#mrun').onclick=async()=>{const r=await japi('/api/v2/procedure/run',{name:'learned',approve:true});
-  addEvt({type:'exec',data:{success:r.success,checks:(r.checks||[]).map(c=>c.name+'='+(c.passed?'ok':'no'))}});
-  showSugg('deterministic',[{what:'Learned procedure finished. Success: '+(r.success?'YES':'NO — see checks'),
-    why:(r.checks||[]).map(c=>c.name+':'+(c.passed?'pass':'fail')).join(', '),
-    expected_saving:'n/a',risk:'low',apply:''}]);refreshMetrics();};
+$('#shot').onclick = async (e) => {
+  const img = e.target;
+  const r = img.getBoundingClientRect();
+  const sx = (img.naturalWidth || 1024) / r.width;
+  const sy = (img.naturalHeight || 640) / r.height;
+  const x = Math.round((e.clientX - r.left) * sx);
+  const y = Math.round((e.clientY - r.top) * sy);
 
-// ---- execute: agent ----
-$('#xstart').onclick=async()=>{
-  try{
-    const r=await japi('/api/v2/agent/run',{goal:$('#xgoal').value,site:$('#xsite').value});
-    if(r.error)return err('agent run: '+r.error);
-    setState(r.state||'RUNNING');
-    addEvt({type:'agent_start',data:{goal:$('#xgoal').value}});
-  }catch(e){err('agent start: '+e.message);}
+  showClickRipple(e.clientX, e.clientY);
+
+  if (mode === 'monitor') {
+    if (!recording) {
+      err('Click "● Start recording" above first to capture actions into a Procedure.');
+      return;
+    }
+    try {
+      const el = await api(`/api/v2/browser/element-at?x=${x}&y=${y}`).catch(() => ({ locators: [] }));
+      const locs = el.locators && el.locators.length ? el.locators : [{ kind: 'box', value: `${x},${y}` }];
+      const rec = await japi('/api/v2/monitor/record', { tool: 'click', locators: locs, narration: $('#mnar').value });
+      addEvt({ type: 'rec', data: rec });
+      $('#mnar').value = '';
+    } catch (e2) {
+      err('record click: ' + e2.message);
+    }
+  } else {
+    // In execute mode, PAUSED_HUMAN takeover, or direct manual push: forward click to live browser!
+    try {
+      await japi('/api/v2/browser/input', { kind: 'click', payload: { x, y } });
+      await pollShot();
+    } catch (e2) {
+      err('browser input: ' + e2.message);
+    }
+  }
 };
-$('#xpause').onclick=async()=>{
-  try{
-    const r=await japi('/api/v2/agent/pause');
-    if(r.state)setState(r.state);
-    addEvt({type:'pause',data:r});
-  }catch(e){err('pause: '+e.message);}
+
+// Compile, Save & Run Learned Procedure
+$('#mcompile').onclick = async () => {
+  try {
+    const c = await japi('/api/v2/monitor/compile', { goal: $('#mgoal').value || 'learned procedure', add_checks: [] });
+    addEvt({ type: 'compile', data: { steps: c.steps, warnings: c.warnings } });
+    window.__proc = c.procedure;
+    await japi('/api/v2/procedure/save?name=learned', { ...c.procedure });
+    $('#msaved').textContent = `Procedure compiled (${c.steps} steps) → saved. "Run learned" executes it deterministically.`;
+  } catch (e) {
+    err('Compile failed: ' + e.message);
+  }
 };
-$('#xresume').onclick=async()=>{
-  try{
-    const r=await japi('/api/v2/agent/resume',{});
-    if(r.state)setState(r.state);
-    addEvt({type:'resume',data:r});
-  }catch(e){err('resume: '+e.message);}
+$('#msave').onclick = async () => {
+  if (!window.__proc) {
+    err('No compiled procedure to save. Enter a goal and click "Compile → Procedure" first.');
+    return;
+  }
+  try {
+    await japi('/api/v2/procedure/save?name=learned', window.__proc);
+    addEvt({ type: 'saved', data: {} });
+    $('#msaved').textContent = 'Procedure saved to disk.';
+  } catch (e) {
+    err('Save failed: ' + e.message);
+  }
 };
-$('#xkill').onclick=async()=>{
-  try{
-    const r=await japi('/api/v2/agent/kill');
+$('#mrun').onclick = async () => {
+  try {
+    const r = await japi('/api/v2/procedure/run', { name: 'learned', approve: true });
+    addEvt({ type: 'exec', data: { success: r.success, checks: (r.checks || []).map(c => c.name + '=' + (c.passed ? 'ok' : 'no')) } });
+    showSugg('deterministic', [{
+      what: 'Learned procedure finished. Success: ' + (r.success ? 'YES' : 'NO — see checks'),
+      why: (r.checks || []).map(c => c.name + ':' + (c.passed ? 'pass' : 'fail')).join(', '),
+      expected_saving: 'n/a', risk: 'low', apply: ''
+    }]);
+    refreshMetrics();
+  } catch (e) {
+    err('Run learned: ' + e.message + '. Record actions and click "Compile → Procedure" first.');
+  }
+};
+
+// Execute Agent Controls
+$('#xstart').onclick = async () => {
+  const goalVal = ($('#xgoal').value || '').trim();
+  if (!goalVal) {
+    err('Please enter a goal first (e.g. "File an Acme office expense of $42").');
+    return;
+  }
+  try {
+    const r = await japi('/api/v2/agent/run', { goal: goalVal, site: $('#xsite').value });
+    if (r.error) return err('agent run: ' + r.error);
+    setState(r.state || 'RUNNING');
+    addEvt({ type: 'agent_start', data: { goal: goalVal } });
+    thoughtHistory = [];
+    renderThoughtList();
+  } catch (e) {
+    err('agent start: ' + e.message);
+  }
+};
+$('#xpause').onclick = async () => {
+  try {
+    const r = await japi('/api/v2/agent/pause');
+    if (r.state) setState(r.state);
+    addEvt({ type: 'pause', data: r });
+  } catch (e) {
+    err('pause: ' + e.message);
+  }
+};
+$('#xresume').onclick = async () => {
+  try {
+    const r = await japi('/api/v2/agent/resume', {});
+    if (r.state) setState(r.state);
+    addEvt({ type: 'resume', data: r });
+  } catch (e) {
+    err('resume: ' + e.message);
+  }
+};
+$('#xkill').onclick = async () => {
+  try {
+    const r = await japi('/api/v2/agent/kill');
     setState('ERROR');
-    addEvt({type:'kill',data:r});
-  }catch(e){err('kill: '+e.message);}
+    addEvt({ type: 'kill', data: r });
+  } catch (e) {
+    err('kill: ' + e.message);
+  }
 };
 
-// takeover: forward input to live page while paused
-$('#shot').addEventListener('click',()=>{}); // handled above in monitor; execute uses buttons below
-document.addEventListener('keydown',e=>{
-  const st=$('#state').textContent;
-  if(st==='PAUSED_HUMAN'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'&&e.target.tagName!=='SELECT'){
-    japi('/api/v2/browser/input',{kind:'key',payload:{key:e.key}}).catch(()=>{});
+// Forward keyboard in human takeover
+document.addEventListener('keydown', e => {
+  const st = $('#state').textContent;
+  if (st === 'PAUSED_HUMAN' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT') {
+    japi('/api/v2/browser/input', { kind: 'key', payload: { key: e.key } }).catch(() => {});
   }
 });
 
-// approval gate + ask_human UI
-function showGate(d){const g=$('#gate');g.classList.remove('hide');g.innerHTML=
-  `<div class="q">Approval gate — ${d.tool} is ${d.irreversible?'irreversible':''}${d.external?' external':''}</div>
-   <div class="note mono">${JSON.stringify(d.args)}</div>
-   <div class="btnrow"><button class="primary" onclick="japi('/api/v2/agent/approve',{allow:true})">Allow</button>
-   <button class="danger" onclick="japi('/api/v2/agent/approve',{allow:false})">Deny</button></div>`;}
-function hideGate(){$('#gate').classList.add('hide');}
-function showAsk(d){const a=$('#ask');a.classList.remove('hide');
-  const opts=(d.options&&d.options.length?d.options:['proceed']).map(o=>`<button onclick="japi('/api/v2/agent/answer',{choice:${JSON.stringify(o)}})">${o}</button>`).join(' ');
-  a.innerHTML=`<div class="q">Agent asks:</div><div class="note">${d.question}</div><div class="btnrow">${opts}</div>`;}
-function hideAsk(){$('#ask').classList.add('hide');}
-
-// ---- coach ----
-async function refreshMetrics(){try{const s=await api('/api/v2/agent/state');const m=s.metrics;
-  $('#metrics').innerHTML=['steps:'+m.steps,'wall:'+m.wall_s+'s','model calls:'+m.model_calls,
-    'takeovers:'+m.takeovers,'approvals:'+m.approvals].join('<br>');}catch(e){}
-  try{const c=await api('/api/v2/cost');
-    if(!c.enabled)$('#cost').textContent='live meter inert (test/offline mode)';
-    else{const cum=c.cumulative||{};$('#cost').innerHTML=['calls: '+cum.calls,'SAM frames billed: '+cum.billed_frames,'total tokens: '+cum.total_tokens].join('<br>');}
-  }catch(e){}}
-$('#cgo').onclick=async()=>{const c=await api(`/api/v2/coach?human_steps=${$('#hsteps').value}&human_time=${$('#hwall').value}`);
-  showSugg('compare',c.deterministic);$('#cbox').innerHTML=renderCompare(c.compare)+'<div>'+renderSugg(c.spoken)+'</div>';};
-function renderCompare(cmp){if(!cmp)return'';return `<h2>Agent vs human</h2>
-  <div class="sugg"><div class="row"><span>Agent</span><span class="tag">${cmp.agent.steps} steps · ${cmp.agent.model_calls} calls</span></div>
-  <div class="row"><span>Human</span><span class="tag">${cmp.human.steps??'—'} steps</span></div>
-  <div class="row"><span>Beat human</span><span class="tag">${cmp.agent_beat_human?'YES':'no/na'}</span></div></div>`;}
-function renderSugg(s){if(!s)return'';return `<div class="sugg"><div class="w">${s.what||s.text||''}</div>
-  <div class="note">${s.why||''} · saving: ${s.expected_saving||''} · risk: ${s.risk||''}</div>
-  ${s.spoken?`<div class="note">🔊 ${s.spoken}</div>`:''}</div>`;}
-function showSugg(kind,items){$('#sugg').innerHTML=(items&&items.length)?items.map(renderSugg).join(''):'No suggestions — run a task with Coach.';}
-
-// ---- voice: push-to-talk goal (browser Web Speech; disclosed) ----
-let audioCtx=null,rec=null,recordingAudio=false;
-$('#xppt').onclick=async()=>{
-  if(recordingAudio){rec&&rec.stop();recordingAudio=false;return;}
-  recordingAudio=true;$('#xppt').textContent='⏹ stop';
-  if(navigator.mediaDevices&&window.MediaRecorder){
-    try{const s=await navigator.mediaDevices.getUserMedia({audio:true});
-      rec=new MediaRecorder(s);rec.ondataavailable=e=>chunks.push(e.data);rec.onstop=async()=>{
-        const b=new Blob(chunks).awaitBlob?await new Blob(chunks).then(x=>x):await (await new Blob(chunks)).arrayBuffer();
-        const ab=await (new Blob(chunks)).arrayBuffer();
-        const r=await api('/api/v2/voice/transcribe',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({wav_base64:btoa(String.fromCharCode(...new Uint8Array(ab)))})});
-        $('#xgoal').value=$('#xgoal').value.replace(/\s*$/,' ') + (r.text||'');
-        addEvt({type:'transcribed',data:{text:r.text,source:r.source}});};
-      chunks=[];rec.start();
-    }catch(e){addEvt({type:'voice_note',data:{note:'mic unavailable, typing only'} });recordingAudio=false;$('#xppt').textContent='🎙 Record goal';}
-  }else{addEvt({type:'voice_note',data:{note:'Web Speech unsupported; type the goal'}});recordingAudio=false;$('#xppt').textContent='🎙 Record goal';}
-};
-
-
-// ---- guided tour ----
-$('#tourrun').onclick=async()=>{
-  banner('Starting guided tour (click Allow/Deny and Hand back when prompted)','acc');
-  await japi('/api/v2/tour/start',{site:window.location.origin+'/site/expense'});
-};
-async function loadTourList(){
-  const r=await api('/api/v2/tour/runs').catch(()=>[]);
-  const sel=$('#tourlist');sel.replaceChildren(...r.map(f=>{const o=document.createElement('option');o.value=f;o.textContent=f;return o;}));
-  sel.selectedOptions.length?sel.selectedIndex=r.length-1:sel.selectedIndex=0;
+// Approval Gate & Ask Human UI
+function showGate(d) {
+  const g = $('#gate');
+  g.classList.remove('hide');
+  g.innerHTML = `
+    <div class="q">⚠️ Safety Gate Prompted — ${d.tool} is ${d.irreversible ? 'irreversible' : ''}${d.external ? ' external' : ''}</div>
+    <div class="note mono" style="margin:4px 0 8px">${JSON.stringify(d.args)}</div>
+    <div class="btnrow">
+      <button class="primary" onclick="gateApprove(true)">Allow Action</button>
+      <button class="danger" onclick="gateApprove(false)">Deny</button>
+    </div>
+  `;
 }
-$('#tourreplay').onclick=async()=>{
-  const f=$('#tourlist').value;if(!f)return banner('No recorded tour yet — run one first','warn');
-  await japi('/api/v2/tour/replay',{file:f});
+async function gateApprove(allow) {
+  try {
+    await japi('/api/v2/agent/approve', { allow: allow });
+    hideGate();
+  } catch (e) {
+    err('Gate response failed: ' + e.message);
+  }
+}
+function hideGate() { $('#gate').classList.add('hide'); }
+
+function showAsk(d) {
+  const a = $('#ask');
+  a.classList.remove('hide');
+  const opts = (d.options && d.options.length ? d.options : ['proceed'])
+    .map(o => `<button class="primary" onclick="askAnswer(${JSON.stringify(o)})">${o}</button>`)
+    .join(' ');
+  a.innerHTML = `
+    <div class="q">❓ Agent Asks Operator:</div>
+    <div class="note" style="margin:4px 0 8px">${d.question}</div>
+    <div class="btnrow">${opts}</div>
+  `;
+}
+async function askAnswer(choice) {
+  try {
+    await japi('/api/v2/agent/answer', { choice: choice });
+    hideAsk();
+  } catch (e) {
+    err('Answer failed: ' + e.message);
+  }
+}
+function hideAsk() { $('#ask').classList.add('hide'); }
+
+// Telemetry & Metrics Refresh
+async function refreshMetrics() {
+  try {
+    const s = await api('/api/v2/agent/state');
+    const m = s.metrics || {};
+    $('#metrics').innerHTML = [
+      'steps: ' + (m.steps || 0),
+      'wall: ' + (m.wall_s || 0) + 's',
+      'model calls: ' + (m.model_calls || 0),
+      'takeovers: ' + (m.takeovers || 0),
+      'approvals: ' + (m.approvals || 0)
+    ].join('<br>');
+    updateTelemetryDashboard();
+  } catch (e) {}
+
+  try {
+    const c = await api('/api/v2/cost');
+    if (!c.enabled) {
+      $('#cost').textContent = 'live meter inert (test/offline mode)';
+    } else {
+      const cum = c.cumulative || {};
+      $('#cost').innerHTML = [
+        'calls: ' + (cum.calls || 0),
+        'SAM frames billed: ' + (cum.billed_frames || 0),
+        'total tokens: ' + (cum.total_tokens || 0)
+      ].join('<br>');
+    }
+  } catch (e) {}
+}
+
+async function updateTelemetryDashboard() {
+  try {
+    const t = await api('/api/v2/telemetry');
+    $('#telem-state').textContent = t.agent.state;
+    $('#telem-calls').textContent = t.budgets.model_calls_used;
+    $('#telem-tokens').textContent = (t.metrics.usage && t.metrics.usage.input_tokens ? (t.metrics.usage.input_tokens + t.metrics.usage.output_tokens) : 0);
+    $('#telem-events').textContent = t.bus.history_count;
+
+    const stepPct = Math.min(100, Math.round((t.budgets.steps_used / t.budgets.max_steps) * 100));
+    $('#gauge-steps-txt').textContent = `${t.budgets.steps_used} / ${t.budgets.max_steps} (${stepPct}%)`;
+    $('#gauge-steps-bar').style.width = stepPct + '%';
+
+    const timePct = Math.min(100, Math.round((t.budgets.wall_used / t.budgets.max_wall_s) * 100));
+    $('#gauge-time-txt').textContent = `${t.budgets.wall_used}s / ${t.budgets.max_wall_s}s`;
+    $('#gauge-time-bar').style.width = timePct + '%';
+
+    const callPct = Math.min(100, Math.round((t.budgets.model_calls_used / t.budgets.max_model_calls) * 100));
+    $('#gauge-calls-txt').textContent = `${t.budgets.model_calls_used} / ${t.budgets.max_model_calls}`;
+    $('#gauge-calls-bar').style.width = callPct + '%';
+  } catch (e) {}
+}
+$('#telem-refresh-btn').onclick = updateTelemetryDashboard;
+
+// Coach
+$('#cgo').onclick = async () => {
+  const c = await api(`/api/v2/coach?human_steps=${$('#hsteps').value}&human_time=${$('#hwall').value}`);
+  showSugg('compare', c.deterministic);
+  $('#cbox').innerHTML = renderCompare(c.compare) + '<div>' + renderSugg(c.spoken) + '</div>';
+};
+function renderCompare(cmp) {
+  if (!cmp) return '';
+  return `<h2>Agent vs human</h2>
+  <div class="sugg">
+    <div class="row"><span>Agent</span><span class="tag">${cmp.agent.steps} steps · ${cmp.agent.model_calls} calls</span></div>
+    <div class="row"><span>Human</span><span class="tag">${cmp.human.steps ?? '—'} steps</span></div>
+    <div class="row"><span>Beat human</span><span class="tag">${cmp.agent_beat_human ? 'YES' : 'no/na'}</span></div>
+  </div>`;
+}
+function renderSugg(s) {
+  if (!s) return '';
+  return `<div class="sugg">
+    <div class="w">${s.what || s.text || ''}</div>
+    <div class="note">${s.why || ''} · saving: ${s.expected_saving || ''} · risk: ${s.risk || ''}</div>
+    ${s.spoken ? `<div class="note">🔊 ${s.spoken}</div>` : ''}
+  </div>`;
+}
+function showSugg(kind, items) {
+  $('#sugg').innerHTML = (items && items.length) ? items.map(renderSugg).join('') : 'No suggestions — run a task with Coach.';
+}
+
+// Push to talk
+let chunks = [], audioCtx = null, rec = null, recordingAudio = false;
+$('#xppt').onclick = async () => {
+  if (recordingAudio) {
+    if (rec) rec.stop();
+    recordingAudio = false;
+    $('#xppt').textContent = '🎙 Record goal';
+    return;
+  }
+  recordingAudio = true;
+  $('#xppt').textContent = '⏹ Stop recording';
+  if (navigator.mediaDevices && window.MediaRecorder) {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      rec = new MediaRecorder(s);
+      rec.ondataavailable = e => chunks.push(e.data);
+      rec.onstop = async () => {
+        const ab = await (new Blob(chunks)).arrayBuffer();
+        const r = await api('/api/v2/voice/transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wav_base64: btoa(String.fromCharCode(...new Uint8Array(ab))) })
+        });
+        $('#xgoal').value = $('#xgoal').value.replace(/\s*$/, ' ') + (r.text || '');
+        addEvt({ type: 'transcribed', data: { text: r.text, source: r.source } });
+      };
+      chunks = [];
+      rec.start();
+    } catch (e) {
+      addEvt({ type: 'voice_note', data: { note: 'mic unavailable, typing only' } });
+      recordingAudio = false;
+      $('#xppt').textContent = '🎙 Record goal';
+    }
+  } else {
+    addEvt({ type: 'voice_note', data: { note: 'Web Speech unsupported; type the goal' } });
+    recordingAudio = false;
+    $('#xppt').textContent = '🎙 Record goal';
+  }
+};
+
+// Guided tour
+$('#tourrun').onclick = async () => {
+  banner('Starting guided tour (click Allow/Deny and Hand back when prompted)', 'acc');
+  await japi('/api/v2/tour/start', { site: window.location.origin + '/site/expense' });
+};
+async function loadTourList() {
+  const r = await api('/api/v2/tour/runs').catch(() => []);
+  const sel = $('#tourlist');
+  sel.replaceChildren(...r.map(f => {
+    const o = document.createElement('option');
+    o.value = f;
+    o.textContent = f;
+    return o;
+  }));
+  sel.selectedOptions.length ? sel.selectedIndex = r.length - 1 : sel.selectedIndex = 0;
+}
+$('#tourreplay').onclick = async () => {
+  const f = $('#tourlist').value;
+  if (!f) return banner('No recorded tour yet — run one first', 'warn');
+  await japi('/api/v2/tour/replay', { file: f });
 };
 loadTourList();
 
-// ---- tracking: SAM 3.1 video segmentation & dynamic tracking ----
-let trackData=null, trackAnimId=null;
-const trackVid=$('#trackvideo');
-const trackCanvas=$('#trackcanvas');
+// Tracking (SAM 3.1)
+let trackData = null, trackAnimId = null;
+const trackVid = $('#trackvideo');
+const trackCanvas = $('#trackcanvas');
 
-async function loadTracking(){
-  if(trackData)return trackData;
-  try{
-    $('#trackstatus').textContent='Loading tracking cache...';
-    trackData=await api('/api/v2/tracking/demo');
-    $('#trackstatus').textContent='Tracking cache loaded (60 frames)';
+async function loadTracking() {
+  if (trackData) return trackData;
+  try {
+    $('#trackstatus').textContent = 'Loading tracking cache...';
+    trackData = await api('/api/v2/tracking/demo');
+    $('#trackstatus').textContent = 'Tracking cache loaded (60 frames)';
     return trackData;
-  }catch(e){
-    $('#trackstatus').textContent='Error: '+e.message;
+  } catch (e) {
+    $('#trackstatus').textContent = 'Error: ' + e.message;
     return null;
   }
 }
 
-function renderTrackingFrame(){
-  if(!trackVid||!trackCanvas)return;
-  const rect=trackVid.getBoundingClientRect();
-  if(rect.width>0&&rect.height>0&&(trackCanvas.width!==Math.round(rect.width)||trackCanvas.height!==Math.round(rect.height))){
-    trackCanvas.width=Math.round(rect.width);
-    trackCanvas.height=Math.round(rect.height);
+function renderTrackingFrame() {
+  if (!trackVid || !trackCanvas) return;
+  const rect = trackVid.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0 && (trackCanvas.width !== Math.round(rect.width) || trackCanvas.height !== Math.round(rect.height))) {
+    trackCanvas.width = Math.round(rect.width);
+    trackCanvas.height = Math.round(rect.height);
   }
-  const ctx=trackCanvas.getContext('2d');
-  ctx.clearRect(0,0,trackCanvas.width,trackCanvas.height);
-  if(!trackData)return;
+  const ctx = trackCanvas.getContext('2d');
+  ctx.clearRect(0, 0, trackCanvas.width, trackCanvas.height);
+  if (!trackData) return;
 
-  const fps=trackData.fps||10.0;
-  const frameIdx=Math.min(trackData.total_frames-1,Math.floor(trackVid.currentTime*fps));
-  $('#trackframe').textContent=`${frameIdx+1} / ${trackData.total_frames}`;
+  const fps = trackData.fps || 10.0;
+  const frameIdx = Math.min(trackData.total_frames - 1, Math.floor(trackVid.currentTime * fps));
+  $('#trackframe').textContent = `${frameIdx + 1} / ${trackData.total_frames}`;
 
-  const dets=(trackData.frames&&(trackData.frames[frameIdx]||trackData.frames[''+frameIdx]))||[];
-  const sx=(trackCanvas.width||rect.width)/(trackData.width||640);
-  const sy=(trackCanvas.height||rect.height)/(trackData.height||360);
+  const dets = (trackData.frames && (trackData.frames[frameIdx] || trackData.frames['' + frameIdx])) || [];
+  const sx = (trackCanvas.width || rect.width) / (trackData.width || 640);
+  const sy = (trackCanvas.height || rect.height) / (trackData.height || 360);
 
-  for(const d of dets){
-    const [x1,y1,x2,y2]=d.box;
-    const bx=x1*sx,by=y1*sy,bw=(x2-x1)*sx,bh=(y2-y1)*sy;
-    const conf=d.conf!=null?d.conf:1.0;
-    const color=conf>=0.8?'#3fb97f':(conf>=0.5?'#e0a13c':'#e0616b');
+  for (const d of dets) {
+    const [x1, y1, x2, y2] = d.box;
+    const bx = x1 * sx, by = y1 * sy, bw = (x2 - x1) * sx, bh = (y2 - y1) * sy;
+    const conf = d.conf != null ? d.conf : 1.0;
+    const color = conf >= 0.8 ? '#2ecc71' : (conf >= 0.5 ? '#f39c12' : '#e74c3c');
 
-    ctx.strokeStyle=color;
-    ctx.lineWidth=2.5;
-    ctx.strokeRect(bx,by,bw,bh);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(bx, by, bw, bh);
 
-    ctx.fillStyle=color+'26';
-    ctx.fillRect(bx,by,bw,bh);
+    ctx.fillStyle = color + '26';
+    ctx.fillRect(bx, by, bw, bh);
 
-    const badgeText=`SAM 3.1 ID #${d.obj_id} (${(conf*100).toFixed(0)}%)`;
-    ctx.font='bold 11px ui-monospace,monospace';
-    const textW=ctx.measureText(badgeText).width;
-    ctx.fillStyle='#0f1416e6';
-    ctx.fillRect(bx,Math.max(0,by-18),textW+8,18);
-    ctx.fillStyle=color;
-    ctx.fillText(badgeText,bx+4,Math.max(12,by-5));
+    const badgeText = `SAM 3.1 ID #${d.obj_id} (${(conf * 100).toFixed(0)}%)`;
+    ctx.font = 'bold 11px ui-monospace, monospace';
+    const textW = ctx.measureText(badgeText).width;
+    ctx.fillStyle = '#0b0f12f0';
+    ctx.fillRect(bx, Math.max(0, by - 18), textW + 8, 18);
+    ctx.fillStyle = color;
+    ctx.fillText(badgeText, bx + 4, Math.max(12, by - 5));
 
-    $('#trackobjid').textContent=`ID #${d.obj_id}`;
-    $('#trackconf').textContent=conf.toFixed(3);
+    $('#trackobjid').textContent = `ID #${d.obj_id}`;
+    $('#trackconf').textContent = conf.toFixed(3);
   }
 
-  if(!trackVid.paused&&!trackVid.ended){
-    trackAnimId=requestAnimationFrame(renderTrackingFrame);
+  if (!trackVid.paused && !trackVid.ended) {
+    trackAnimId = requestAnimationFrame(renderTrackingFrame);
   }
 }
 
-$('#trackplay').onclick=async()=>{
+$('#trackplay').onclick = async () => {
   await loadTracking();
-  try{
+  try {
     await trackVid.play();
-    $('#trackstate').textContent='Tracking Active';
-    $('#trackstatus').textContent='Streaming zero-shot tracking';
+    $('#trackstate').textContent = 'Tracking Active';
+    $('#trackstatus').textContent = 'Streaming zero-shot tracking';
     cancelAnimationFrame(trackAnimId);
-    trackAnimId=requestAnimationFrame(renderTrackingFrame);
-  }catch(e){
-    $('#trackstatus').textContent='Play failed: '+e.message;
+    trackAnimId = requestAnimationFrame(renderTrackingFrame);
+  } catch (e) {
+    $('#trackstatus').textContent = 'Play failed: ' + e.message;
   }
 };
 
-$('#trackpause').onclick=()=>{
+$('#trackpause').onclick = () => {
   trackVid.pause();
   cancelAnimationFrame(trackAnimId);
-  $('#trackstate').textContent='Paused';
-  $('#trackstatus').textContent='Paused';
+  $('#trackstate').textContent = 'Paused';
+  $('#trackstatus').textContent = 'Paused';
 };
 
-$('#trackreset').onclick=async()=>{
+$('#trackreset').onclick = async () => {
   trackVid.pause();
-  trackVid.currentTime=0;
+  trackVid.currentTime = 0;
   cancelAnimationFrame(trackAnimId);
-  $('#trackstate').textContent='Idle';
-  $('#trackstatus').textContent='Ready';
+  $('#trackstate').textContent = 'Idle';
+  $('#trackstatus').textContent = 'Ready';
   await loadTracking();
   renderTrackingFrame();
 };
 
-trackVid.addEventListener('seeked',renderTrackingFrame);
-trackVid.addEventListener('timeupdate',()=>{if(trackVid.paused)renderTrackingFrame();});
+trackVid.addEventListener('seeked', renderTrackingFrame);
+trackVid.addEventListener('timeupdate', () => { if (trackVid.paused) renderTrackingFrame(); });
 </script>
 </body>
 </html>
