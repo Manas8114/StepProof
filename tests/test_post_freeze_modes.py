@@ -405,3 +405,47 @@ def test_monitor_recording_and_compilation_workflow():
     assert c_data["procedure"]["signature"]
 
 
+def test_endpoint_deduplication_and_token_matching():
+    """Verify that generic container IDs (#endpoint) are filtered out from concepts and locators,
+    and fuzzy token matching works for complex punctuation names like '[AMV] Yes & No'."""
+    from stepproof.learn.compile import derive_vision_concept
+    from stepproof.browser.actions import _click_by_name
+
+    # 1. derive_vision_concept filters out #endpoint and generic container names
+    concept = derive_vision_concept("click", element_name="endpoint", locators=[{"kind": "css", "value": "#endpoint"}], narration="click the video")
+    assert "Endpoint" not in concept
+    assert "video" in concept.lower()
+
+    # 2. derive_vision_concept preserves real video title
+    v_concept = derive_vision_concept("click", element_name="Cartoon Anime Version [AMV] Yes & No", locators=[{"kind": "box", "value": "100,200"}])
+    assert "Cartoon Anime Version" in v_concept
+
+    # 3. _click_by_name matches tokens despite punctuation differences
+    class MockBrowser:
+        def __init__(self):
+            self.clicked = None
+        def observe(self):
+            return {
+                "elements": [
+                    {
+                        "visible": True,
+                        "name": "Cartoon Anime Version AMV Yes and No official video",
+                        "kind": "a",
+                        "role": "link",
+                        "x": 100, "y": 200, "w": 300, "h": 50
+                    }
+                ]
+            }
+        def act(self, op, arg):
+            if op == "click_box":
+                self.clicked = arg
+            return {"ok": True}
+
+    mb = MockBrowser()
+    _click_by_name(mb, "Cartoon Anime Version [AMV] Yes & No")
+    assert mb.clicked is not None
+    assert mb.clicked["x"] == 250
+    assert mb.clicked["y"] == 225
+
+
+

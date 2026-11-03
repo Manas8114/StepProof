@@ -18,18 +18,25 @@ def derive_vision_concept(tool: str, element_name: str = "",
     SAM wants short noun phrases (e.g. 'Vendor text input', 'Submit claim button'),
     never full sentences or instructions."""
     raw = element_name.strip()
+    generic_ids = {"endpoint", "container", "wrapper", "content", "item", "main", "root", "app"}
+    if raw.lower() in generic_ids:
+        raw = ""
     if not raw and locators:
         for l in locators:
             val = getattr(l, "value", None) or (l.get("value") if isinstance(l, dict) else "")
             kind = getattr(l, "kind", None) or (l.get("kind") if isinstance(l, dict) else "")
             if kind in ("text", "role") and val:
-                raw = val.strip()
-                break
+                candidate = val.strip()
+                if candidate.lower() not in generic_ids:
+                    raw = candidate
+                    break
             if kind == "css" and val:
                 m = re.search(r"#([a-zA-Z0-9_-]+)", val)
                 if m:
-                    raw = m.group(1).replace("-", " ").replace("_", " ").title()
-                    break
+                    cid = m.group(1).replace("-", " ").replace("_", " ").title()
+                    if cid.lower() not in generic_ids:
+                        raw = cid
+                        break
     if not raw and narration:
         m = re.search(r"(?:enter|type|select|pick|click|file|submit|the)\s+([a-zA-Z0-9\s_-]+)", narration, re.I)
         raw = m.group(1).strip() if m else narration.strip()

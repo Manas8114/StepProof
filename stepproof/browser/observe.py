@@ -29,19 +29,26 @@ _OBSERVE_JS = """
     // field (role/kind/box) but its value never becomes the element name the model sees
     let name = (t === 'input' && el.type === 'password') ? ''
                 : (el.getAttribute('aria-label') || el.getAttribute('title')
-                || (t === 'input' || t === 'select' ? el.value || '' : (el.textContent || '').trim().slice(0, 60))
+                || (t === 'input' || t === 'select' ? el.value || '' : (el.innerText || el.textContent || '').trim())
                 || el.id || '').trim();
-    name = name.slice(0, 60);
+    if (['endpoint', 'container', 'wrapper', 'content', 'item'].includes(name.toLowerCase())) name = '';
+    name = name.slice(0, 100);
     push(el, role, name, kind);
   });
-  const txt = document.body.innerText.slice(0, 400);
-  return {url: location.href, title: document.title, body_text: txt, elements: out.slice(0, 48)};
+  const inView = e => e.visible && e.y >= -50 && e.y <= window.innerHeight + 300 && e.x >= -50 && e.x <= window.innerWidth + 50;
+  out.sort((a, b) => {
+    const aV = inView(a), bV = inView(b);
+    if (aV !== bV) return aV ? -1 : 1;
+    return a.y - b.y || a.x - b.x;
+  });
+  const txt = document.body.innerText.slice(0, 600);
+  return {url: location.href, title: document.title, body_text: txt, elements: out.slice(0, 80)};
 }
 """
 
 
 def observe_page(page) -> dict:
-    """Return {url, title, body_text, elements: [{role,name,kind,id,x,y,w,h,visible}]} (<=48, visible-prefixed)."""
+    """Return {url, title, body_text, elements: [{role,name,kind,id,x,y,w,h,visible}]} (<=80, viewport-prefixed)."""
     data = page.evaluate(_OBSERVE_JS)
     els = data.get("elements", [])
     els.sort(key=lambda e: (not e.get("visible"), e.get("y", 0), e.get("x", 0)))

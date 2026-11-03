@@ -332,10 +332,74 @@ class PointIn(BaseModel):
     y: int = 0
 
 
+_ELEMENT_AT_JS = """(([cx, cy]) => {
+  const el = document.elementFromPoint(cx, cy);
+  if (!el) return null;
+  const target = el.closest('button, a, input, select, textarea, [role=button], [role=link], [tabindex], [contenteditable=true]') || el;
+  const tag = target.tagName.toLowerCase();
+  const rawId = (target.id || '').trim();
+  const isGenericId = ['endpoint', 'container', 'content', 'wrapper', 'item', 'menu-item', 'main', 'root', 'app'].includes(rawId.toLowerCase());
+  let uniqueId = null;
+  if (rawId && !isGenericId) {
+    try {
+      if (document.querySelectorAll('#' + CSS.escape(rawId)).length === 1) {
+        uniqueId = rawId;
+      }
+    } catch (e) {}
+  }
+  let role = target.getAttribute('role');
+  if (!role) {
+    if (tag === 'button') role = 'button';
+    else if (tag === 'a') role = 'link';
+    else if (tag === 'select') role = 'combobox';
+    else if (tag === 'textarea') role = 'textbox';
+    else if (tag === 'input') role = (target.type === 'checkbox' || target.type === 'radio') ? target.type : 'textbox';
+    else role = 'element';
+  }
+  const kind = tag === 'input' ? target.type : tag;
+  let name = (target.getAttribute('aria-label') || target.getAttribute('title') ||
+              (tag === 'input' || tag === 'select' ? target.value : (target.innerText || target.textContent || '')) ||
+              target.getAttribute('name') || '').trim().replace(/\\s+/g, ' ');
+  if (isGenericId && name.toLowerCase() === rawId.toLowerCase()) name = '';
+  name = name.slice(0, 100);
+
+  const r = target.getBoundingClientRect();
+  const midX = Math.round(r.x + r.width / 2);
+  const midY = Math.round(r.y + r.height / 2);
+
+  const locs = [];
+  if (uniqueId) locs.push({ kind: 'css', value: '#' + uniqueId });
+  const href = target.getAttribute('href');
+  if (href && href !== '#' && !href.startsWith('javascript:')) {
+    const safeHref = href.replace(/"/g, '\\\\"');
+    locs.push({ kind: 'css', value: `${tag}[href*="${safeHref.slice(0, 50)}"]` });
+  }
+  const inputName = target.getAttribute('name');
+  if (inputName) locs.push({ kind: 'css', value: `${tag}[name="${inputName}"]` });
+  if (name) {
+    locs.push({ kind: 'role', value: `${role} ${name}`.trim() });
+    locs.push({ kind: 'text', value: name });
+  }
+  locs.push({ kind: 'box', value: `${midX},${midY}` });
+
+  return { id: uniqueId, tag: tag, role: role, kind: kind, name: name, locators: locs };
+})"""
+
+
 @app.get("/api/v2/browser/element-at")
 def element_at(x: int = 0, y: int = 0):
     """The interactive element at a screenshot coordinate (for Monitor recording):
     returns multi-locators so a recorded action can be replayed with self-healing."""
+    # 1. Direct live DOM element resolution
+    try:
+        expr = f"({_ELEMENT_AT_JS})([{int(x)}, {int(y)}])"
+        live_res = _browser.act("eval", {"expr": expr})
+        if isinstance(live_res, dict) and live_res.get("locators"):
+            return live_res
+    except Exception:
+        pass
+
+    # 2. Fallback to observation element list
     obs = _browser.observe()
     best = None
     for el in obs.get("elements", []):
@@ -350,11 +414,12 @@ def element_at(x: int = 0, y: int = 0):
         "locators": [],
     }
     if best:
-        if best.get("id"):
-            out["locators"].append({"kind": "css", "value": "#" + best["id"]})
+        bid = str(best.get("id", "")).strip()
+        if bid and bid.lower() not in ("endpoint", "container", "wrapper", "content", "item"):
+            out["locators"].append({"kind": "css", "value": "#" + bid})
         name = str(best.get("name", "")).strip()
         role = best.get("role", "")
-        if name:
+        if name and name.lower() not in ("endpoint", "container", "wrapper", "content"):
             out["locators"].append({"kind": "role", "value": f"{role} {name}".strip()})
             out["locators"].append({"kind": "text", "value": name})
         cx = best["x"] + best["w"] // 2

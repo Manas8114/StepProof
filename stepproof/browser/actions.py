@@ -223,25 +223,93 @@ def execute_action(tb, name: str, arg: dict) -> ActionResult:
 
 
 def _click_by_name(tb, name: str) -> None:
-    """Click the best-matching visible element: exact substring first, then token match
-    (every word of `name` present in the element's name/kind). Box-centre click."""
+    """Click the best-matching visible element: exact substring first, then token ratio match,
+    and falls back to querying the live page DOM for matching text/links/buttons."""
     obs = tb.observe()
     low = name.strip().lower()
-    toks = low.split()
+    words = [w for w in re.findall(r"\w+", low) if len(w) > 1]
     best, best_score = None, 0
+
     for el in obs.get("elements", []):
         if not el.get("visible"):
             continue
-        hay = f"{el.get('name', '')} {el.get('kind', '')}".lower()
+        hay = f"{el.get('name', '')} {el.get('kind', '')} {el.get('role', '')}".lower()
         score = 0
         if low in hay:
             score = 100
-        elif toks and all(t in hay for t in toks):
-            score = 50 + len(toks)
+        elif words:
+            matched = sum(1 for w in words if w in hay)
+            if matched == len(words):
+                score = 80 + len(words)
+            elif matched / len(words) >= 0.5:
+                score = int(40 + 40 * (matched / len(words)))
         elif len(low) >= 4 and low in hay.replace(" ", ""):
-            score = 30
+            score = 35
         if score > best_score:
             best, best_score = el, score
-    if best_score < 30:
-        raise ValueError(f"no visible element matching {name!r}")
-    tb.act("click_box", {"x": best["x"] + best["w"] // 2, "y": best["y"] + best["h"] // 2})
+
+    if best and best_score >= 40:
+        tb.act("click_box", {"x": best["x"] + best["w"] // 2, "y": best["y"] + best["h"] // 2})
+        return
+
+    # Fallback: Query the live DOM across all clickable/heading/link elements
+    try:
+        import json
+        words_json = json.dumps(words)
+        q_json = json.dumps(low)
+        js_find = f"""(() => {{
+            const searchWords = {words_json};
+            const rawQ = {q_json};
+            const candidates = Array.from(document.querySelectorAll(
+                'a, button, [role=button], [role=link], h1, h2, h3, h4, ytd-video-renderer, #video-title, span, p'
+            ));
+            let bestEl = null;
+            let bestScore = 0;
+            for (const el of candidates) {{
+                const r = el.getBoundingClientRect();
+                if (r.width < 5 || r.height < 5) continue;
+                const text = (el.getAttribute('title') || el.getAttribute('aria-label') || el.innerText || el.textContent || '').toLowerCase().replace(/\\s+/g, ' ');
+                if (!text) continue;
+                let score = 0;
+                if (text.includes(rawQ)) {{
+                    score = 100;
+                }} else if (searchWords.length > 0) {{
+                    let matched = 0;
+                    for (const w of searchWords) {{
+                        if (text.includes(w)) matched++;
+                    }}
+                    if (matched === searchWords.length) {{
+                        score = 85;
+                    }} else if (matched / searchWords.length >= 0.4) {{
+                        score = Math.round(35 + 45 * (matched / searchWords.length));
+                    }}
+                }}
+                if (score > bestScore) {{
+                    bestScore = score;
+                    bestEl = el;
+                }}
+            }}
+            if (bestEl && bestScore >= 35) {{
+                try {{ bestEl.scrollIntoView({{ behavior: 'instant', block: 'center' }}); }} catch(e) {{}}
+                const r2 = bestEl.getBoundingClientRect();
+                return {{
+                    found: true,
+                    score: bestScore,
+                    x: Math.round(r2.x + r2.width / 2),
+                    y: Math.round(r2.y + r2.height / 2)
+                }};
+            }}
+            return {{ found: false }};
+        }})()"""
+        dom_res = tb.act("eval", {"expr": js_find})
+        if isinstance(dom_res, dict) and dom_res.get("found"):
+            tb.act("click_box", {"x": dom_res["x"], "y": dom_res["y"]})
+            return
+    except Exception:
+        pass
+
+    if best and best_score >= 30:
+        tb.act("click_box", {"x": best["x"] + best["w"] // 2, "y": best["y"] + best["h"] // 2})
+        return
+
+    raise ValueError(f"no visible element matching {name!r}")
