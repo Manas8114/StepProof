@@ -1,0 +1,192 @@
+{
+  "goal": "Stripe partial refund verification and customer dispute settlement",
+  "site": "https://dashboard.stripe.com/payments",
+  "steps": [
+    {
+      "id": "s1",
+      "description": "Type charge ID into search filter",
+      "action": "type",
+      "arg": {
+        "text": "ch_3N19876251"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "input[data-test='search-input']"
+        },
+        {
+          "kind": "role",
+          "value": "textbox Search payments"
+        },
+        {
+          "kind": "box",
+          "value": "180,45"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Payment search input"
+    },
+    {
+      "id": "s2",
+      "description": "Click payment transaction row",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "tr[data-test='payment-row']"
+        },
+        {
+          "kind": "role",
+          "value": "row ch_3N19876251"
+        },
+        {
+          "kind": "box",
+          "value": "400,160"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Payment transaction row"
+    },
+    {
+      "id": "s3",
+      "description": "Click Refund payment button",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "button[data-test='refund-button']"
+        },
+        {
+          "kind": "role",
+          "value": "button Refund"
+        },
+        {
+          "kind": "box",
+          "value": "820,95"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Refund payment button"
+    },
+    {
+      "id": "s4",
+      "description": "Type refund amount into amount input",
+      "action": "type",
+      "arg": {
+        "text": "25.00"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "input[name='refund_amount']"
+        },
+        {
+          "kind": "role",
+          "value": "textbox Refund amount"
+        },
+        {
+          "kind": "box",
+          "value": "512,320"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Refund amount number input"
+    },
+    {
+      "id": "s5",
+      "description": "Select refund reason dropdown",
+      "action": "select",
+      "arg": {
+        "value": "Customer dispute resolution"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "select[name='reason']"
+        },
+        {
+          "kind": "role",
+          "value": "combobox Reason for refund"
+        },
+        {
+          "kind": "box",
+          "value": "512,380"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Refund reason dropdown"
+    },
+    {
+      "id": "s6",
+      "description": "Click confirm refund button",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "button[data-test='confirm-refund']"
+        },
+        {
+          "kind": "role",
+          "value": "button Confirm Refund"
+        },
+        {
+          "kind": "box",
+          "value": "620,440"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Confirm refund button"
+    }
+  ],
+  "parameters": {
+    "charge_id": "ch_3N19876251",
+    "refund_amount": "25.00",
+    "reason": "Customer dispute resolution"
+  },
+  "success_checks": [
+    {
+      "kind": "text_visible",
+      "spec": {
+        "text": "Refund issued"
+      }
+    },
+    {
+      "kind": "text_visible",
+      "spec": {
+        "text": "Status: Refunded"
+      }
+    }
+  ],
+  "source": "enterprise_preset",
+  "manifest": {
+    "version": "1.0",
+    "format": "stepproof-procedure-manifest-v1",
+    "procedure_hash": "b7284fc5e099497bbaf3343212e216fc2e09c42fe523d5a358ebea10d8aace35",
+    "step_count": 6,
+    "check_count": 2,
+    "steps_hashes": [
+      "14ca2fb0613bc4bec04a57ba8ca759dab396ac05b76a3c2df7c85a984e30b78b",
+      "237c5abca9ebed8496ae46c8e7c2039893405c9d0683b8525ca8e9ab0e2a2b2d",
+      "8de0fa8dffbe526caf337a9ed2b9b495b5031238731deb29761288a944397929",
+      "aa467cef885673a2448dbe7e3499adf7c721b26c63f6898bc3419f71dedada43",
+      "53ca8154366140849ecadf92c6c9a585e421ece24299835f06b03565b21e731d",
+      "78f3f67d3bbda1177d12991ae07f0c77ba7d20e4333880e7684986fac45b3ab4"
+    ]
+  },
+  "signature": "eae3aa3bde4f69fe02eaba896950576a03e49878248845bff2682b5b89eba944",
+  "provenance": {
+    "compiler_version": "stepproof-v2.1",
+    "model_used": "compiler",
+    "signing_key_id": "custom",
+    "ts": 1793741955.508
+  }
+}

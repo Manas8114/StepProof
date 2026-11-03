@@ -1,0 +1,426 @@
+{
+  "goal": "Search and play yes no i don't know amv",
+  "site": "https://www.youtube.com/",
+  "steps": [
+    {
+      "id": "s1",
+      "description": "step 1",
+      "action": "click",
+      "arg": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "#endpoint"
+          },
+          {
+            "kind": "role",
+            "value": "link Home"
+          },
+          {
+            "kind": "text",
+            "value": "Home"
+          },
+          {
+            "kind": "box",
+            "value": "36,98"
+          }
+        ]
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#endpoint"
+        },
+        {
+          "kind": "role",
+          "value": "link Home"
+        },
+        {
+          "kind": "text",
+          "value": "Home"
+        },
+        {
+          "kind": "box",
+          "value": "36,98"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Endpoint button"
+    },
+    {
+      "id": "s2",
+      "description": "step 2",
+      "action": "click",
+      "arg": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "#endpoint"
+          },
+          {
+            "kind": "role",
+            "value": "link Subscriptions"
+          },
+          {
+            "kind": "text",
+            "value": "Subscriptions"
+          },
+          {
+            "kind": "box",
+            "value": "36,250"
+          }
+        ]
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#endpoint"
+        },
+        {
+          "kind": "role",
+          "value": "link Subscriptions"
+        },
+        {
+          "kind": "text",
+          "value": "Subscriptions"
+        },
+        {
+          "kind": "box",
+          "value": "36,250"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Endpoint button"
+    },
+    {
+      "id": "s3",
+      "description": "step 3",
+      "action": "click",
+      "arg": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "#endpoint"
+          },
+          {
+            "kind": "role",
+            "value": "link Shorts"
+          },
+          {
+            "kind": "text",
+            "value": "Shorts"
+          },
+          {
+            "kind": "box",
+            "value": "36,174"
+          }
+        ]
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#endpoint"
+        },
+        {
+          "kind": "role",
+          "value": "link Shorts"
+        },
+        {
+          "kind": "text",
+          "value": "Shorts"
+        },
+        {
+          "kind": "box",
+          "value": "36,174"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Endpoint button"
+    },
+    {
+      "id": "s4",
+      "description": "step 4",
+      "action": "click",
+      "arg": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "#endpoint"
+          },
+          {
+            "kind": "role",
+            "value": "link Shorts"
+          },
+          {
+            "kind": "text",
+            "value": "Shorts"
+          },
+          {
+            "kind": "box",
+            "value": "36,174"
+          }
+        ]
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#endpoint"
+        },
+        {
+          "kind": "role",
+          "value": "link Shorts"
+        },
+        {
+          "kind": "text",
+          "value": "Shorts"
+        },
+        {
+          "kind": "box",
+          "value": "36,174"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Endpoint button"
+    },
+    {
+      "id": "s5",
+      "description": "step 5",
+      "action": "click",
+      "arg": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "#endpoint"
+          },
+          {
+            "kind": "role",
+            "value": "link Subscriptions"
+          },
+          {
+            "kind": "text",
+            "value": "Subscriptions"
+          },
+          {
+            "kind": "box",
+            "value": "36,250"
+          }
+        ]
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#endpoint"
+        },
+        {
+          "kind": "role",
+          "value": "link Subscriptions"
+        },
+        {
+          "kind": "text",
+          "value": "Subscriptions"
+        },
+        {
+          "kind": "box",
+          "value": "36,250"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Endpoint button"
+    },
+    {
+      "id": "s6",
+      "description": "step 6",
+      "action": "click",
+      "arg": {
+        "locators": [
+          {
+            "kind": "box",
+            "value": "38,317"
+          }
+        ]
+      },
+      "locators": [
+        {
+          "kind": "box",
+          "value": "38,317"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "button"
+    },
+    {
+      "id": "s7",
+      "description": "step 7",
+      "action": "click",
+      "arg": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "#endpoint"
+          },
+          {
+            "kind": "role",
+            "value": "link Home"
+          },
+          {
+            "kind": "text",
+            "value": "Home"
+          },
+          {
+            "kind": "box",
+            "value": "36,98"
+          }
+        ]
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#endpoint"
+        },
+        {
+          "kind": "role",
+          "value": "link Home"
+        },
+        {
+          "kind": "text",
+          "value": "Home"
+        },
+        {
+          "kind": "box",
+          "value": "36,98"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Endpoint button"
+    },
+    {
+      "id": "s8",
+      "description": "step 8",
+      "action": "click",
+      "arg": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "#endpoint"
+          },
+          {
+            "kind": "role",
+            "value": "link Shorts"
+          },
+          {
+            "kind": "text",
+            "value": "Shorts"
+          },
+          {
+            "kind": "box",
+            "value": "36,174"
+          }
+        ]
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#endpoint"
+        },
+        {
+          "kind": "role",
+          "value": "link Shorts"
+        },
+        {
+          "kind": "text",
+          "value": "Shorts"
+        },
+        {
+          "kind": "box",
+          "value": "36,174"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Endpoint button"
+    }
+  ],
+  "parameters": {},
+  "success_checks": [
+    {
+      "kind": "url_contains",
+      "spec": {
+        "url": "https://www.youtube.com/"
+      }
+    },
+    {
+      "kind": "url_contains",
+      "spec": {
+        "url": "https://www.youtube.com/"
+      }
+    },
+    {
+      "kind": "url_contains",
+      "spec": {
+        "url": "https://www.youtube.com/"
+      }
+    },
+    {
+      "kind": "url_contains",
+      "spec": {
+        "url": "https://www.youtube.com/"
+      }
+    },
+    {
+      "kind": "url_contains",
+      "spec": {
+        "url": "https://www.youtube.com/"
+      }
+    },
+    {
+      "kind": "url_contains",
+      "spec": {
+        "url": "https://www.youtube.com/feed/you"
+      }
+    },
+    {
+      "kind": "url_contains",
+      "spec": {
+        "url": "https://www.youtube.com/"
+      }
+    },
+    {
+      "kind": "url_contains",
+      "spec": {
+        "url": "https://www.youtube.com/"
+      }
+    }
+  ],
+  "source": "learned",
+  "manifest": {
+    "version": "1.0",
+    "format": "stepproof-procedure-manifest-v1",
+    "procedure_hash": "ed50157473216fc476715acfded663a1f17013fccc18d7581b14e4a66a8eb1c4",
+    "step_count": 8,
+    "check_count": 8,
+    "steps_hashes": [
+      "4c8dcd15b426c6fb45f1397a8c34e6a9e97a88689edad992da74ccce4d5a46a1",
+      "4b3935fde48ff65a34ee514356352bb9f3d00b9415d2149e72f912898b72569a",
+      "37ea7a78fdce3783ad2ed3c5263b7909247908a1144712e74c1cc97f762f6af7",
+      "3445e7507d54bb416927093e1f9e52116f48487eecddf370c198e5af675310d8",
+      "63c79b0566da2254a7c95ea72c3c12c6e1f6a01c1b474cbf0fe2dab57c1b2320",
+      "7bce39124fb5d3edb6bd6d190e87f9f6e04a883dee176717cf4b348cb0df9409",
+      "eb0432c3e9a9e9827a2a105a7ce263ac2a96c6416d3e6de2ccf7e392c5d4c93c",
+      "f136aefbc0a0a9436b0f64aba9a0f3c383d92ad8433b1c340af9596518673e87"
+    ]
+  },
+  "signature": "e912c0fe25a1a771d1e66b2446eb53507491da883df7752e2ca85a1487f99aab",
+  "provenance": {
+    "compiler_version": "stepproof-v2.1",
+    "model_used": "compiler",
+    "signing_key_id": "custom",
+    "ts": 1793667260.574
+  }
+}

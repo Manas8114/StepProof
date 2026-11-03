@@ -615,6 +615,10 @@ label {
     <h1>StepProof <span style="color:var(--acc);font-weight:400">·</span> Learn · Execute · Verify</h1>
   </div>
   <div class="header-status-group">
+    <div style="display:flex;background:#18181b;border:1px solid #27272a;border-radius:20px;padding:2px;gap:2px;">
+      <button id="view-cockpit-btn" class="primary" style="padding:4px 10px;font-size:11px;border-radius:16px;">⚙️ Cockpit</button>
+      <button id="view-kiosk-btn" class="ghost" style="padding:4px 10px;font-size:11px;border-radius:16px;">👔 Executive Kiosk</button>
+    </div>
     <div class="status-pill" id="backend-status-pill">
       <span class="status-dot pulsing" id="backend-dot"></span>
       <span id="backend-text">SSE Live</span>
@@ -626,7 +630,7 @@ label {
   </div>
 </header>
 
-<main>
+<main id="main-cockpit">
   <!-- LEFT: Control panels & Mode tabs -->
   <div class="col">
     <h2>Modes & Control</h2>
@@ -643,6 +647,20 @@ label {
 
     <!-- Monitor Tab -->
     <div id="m-monitor">
+      <div style="margin-bottom:12px;background:#18181b;border:1px solid #27272a;border-radius:8px;padding:8px 10px;">
+        <label style="margin:0 0 4px;color:#38bdf8;font-size:11px;font-weight:700;">📋 Load Enterprise Presets (Signed Templates)</label>
+        <div style="display:flex;gap:6px;">
+          <select id="preset-select" style="flex:1;font-size:12px;padding:4px 8px;background:#090d0f;border:1px solid #27272a;color:#f4f4f5;border-radius:6px;">
+            <option value="">-- Choose standard enterprise workflow --</option>
+            <option value="stripe_refund">💳 Stripe Dispute & Refund (6 steps, signed)</option>
+            <option value="github_issue_restock">📦 Warehouse Restock Issue (5 steps, signed)</option>
+            <option value="google_forms_submission">📝 Onboarding Survey Form (5 steps, signed)</option>
+            <option value="salesforce_lead_update">⚡ Salesforce CRM Lead Update [Shadow DOM] (5 steps, signed)</option>
+            <option value="expense_compliance_audit">💼 ACME Expense Compliance Audit (4 steps, signed)</option>
+          </select>
+          <button id="preset-load-btn" class="primary" style="padding:4px 10px;font-size:12px;white-space:nowrap;">Load</button>
+        </div>
+      </div>
       <h2>Monitor (learn from human)</h2>
       <label>Site to learn on (or use current page)</label>
       <div style="display:flex;gap:6px;margin-bottom:6px;">
@@ -885,6 +903,18 @@ label {
       <button id="navgo" title="Navigate (allowlist-gated)">Go</button>
       <button id="navreload" title="Reload">⟳</button>
     </div>
+
+    <!-- Active Windows / Tabs Bar (OAuth popups, SSO, multi-tab support) -->
+    <div id="tabs-bar" style="display:flex;align-items:center;justify-content:space-between;background:#18181b;border:1px solid #27272a;border-radius:6px;padding:3px 8px;margin:4px 0 6px;">
+      <div style="display:flex;align-items:center;gap:6px;overflow-x:auto;">
+        <span style="font-size:11px;color:#a1a1aa;white-space:nowrap;">📑 Windows:</span>
+        <div id="tabs-list" style="display:flex;gap:4px;">
+          <button class="ghost" style="padding:2px 8px;font-size:11px;color:#38bdf8;border-color:#0284c7;">Tab 0: Live</button>
+        </div>
+      </div>
+      <button class="ghost" id="tabs-refresh-btn" style="padding:2px 6px;font-size:10px;" title="Refresh open windows">⟳</button>
+    </div>
+
     <div class="btnrow">
       <button id="fresh">Refresh view</button>
       <span class="note">In PAUSED_HUMAN, clicks and keypresses forward to the live page.</span>
@@ -910,6 +940,85 @@ label {
     <div id="sugg" class="note">No data yet — run a task, then use Coach.</div>
   </div>
 </main>
+
+<!-- EXECUTIVE KIOSK VIEW (Simplified for Leadership & Non-Technical Operators) -->
+<div id="kiosk-container" class="hide" style="max-width:1120px;margin:24px auto;padding:0 20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;background:#18181b;padding:16px 20px;border-radius:10px;border:1px solid #27272a;">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="background:#0284c7;color:#f0f9ff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;">Executive Kiosk</span>
+        <h2 style="font-size:20px;margin:0;color:#f4f4f5;">Autonomous Browser Execution & Audit Cockpit</h2>
+      </div>
+      <p class="note" style="margin:4px 0 0;font-size:12px;">Deterministic execution, cryptographic tamper-proofing, and zero-model audit certificates.</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span class="tag" style="background:#064e3b;color:#34d399;font-size:12px;padding:5px 12px;font-weight:700;" id="kiosk-verdict-pill">SYSTEM READY</span>
+      <button class="ghost" id="kiosk-switch-back" style="padding:6px 12px;font-size:12px;">⚙️ Switch to Advanced Cockpit</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-bottom:18px;">
+    <!-- Active Site & Live Feed -->
+    <div style="background:#18181b;border:1px solid #27272a;border-radius:10px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:12px;color:#a1a1aa;text-transform:uppercase;font-weight:700;letter-spacing:0.04em;">Live Execution Screen</span>
+        <span class="mono note" id="kiosk-url" style="color:#38bdf8;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+      </div>
+      <div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid #3f3f46;background:#090d0f;">
+        <img id="kiosk-shot" style="width:100%;height:330px;object-fit:contain;background:#000;display:block;" alt="Live browser view">
+        <span id="kiosk-state-badge" class="state-IDLE" style="position:absolute;top:12px;right:12px;font-size:11px;padding:4px 10px;border-radius:12px;font-weight:700;">IDLE</span>
+      </div>
+    </div>
+
+    <!-- Quick Run & Enterprise Presets Selection -->
+    <div style="background:#18181b;border:1px solid #27272a;border-radius:10px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;">
+      <div>
+        <span style="font-size:12px;color:#a1a1aa;text-transform:uppercase;font-weight:700;letter-spacing:0.04em;">One-Click Enterprise Presets</span>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+          <button class="ghost" style="text-align:left;padding:10px 12px;border-radius:8px;border:1px solid #27272a;background:#090d0f;" onclick="loadAndRunPreset('stripe_refund')">
+            <div style="font-weight:700;color:#38bdf8;font-size:13px;">💳 Stripe Dispute & Partial Refund</div>
+            <div class="note" style="font-size:11px;margin-top:2px;">Charge verification, partial dispute settlement, and refund certificate.</div>
+          </button>
+          <button class="ghost" style="text-align:left;padding:10px 12px;border-radius:8px;border:1px solid #27272a;background:#090d0f;" onclick="loadAndRunPreset('salesforce_lead_update')">
+            <div style="font-weight:700;color:#38bdf8;font-size:13px;">⚡ Salesforce CRM Lead Qualification</div>
+            <div class="note" style="font-size:11px;margin-top:2px;">Deep Shadow DOM piercing across Lightning Web Components to qualify pipeline lead.</div>
+          </button>
+          <button class="ghost" style="text-align:left;padding:10px 12px;border-radius:8px;border:1px solid #27272a;background:#090d0f;" onclick="loadAndRunPreset('github_issue_restock')">
+            <div style="font-weight:700;color:#38bdf8;font-size:13px;">📦 Warehouse Inventory Restock Audit</div>
+            <div class="note" style="font-size:11px;margin-top:2px;">Threshold audit, automated issue creation, and triage labels.</div>
+          </button>
+          <button class="ghost" style="text-align:left;padding:10px 12px;border-radius:8px;border:1px solid #27272a;background:#090d0f;" onclick="loadAndRunPreset('expense_compliance_audit')">
+            <div style="font-weight:700;color:#38bdf8;font-size:13px;">💼 ACME Expense Compliance Audit</div>
+            <div class="note" style="font-size:11px;margin-top:2px;">Expense validation, budget tripwire check, and receipt submission.</div>
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="primary" id="kiosk-run-btn" style="flex:2;padding:12px;font-size:14px;font-weight:700;">▶ Run Active Workflow</button>
+        <button class="danger" id="kiosk-stop-btn" style="flex:1;padding:12px;font-size:13px;" onclick="$('#xkill').click()">⏹ Stop</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kiosk Step Progress & Certificate -->
+  <div style="background:#18181b;border:1px solid #27272a;border-radius:10px;padding:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <span style="font-size:12px;color:#a1a1aa;text-transform:uppercase;font-weight:700;letter-spacing:0.04em;">Workflow Steps & Evidence</span>
+      <span class="tag" id="kiosk-steps-summary">No workflow loaded</span>
+    </div>
+    <div id="kiosk-steps-row" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin:8px 0;">
+      <div class="note" style="padding:10px 0;">Select an enterprise preset above to preview steps.</div>
+    </div>
+    <div id="kiosk-proof-card" class="hide" style="background:#064e3b;border:1px solid #059669;padding:14px 18px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+      <div>
+        <div style="color:#34d399;font-weight:700;font-size:14px;">✓ Deterministic Audit Proof Verified</div>
+        <div class="note mono" style="color:#a7f3d0;font-size:11px;margin-top:3px;" id="kiosk-proof-hash">Zero Model API Calls | Cryptographic Hash Intact | Tamper-Proof</div>
+      </div>
+      <button class="primary" onclick="exportKioskProof()" style="background:#059669;border-color:#10b981;padding:8px 16px;font-size:12px;font-weight:700;">📥 Download Signed Audit Bundle</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -1006,6 +1115,7 @@ function onEvent(ev) {
   if (ev.type === 'ask_answered' || ev.type === 'approved') { hideGate(); hideAsk(); }
   if (ev.type === 'thought') onThoughtEvent(ev.data);
   if (ev.type === 'done') refreshMetrics();
+  if (ev.type === 'tab_opened' || ev.type === 'tab_closed') refreshTabs();
 }
 
 function onThoughtEvent(th) {
@@ -1091,7 +1201,156 @@ function setState(s) {
   el.textContent = s;
   el.className = 'state-' + s;
   $('#telem-state').textContent = s;
+  if ($('#kiosk-state-badge')) {
+    $('#kiosk-state-badge').textContent = s;
+    $('#kiosk-state-badge').className = 'state-' + s;
+  }
   if (s === 'DONE' || s === 'ERROR') refreshMetrics();
+}
+
+// View Mode Switching (Cockpit vs Executive Kiosk)
+function setViewMode(m) {
+  const isKiosk = m === 'kiosk';
+  const main = $('#main-cockpit');
+  const kiosk = $('#kiosk-container');
+  if (main) main.classList.toggle('hide', isKiosk);
+  if (kiosk) kiosk.classList.toggle('hide', !isKiosk);
+  if ($('#view-cockpit-btn')) $('#view-cockpit-btn').className = isKiosk ? 'ghost' : 'primary';
+  if ($('#view-kiosk-btn')) $('#view-kiosk-btn').className = isKiosk ? 'primary' : 'ghost';
+  try { localStorage.setItem('stepproof_view_mode', m); } catch(e) {}
+  if (isKiosk && lastShot) {
+    if ($('#kiosk-shot')) $('#kiosk-shot').src = lastShot;
+    if ($('#kiosk-url') && $('#url')) $('#kiosk-url').textContent = $('#url').textContent;
+  }
+}
+if ($('#view-cockpit-btn')) $('#view-cockpit-btn').onclick = () => setViewMode('cockpit');
+if ($('#view-kiosk-btn')) $('#view-kiosk-btn').onclick = () => setViewMode('kiosk');
+if ($('#kiosk-switch-back')) $('#kiosk-switch-back').onclick = () => setViewMode('cockpit');
+
+// Multi-Tab & Window Management (OAuth popups, SSO, etc.)
+async function refreshTabs() {
+  try {
+    const r = await api('/api/v2/browser/tabs');
+    const tabs = r.tabs || [];
+    const container = $('#tabs-list');
+    if (!container) return;
+    container.innerHTML = tabs.map(t => `
+      <button class="${t.is_active ? 'primary' : 'ghost'}" style="padding:2px 8px;font-size:11px;white-space:nowrap;" onclick="switchBrowserTab(${t.index})" title="${t.url}">
+        Tab ${t.index}: ${(t.title || 'Page').slice(0, 15)}${t.is_active ? ' (active)' : ''}
+      </button>
+    `).join('');
+  } catch (e) {}
+}
+async function switchBrowserTab(idx) {
+  try {
+    await japi('/api/v2/browser/tabs/switch', { index: idx });
+    await pollShot();
+    refreshTabs();
+  } catch (e) {
+    err('Switch tab failed: ' + e.message);
+  }
+}
+if ($('#tabs-refresh-btn')) $('#tabs-refresh-btn').onclick = refreshTabs;
+
+// Enterprise Presets & Kiosk Execution
+async function loadPresetProcedure(name) {
+  try {
+    const r = await api('/api/v2/procedure/get?name=' + encodeURIComponent(name));
+    if (!r.ok || !r.procedure) return err('Could not load preset: ' + name);
+    window.__proc = r.procedure;
+    $('#mgoal').value = r.procedure.goal || '';
+    $('#msite').value = r.procedure.site || 'current';
+    $('#msaved').textContent = `Loaded enterprise preset: ${name} (${r.procedure.steps.length} steps, signed).`;
+    const box = $('#m-learned-box');
+    if (box) {
+      box.classList.remove('hide');
+      $('#m-step-count').textContent = `${r.procedure.steps.length} steps`;
+      $('#m-steps-container').innerHTML = (r.procedure.steps || []).map((s, idx) => `
+        <div style="background:#27272a;padding:8px 10px;border-radius:6px;font-size:12px;border:1px solid #3f3f46;">
+          <div style="display:flex;justify-content:space-between;color:#a1a1aa;font-size:11px;">
+            <span class="mono">Step ${idx+1}: <b style="color:#22c55e;">${s.action.toUpperCase()}</b></span>
+            <span style="color:#60a5fa">${s.vision_concept || 'DOM target'}</span>
+          </div>
+          <div style="color:#f4f4f5;margin-top:2px;">${s.description || s.action} ${s.arg && s.arg.text ? '<b>"' + s.arg.text + '"</b>' : ''}</div>
+          <div class="note mono" style="font-size:10px;color:#71717a;margin-top:2px;">Target: ${s.locators && s.locators[0] ? s.locators[0].value : 'coords'}</div>
+        </div>
+      `).join('');
+    }
+  } catch (e) {
+    err('Preset load error: ' + e.message);
+  }
+}
+
+if ($('#preset-load-btn')) {
+  $('#preset-load-btn').onclick = () => {
+    const val = $('#preset-select').value;
+    if (val) loadPresetProcedure(val);
+  };
+}
+
+let activeKioskPreset = 'expense_compliance_audit';
+
+async function loadAndRunPreset(name) {
+  activeKioskPreset = name;
+  try {
+    const r = await api('/api/v2/procedure/get?name=' + encodeURIComponent(name));
+    if (!r.ok || !r.procedure) return;
+    const proc = r.procedure;
+    window.__proc = proc;
+    if ($('#kiosk-steps-summary')) $('#kiosk-steps-summary').textContent = `${proc.steps.length} steps configured (Signed)`;
+    if ($('#kiosk-steps-row')) {
+      $('#kiosk-steps-row').innerHTML = proc.steps.map((s, idx) => `
+        <div id="kiosk-step-${idx}" style="background:#27272a;border:1px solid #3f3f46;border-radius:8px;padding:8px 12px;min-width:160px;flex-shrink:0;">
+          <div style="font-size:11px;color:#38bdf8;font-weight:700;">Step ${idx+1}: ${s.action.toUpperCase()}</div>
+          <div style="font-size:12px;color:#f4f4f5;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.vision_concept || s.description}</div>
+        </div>
+      `).join('');
+    }
+    if ($('#kiosk-proof-card')) $('#kiosk-proof-card').classList.add('hide');
+    if ($('#kiosk-verdict-pill')) {
+      $('#kiosk-verdict-pill').textContent = 'PRESET LOADED';
+      $('#kiosk-verdict-pill').style.background = '#0284c7';
+      $('#kiosk-verdict-pill').style.color = '#f0f9ff';
+    }
+  } catch (e) {}
+}
+
+if ($('#kiosk-run-btn')) {
+  $('#kiosk-run-btn').onclick = async () => {
+    if (!activeKioskPreset) activeKioskPreset = 'expense_compliance_audit';
+    try {
+      if ($('#kiosk-verdict-pill')) {
+        $('#kiosk-verdict-pill').textContent = 'EXECUTING...';
+        $('#kiosk-verdict-pill').style.background = '#854d0e';
+        $('#kiosk-verdict-pill').style.color = '#fef08a';
+      }
+      setState('RUNNING');
+      const res = await japi('/api/v2/procedure/run', { name: activeKioskPreset, approve: true });
+      setState(res.success ? 'DONE' : 'ERROR');
+      if (res.success) {
+        if ($('#kiosk-verdict-pill')) {
+          $('#kiosk-verdict-pill').textContent = 'VERIFIED PASS';
+          $('#kiosk-verdict-pill').style.background = '#064e3b';
+          $('#kiosk-verdict-pill').style.color = '#34d399';
+        }
+        if ($('#kiosk-proof-card')) $('#kiosk-proof-card').classList.remove('hide');
+        if ($('#kiosk-proof-hash')) $('#kiosk-proof-hash').textContent = `Workflow: ${activeKioskPreset} | Manifest Hash: OK | All Checks Passed | Zero Model API Calls`;
+      } else {
+        if ($('#kiosk-verdict-pill')) {
+          $('#kiosk-verdict-pill').textContent = 'EXECUTION FAILED';
+          $('#kiosk-verdict-pill').style.background = '#7f1d1d';
+          $('#kiosk-verdict-pill').style.color = '#fca5a5';
+        }
+      }
+      await pollShot();
+    } catch (e) {
+      err('Kiosk run error: ' + e.message);
+    }
+  };
+}
+
+function exportKioskProof() {
+  window.open('/api/v2/agent/thoughts/export?format=md', '_blank');
 }
 
 function showClickRipple(cx, cy) {
@@ -1117,6 +1376,8 @@ async function pollShot() {
     lastShot = s.screenshot;
     $('#shot').src = lastShot;
     $('#url').textContent = s.url;
+    if ($('#kiosk-shot')) $('#kiosk-shot').src = lastShot;
+    if ($('#kiosk-url')) $('#kiosk-url').textContent = s.url || '—';
     if (document.activeElement !== $('#urlinput')) $('#urlinput').value = s.url || '';
     const ld = $('#loading');
     ld.classList.toggle('hide', !s.loading);
@@ -1124,6 +1385,7 @@ async function pollShot() {
 }
 setInterval(pollShot, 2000);
 pollShot();
+refreshTabs();
 
 $('#fresh').onclick = async () => {
   let chip = $('#freshstatus');

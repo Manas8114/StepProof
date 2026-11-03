@@ -1,0 +1,29 @@
+{
+  "name": "Board assembly",
+  "steps": [
+    {
+      "id": "s1",
+      "description": "Attach the red connector to the board",
+      "concept": "red connector",
+      "min_count": 1
+    },
+    {
+      "id": "s2",
+      "description": "Close the black cover",
+      "concept": "black cover",
+      "min_count": 1,
+      "after": [
+        "s1"
+      ]
+    },
+    {
+      "id": "s3",
+      "description": "Insert two silver screws",
+      "concept": "silver screw",
+      "min_count": 2,
+      "after": [
+        "s2"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,166 @@
+{
+  "goal": "Automated warehouse inventory restock issue creation",
+  "site": "https://github.com/enterprise-ops/inventory/issues/new",
+  "steps": [
+    {
+      "id": "s1",
+      "description": "Type issue title for restock",
+      "action": "type",
+      "arg": {
+        "text": "Restock WS-1042: Low threshold alert"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#issue_title"
+        },
+        {
+          "kind": "css",
+          "value": "input[name='issue[title]']"
+        },
+        {
+          "kind": "box",
+          "value": "320,180"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Issue title text input"
+    },
+    {
+      "id": "s2",
+      "description": "Type inventory justification into body textarea",
+      "action": "type",
+      "arg": {
+        "text": "Inventory dropped below safe threshold (qty remaining: 12). Urgently request batch restock of 150 units."
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#issue_body"
+        },
+        {
+          "kind": "css",
+          "value": "textarea[name='issue[body]']"
+        },
+        {
+          "kind": "box",
+          "value": "320,300"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Issue body comment textarea"
+    },
+    {
+      "id": "s3",
+      "description": "Click label selector button",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "button[data-hotkey='l']"
+        },
+        {
+          "kind": "role",
+          "value": "button Labels"
+        },
+        {
+          "kind": "box",
+          "value": "880,180"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Labels selector button"
+    },
+    {
+      "id": "s4",
+      "description": "Click restock label checkbox",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "input[value='restock']"
+        },
+        {
+          "kind": "role",
+          "value": "checkbox restock"
+        },
+        {
+          "kind": "box",
+          "value": "880,220"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Restock label option"
+    },
+    {
+      "id": "s5",
+      "description": "Click Submit new issue button",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "button.btn-primary[type='submit']"
+        },
+        {
+          "kind": "role",
+          "value": "button Submit new issue"
+        },
+        {
+          "kind": "box",
+          "value": "880,420"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Submit new issue button"
+    }
+  ],
+  "parameters": {
+    "sku": "WS-1042",
+    "qty_needed": "150",
+    "priority": "High"
+  },
+  "success_checks": [
+    {
+      "kind": "text_visible",
+      "spec": {
+        "text": "Restock WS-1042"
+      }
+    },
+    {
+      "kind": "text_visible",
+      "spec": {
+        "text": "Open"
+      }
+    }
+  ],
+  "source": "enterprise_preset",
+  "manifest": {
+    "version": "1.0",
+    "format": "stepproof-procedure-manifest-v1",
+    "procedure_hash": "e0a53cb8ddde40b86006757ad204861ee76970407d5c8e9385df2e6ae1a04016",
+    "step_count": 5,
+    "check_count": 2,
+    "steps_hashes": [
+      "16ce6c0d4ed6baf9277e14821359048b95f29a6832932d4fbe1fb0ea8c925497",
+      "19ac328fda2e86a56789d105637ef5fa02c4da42bd2fdf4fe5c7c083b2215876",
+      "916986051356938875a43bacd57b60aedb34087e33fe3e28900c156b30f98cd2",
+      "c7c7f70fdcdf0a6d0198582deb46d3acdef43ae7e1dc5e55a81f67be994e42b0",
+      "d45b305e8ac881a4fafb853868ac3f146931f78cafe3d6876dc3be971de8303e"
+    ]
+  },
+  "signature": "840d52d1a1f74bfb4c7f983827148c816513379938b9d3cd78982e4b80d2fca5",
+  "provenance": {
+    "compiler_version": "stepproof-v2.1",
+    "model_used": "compiler",
+    "signing_key_id": "custom",
+    "ts": 1793741955.51
+  }
+}

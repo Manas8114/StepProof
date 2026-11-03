@@ -206,6 +206,30 @@ class AgentLoop:
                               details={"tool": act.tool, "args": act.args, "latency_ms": dt_ms})
             BUS.publish("decision", {"tool": act.tool, "args": act.args, "thought": thought_desc})
 
+            # Anti-stagnation & loop circuit breaker (prevents looping on wait/scroll in open exploration)
+            stagnant_count = 0
+            for prev in reversed(self.history[-4:]):
+                if prev.get("tool") in ("wait", "scroll"):
+                    stagnant_count += 1
+                else:
+                    break
+            if act.tool in ("wait", "scroll") and stagnant_count >= 2:
+                self._log_thought(steps + 1, "ANTI_LOOP", "Stagnation Warning",
+                                  f"Detected {stagnant_count} consecutive {act.tool} actions without state progression. Shifting strategy to target on-screen interactive elements.")
+                if stagnant_count >= 4:
+                    self._log_thought(steps + 1, "ANTI_LOOP", "Loop Circuit Breaker",
+                                      "Agent stuck in wait/scroll cycle. Pausing for operator guidance.")
+                    self.pause()
+                    BUS.publish("agent_stuck", {"reason": "repeated wait/scroll cycle", "tool": act.tool})
+                    continue
+                else:
+                    self.history.append({
+                        "tool": "system_directive",
+                        "args": {},
+                        "ok": False,
+                        "detail": "STAGNATION NOTICE: Repeated wait/scroll is not advancing the page. Focus on clicking active buttons, inputs, links, or finishing if the goal is satisfied."
+                    })
+
             if act.is_finish:
                 summary = act.args.get("summary", "")
                 self._log_thought(steps + 1, "COMPLETION", "Task Finished", f"Achieved goal '{self.goal}': {summary}")

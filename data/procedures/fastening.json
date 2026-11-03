@@ -1,0 +1,21 @@
+{
+  "name": "Module fastening",
+  "steps": [
+    {
+      "id": "s1",
+      "description": "Snap the blue clip into place",
+      "concept": "blue clip",
+      "min_count": 1
+    },
+    {
+      "id": "s2",
+      "description": "Engage the gold latch",
+      "concept": "gold latch",
+      "min_count": 1,
+      "after": [
+        "s1"
+      ],
+      "state_question": "Is the gold latch engaged?"
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "goal": "ACME enterprise expense compliance audit and approval flow",
+  "site": "http://localhost:8011/site/expense/",
+  "steps": [
+    {
+      "id": "s1",
+      "description": "Type vendor name",
+      "action": "type",
+      "arg": {
+        "text": "Acme Global"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#vendor"
+        },
+        {
+          "kind": "role",
+          "value": "textbox Vendor"
+        },
+        {
+          "kind": "box",
+          "value": "320,160"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Vendor text input"
+    },
+    {
+      "id": "s2",
+      "description": "Type amount value",
+      "action": "type",
+      "arg": {
+        "text": "142.50"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#amount"
+        },
+        {
+          "kind": "role",
+          "value": "textbox Amount"
+        },
+        {
+          "kind": "box",
+          "value": "320,220"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Amount number input"
+    },
+    {
+      "id": "s3",
+      "description": "Select travel category",
+      "action": "select",
+      "arg": {
+        "value": "travel"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#category"
+        },
+        {
+          "kind": "role",
+          "value": "combobox Category"
+        },
+        {
+          "kind": "box",
+          "value": "320,280"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Category dropdown menu"
+    },
+    {
+      "id": "s4",
+      "description": "Click Submit expense claim",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#submit"
+        },
+        {
+          "kind": "css",
+          "value": "button[type='submit']"
+        },
+        {
+          "kind": "box",
+          "value": "320,350"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Submit claim button"
+    }
+  ],
+  "parameters": {
+    "vendor": "Acme Global",
+    "amount": "142.50",
+    "category": "travel",
+    "approver": "Finance Director"
+  },
+  "success_checks": [
+    {
+      "kind": "text_visible",
+      "spec": {
+        "text": "Claim filed"
+      }
+    },
+    {
+      "kind": "url_contains",
+      "spec": {
+        "url": "expense"
+      }
+    }
+  ],
+  "source": "enterprise_preset",
+  "manifest": {
+    "version": "1.0",
+    "format": "stepproof-procedure-manifest-v1",
+    "procedure_hash": "7c06a4da0f4a30c670e82f992f9b2c3b32afd600e6b03c2dff8675fb9a09c6cd",
+    "step_count": 4,
+    "check_count": 2,
+    "steps_hashes": [
+      "2504fb8a469b5ac6ea6449507998baee1ef67382bf1e9f28cd6cb17ba5585b3b",
+      "eacc05ffc80f3091ecf17fbd6da2607569be51013809c26b8886c3665330a244",
+      "68f86046d420ab26f615231ef746340b6bf8b3b21ebdd845af20623b503c6398",
+      "89a8cc0261ab14b83b7a603cf94cfa516c2b05fc8fef1be850ae7fc437593a2a"
+    ]
+  },
+  "signature": "77b4874e8905aef028c9271b82ace38dbe04d3fad48fd321f0ed49c8cccd99e7",
+  "provenance": {
+    "compiler_version": "stepproof-v2.1",
+    "model_used": "compiler",
+    "signing_key_id": "custom",
+    "ts": 1793741955.52
+  }
+}

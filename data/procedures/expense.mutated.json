@@ -1,0 +1,117 @@
+{
+  "goal": "File an Acme office expense of $42",
+  "site": "http://127.0.0.1:8011/mutated/",
+  "steps": [
+    {
+      "id": "s1",
+      "description": "Type Acme into vendor",
+      "action": "type",
+      "arg": {
+        "text": "Acme"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#vendor"
+        },
+        {
+          "kind": "text",
+          "value": "Vendor"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Vendor text input"
+    },
+    {
+      "id": "s2",
+      "description": "Type 42 into amount",
+      "action": "type",
+      "arg": {
+        "text": "42"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#amount"
+        },
+        {
+          "kind": "text",
+          "value": "Amount"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Amount number input"
+    },
+    {
+      "id": "s3",
+      "description": "Select category office",
+      "action": "select",
+      "arg": {
+        "value": "office"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#category"
+        },
+        {
+          "kind": "text",
+          "value": "Category"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Category dropdown"
+    },
+    {
+      "id": "s4",
+      "description": "Click submit claim",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#submit"
+        },
+        {
+          "kind": "text",
+          "value": "Submit claim"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Submit claim button"
+    }
+  ],
+  "parameters": {},
+  "success_checks": [
+    {
+      "type": "text_visible",
+      "text": "Claim filed"
+    }
+  ],
+  "source": "monitor",
+  "manifest": {
+    "version": "1.0",
+    "format": "stepproof-procedure-manifest-v1",
+    "procedure_hash": "daace068ad155984e6841b1947f05612a4f1b0e151ec2c2a3f5e1855e1a08acc",
+    "step_count": 4,
+    "check_count": 1,
+    "steps_hashes": [
+      "5d0bcbf635779158a699d300bd48b809a123b169bcd1294999ed7767b9570db9",
+      "4ca831660e0b1399ecee93ee9220b8aa672d86931a249413cc36b9e7c6f0738f",
+      "905483cd15835da73be368fd009962e81dc25089cf60a8530f4dfaa878191ce0",
+      "4dca5f029549ef7534f1869c6591b078ad9b6b8734b066f3d91754a168438287"
+    ]
+  },
+  "signature": "7e10049bff24ec4df9436c77cf3f327c9ba21da0c654781a286d5dca0eca93bc",
+  "provenance": {
+    "compiler_version": "stepproof-v2.1",
+    "model_used": "compiler",
+    "source": "monitor",
+    "device_id": "0ef0c839bfaa205e",
+    "recorded_ts": 1793660201.619
+  }
+}

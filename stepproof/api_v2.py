@@ -333,8 +333,13 @@ class PointIn(BaseModel):
 
 
 _ELEMENT_AT_JS = """(([cx, cy]) => {
-  const el = document.elementFromPoint(cx, cy);
+  let el = document.elementFromPoint(cx, cy);
   if (!el) return null;
+  while (el && el.shadowRoot) {
+    const sub = el.shadowRoot.elementFromPoint(cx, cy);
+    if (!sub || sub === el) break;
+    el = sub;
+  }
   const target = el.closest('button, a, input, select, textarea, [role=button], [role=link], [tabindex], [contenteditable=true]') || el;
   const tag = target.tagName.toLowerCase();
   const rawId = (target.id || '').trim();
@@ -434,6 +439,30 @@ def element_at(x: int = 0, y: int = 0):
 def browser_input(body: InputIn):
     """Human takeover: forward input to the live page (PAUSED_HUMAN; harmless otherwise)."""
     return _browser.forward_input(body.kind, body.payload)
+
+
+class TabSwitchIn(BaseModel):
+    index: int = 0
+
+
+@app.get("/api/v2/browser/tabs")
+def browser_tabs():
+    """List active browser tabs/windows (for OAuth popups, SSO, and multi-tab workflows)."""
+    return {"tabs": _browser.get_tabs(), "active_url": _browser.url, "active_title": _browser.title}
+
+
+@app.post("/api/v2/browser/tabs/switch")
+def browser_tabs_switch(body: TabSwitchIn):
+    """Switch active page focus to tab at index."""
+    r = _browser.switch_tab(body.index)
+    return {**r, "active_url": _browser.url, "active_title": _browser.title}
+
+
+@app.post("/api/v2/browser/tabs/close")
+def browser_tabs_close(body: TabSwitchIn):
+    """Close tab at index."""
+    r = _browser.close_tab(body.index)
+    return {**r, "active_url": _browser.url}
 
 
 @app.post("/api/v2/agent/run")
@@ -642,6 +671,49 @@ def procedure_run(body: ProcRunIn):
     return {"success": res.success, "error": res.error, "metrics": res.metrics(),
             "checks": [{"name": c.name, "passed": c.passed, "detail": c.detail}
                        for c in res.check_results]}
+
+
+@app.get("/api/v2/procedure/list")
+def procedure_list():
+    """List all available saved and preset enterprise procedures from data/procedures/."""
+    d = BASE / "data" / "procedures"
+    out = []
+    if d.exists():
+        for p in sorted(d.glob("*.json")):
+            try:
+                data = json.loads(p.read_text())
+                name = p.stem
+                out.append({
+                    "name": name,
+                    "goal": data.get("goal", ""),
+                    "site": data.get("site", ""),
+                    "step_count": len(data.get("steps", [])),
+                    "check_count": len(data.get("success_checks", [])),
+                    "signed": bool(data.get("signature")),
+                    "is_preset": data.get("source") == "enterprise_preset" or name in (
+                        "stripe_refund", "github_issue_restock", "google_forms_submission",
+                        "salesforce_lead_update", "expense_compliance_audit"
+                    )
+                })
+            except Exception:
+                pass
+    return {"procedures": out}
+
+
+@app.get("/api/v2/procedure/get")
+def procedure_get(name: str):
+    """Retrieve full procedure JSON by name."""
+    d = BASE / "data" / "procedures"
+    p = d / f"{name}.json"
+    if not p.exists():
+        raise HTTPException(404, f"procedure {name!r} not found")
+    try:
+        proc_data = json.loads(p.read_text())
+        proc = Procedure.from_dict(proc_data)
+        _proc_cache[name] = proc
+        return {"ok": True, "name": name, "procedure": proc.to_dict()}
+    except Exception as e:
+        raise HTTPException(500, f"failed to load procedure: {e}")
 
 
 # ------------------------------------------------------------------ coach + voice

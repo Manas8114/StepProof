@@ -1,0 +1,158 @@
+{
+  "goal": "Employee equipment onboarding survey form submission",
+  "site": "https://docs.google.com/forms/d/e/1FAIpQLSc-onboarding/viewform",
+  "steps": [
+    {
+      "id": "s1",
+      "description": "Type employee name",
+      "action": "type",
+      "arg": {
+        "text": "Jordan Lee"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "div[role='listitem']:nth-child(1) input"
+        },
+        {
+          "kind": "role",
+          "value": "textbox Your answer"
+        },
+        {
+          "kind": "box",
+          "value": "380,240"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Employee name text input"
+    },
+    {
+      "id": "s2",
+      "description": "Click department dropdown listbox",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "div[role='listitem']:nth-child(2) div[role='listbox']"
+        },
+        {
+          "kind": "role",
+          "value": "listbox Choose"
+        },
+        {
+          "kind": "box",
+          "value": "380,340"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Department dropdown menu"
+    },
+    {
+      "id": "s3",
+      "description": "Select Engineering option",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "div[role='option'][data-value='Engineering']"
+        },
+        {
+          "kind": "role",
+          "value": "option Engineering"
+        },
+        {
+          "kind": "box",
+          "value": "380,410"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Engineering department option"
+    },
+    {
+      "id": "s4",
+      "description": "Select laptop model radio",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "div[role='radio'][aria-label*='MacBook Pro']"
+        },
+        {
+          "kind": "role",
+          "value": "radio MacBook Pro"
+        },
+        {
+          "kind": "box",
+          "value": "240,510"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "MacBook Pro radio button"
+    },
+    {
+      "id": "s5",
+      "description": "Click Submit form button",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "div[role='button'][aria-label='Submit']"
+        },
+        {
+          "kind": "role",
+          "value": "button Submit"
+        },
+        {
+          "kind": "box",
+          "value": "260,620"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Submit form button"
+    }
+  ],
+  "parameters": {
+    "employee_name": "Jordan Lee",
+    "department": "Engineering",
+    "laptop_model": "MacBook Pro 16"
+  },
+  "success_checks": [
+    {
+      "kind": "text_visible",
+      "spec": {
+        "text": "Your response has been recorded"
+      }
+    }
+  ],
+  "source": "enterprise_preset",
+  "manifest": {
+    "version": "1.0",
+    "format": "stepproof-procedure-manifest-v1",
+    "procedure_hash": "1ba145c62443ad4ea19c4b2af9efb51c147c1ceb7820cfb5e3bbdf5502d709c3",
+    "step_count": 5,
+    "check_count": 1,
+    "steps_hashes": [
+      "191e148ab8c3b4eccd623e837e7a64f7578bcf9a4aa940f1f3571c2110737c33",
+      "21181232d0df4ddeffa1279022ca7e7aea3b7b99977018fb2357ea11f9b45f37",
+      "c191fc0402e351b013ee57ffc32ca96263c2acb864db3c0a564a333d6fbcd10c",
+      "6b8e2844c8c44abd66e6bc46231b033e392c1cd98e9ba4a1856726f8d26c1dc9",
+      "bf671e63e564c20f19ced2869eb762894a9e455b143f806e57940b2fa6ac66ae"
+    ]
+  },
+  "signature": "405713f0031925b536684f9e4bb93e099463c1ad0373bb77fdcc6865fa888504",
+  "provenance": {
+    "compiler_version": "stepproof-v2.1",
+    "model_used": "compiler",
+    "signing_key_id": "custom",
+    "ts": 1793741955.511
+  }
+}

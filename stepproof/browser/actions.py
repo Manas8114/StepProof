@@ -260,9 +260,20 @@ def _click_by_name(tb, name: str) -> None:
         js_find = f"""(() => {{
             const searchWords = {words_json};
             const rawQ = {q_json};
-            const candidates = Array.from(document.querySelectorAll(
-                'a, button, [role=button], [role=link], h1, h2, h3, h4, ytd-video-renderer, #video-title, span, p'
-            ));
+            const candidates = [];
+            const collectDeep = (root, depth = 0) => {{
+                if (!root || depth > 8) return;
+                try {{
+                    const sel = 'a, button, [role=button], [role=link], h1, h2, h3, h4, ytd-video-renderer, #video-title, span, p, input, select';
+                    const list = Array.from(root.querySelectorAll(sel));
+                    candidates.push(...list);
+                    const all = root.querySelectorAll('*');
+                    for (let i = 0; i < all.length; i++) {{
+                        if (all[i].shadowRoot) collectDeep(all[i].shadowRoot, depth + 1);
+                    }}
+                }} catch(e) {{}}
+            }};
+            collectDeep(document);
             let bestEl = null;
             let bestScore = 0;
             for (const el of candidates) {{

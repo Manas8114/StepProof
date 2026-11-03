@@ -1,0 +1,107 @@
+{
+  "goal": "File an Acme office expense of $42",
+  "site": "http://127.0.0.1:8011/expense/",
+  "steps": [
+    {
+      "id": "s1",
+      "description": "Type Acme into vendor",
+      "action": "type",
+      "arg": {
+        "text": "Acme"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#vendor"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Vendor text input"
+    },
+    {
+      "id": "s2",
+      "description": "Type 42 into amount",
+      "action": "type",
+      "arg": {
+        "text": "42"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#amount"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Amount number input"
+    },
+    {
+      "id": "s3",
+      "description": "Select category office",
+      "action": "select",
+      "arg": {
+        "value": "office"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "#category"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Category dropdown"
+    },
+    {
+      "id": "s4",
+      "description": "Click submit claim",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "button[type='submit']"
+        },
+        {
+          "kind": "css",
+          "value": "#submit"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Submit claim button"
+    }
+  ],
+  "parameters": {},
+  "success_checks": [
+    {
+      "kind": "text_visible",
+      "spec": {
+        "text": "Claim filed"
+      }
+    }
+  ],
+  "source": "monitor",
+  "manifest": {
+    "version": "1.0",
+    "format": "stepproof-procedure-manifest-v1",
+    "procedure_hash": "ce2636f069f4f1f26ed8d81c73312fdd22c17692cae34f995f66f26cff8a57e0",
+    "step_count": 4,
+    "check_count": 1,
+    "steps_hashes": [
+      "1403f3985f7a6ee4e2a876f73fa566656fd9e070b00a12e1a5dae0e3db29c6b7",
+      "b4e835e4d643b296f27886bf45a4c6c02d244b92699b0ae1c0441159852b830b",
+      "8d96f698923f0c61f4f9e212d29eda6ce91ebab4d93ccd3f9759d108bdfa19f0",
+      "7e63e78b872eab7d2c517c1dbc879be7eb256651e6ae963a811d845fd4de9480"
+    ]
+  },
+  "signature": "555a097242e3f4740e7531bedb3bd12e1fa05fa9cf450a0575984b4ad3141f72",
+  "provenance": {
+    "compiler_version": "stepproof-v2.1",
+    "model_used": "compiler",
+    "source": "monitor",
+    "device_id": "0ef0c839bfaa205e",
+    "recorded_ts": 1793660565.213
+  }
+}

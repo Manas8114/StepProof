@@ -1,0 +1,89 @@
+{
+  "goal": "Search {query} on YouTube and play 1st video",
+  "site": "https://www.youtube.com",
+  "steps": [
+    {
+      "id": "s1",
+      "description": "Navigate to YouTube search results for {query}",
+      "action": "goto",
+      "arg": {
+        "url": "https://www.youtube.com/results?search_query={query}"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "input#search"
+        },
+        {
+          "kind": "css",
+          "value": "input[name=search_query]"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "YouTube search results page"
+    },
+    {
+      "id": "s2",
+      "description": "Click 1st video in search results",
+      "action": "click",
+      "arg": {
+        "name": "lofi hip hop radio  beats to relax/study to"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "ytd-video-renderer:first-of-type a#video-title"
+        },
+        {
+          "kind": "css",
+          "value": "a#video-title"
+        },
+        {
+          "kind": "css",
+          "value": "ytd-video-renderer #thumbnail"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "First video thumbnail or title"
+    }
+  ],
+  "parameters": {
+    "query": "lofi hip hop"
+  },
+  "success_checks": [
+    {
+      "kind": "url_contains",
+      "spec": {
+        "url": "watch?v="
+      }
+    },
+    {
+      "kind": "element_state",
+      "spec": {
+        "selector": "video",
+        "state": "visible"
+      }
+    }
+  ],
+  "source": "operator_learned",
+  "manifest": {
+    "version": "1.0",
+    "format": "stepproof-procedure-manifest-v1",
+    "procedure_hash": "372ed0f8e5ea133220878282cc06ac333a7ce49d6be1537164c2f49efaa06398",
+    "step_count": 2,
+    "check_count": 2,
+    "steps_hashes": [
+      "6ddbbf3e9690f75eccb627761e78c740c9c178c91b13bfa4bb44eac7988c8142",
+      "ecd48d01babd3577c33a18e10f1e87420e579b41f188c1250041a22eea0b8207"
+    ]
+  },
+  "signature": "52ccea86d672d0326abacbe73708607627b57023de444b8c8b60238146cb3811",
+  "provenance": {
+    "compiler_version": "stepproof-v2.1",
+    "model_used": "compiler",
+    "signing_key_id": "dev-default",
+    "ts": 1793659041.736
+  }
+}

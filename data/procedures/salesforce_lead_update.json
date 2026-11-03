@@ -1,0 +1,164 @@
+{
+  "goal": "Enterprise CRM lead qualification and opportunity stage update",
+  "site": "https://enterprise.lightning.force.com/lightning/r/Lead/00Q5f000003ABC/view",
+  "steps": [
+    {
+      "id": "s1",
+      "description": "Click Edit Lead Status button inside shadow root",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "lightning-button-menu >> button.slds-button"
+        },
+        {
+          "kind": "role",
+          "value": "button Edit Status"
+        },
+        {
+          "kind": "box",
+          "value": "850,110"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Edit Lead Status button"
+    },
+    {
+      "id": "s2",
+      "description": "Select Qualified from Lead Status combobox inside shadow root",
+      "action": "type",
+      "arg": {
+        "text": "Qualified"
+      },
+      "locators": [
+        {
+          "kind": "css",
+          "value": "lightning-combobox >> input.slds-combobox__input"
+        },
+        {
+          "kind": "role",
+          "value": "combobox Lead Status"
+        },
+        {
+          "kind": "box",
+          "value": "420,280"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Lead Status combobox input"
+    },
+    {
+      "id": "s3",
+      "description": "Click Rating combobox in custom shadow component",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "lightning-combobox[data-name='Rating'] >> button"
+        },
+        {
+          "kind": "role",
+          "value": "combobox Rating"
+        },
+        {
+          "kind": "box",
+          "value": "420,360"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Rating combobox button"
+    },
+    {
+      "id": "s4",
+      "description": "Select Hot rating option",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "lightning-base-combobox-item[data-value='Hot']"
+        },
+        {
+          "kind": "role",
+          "value": "option Hot"
+        },
+        {
+          "kind": "box",
+          "value": "420,440"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Hot rating option"
+    },
+    {
+      "id": "s5",
+      "description": "Click Save lead button inside footer shadow root",
+      "action": "click",
+      "arg": {},
+      "locators": [
+        {
+          "kind": "css",
+          "value": "lightning-button[variant='brand'] >> button"
+        },
+        {
+          "kind": "css",
+          "value": "button.slds-button_brand"
+        },
+        {
+          "kind": "box",
+          "value": "760,540"
+        }
+      ],
+      "success": [],
+      "note": "",
+      "vision_concept": "Save lead brand button"
+    }
+  ],
+  "parameters": {
+    "lead_name": "Acme Industrial Corp",
+    "status": "Qualified",
+    "rating": "Hot"
+  },
+  "success_checks": [
+    {
+      "kind": "text_visible",
+      "spec": {
+        "text": "Lead Status: Qualified"
+      }
+    },
+    {
+      "kind": "text_visible",
+      "spec": {
+        "text": "Rating: Hot"
+      }
+    }
+  ],
+  "source": "enterprise_preset",
+  "manifest": {
+    "version": "1.0",
+    "format": "stepproof-procedure-manifest-v1",
+    "procedure_hash": "9d16210f51f5d68a0aa38610a8bb3b1a277a96885632e56ed44167ee30716698",
+    "step_count": 5,
+    "check_count": 2,
+    "steps_hashes": [
+      "bbf77758c647ffd4987648db154055156c3630862ece8a92769e14be6cc94be4",
+      "ff1f1ac5223869553fb996b8c98b41a9c7ffd562738fab0c65e68efbede27e06",
+      "c5c31e27f24a2f9fdac9fee7405cb1e28fa57fac9e3c5364761aafacb8a04f53",
+      "755ae4c3b28f0dc14770f2cbd0dfc1665cb7a156608537e3bb43955f902fcd3b",
+      "2c0a3daf44c52f9bbfac19efc97ebf874a9f86794aa68e3911b8ff7859769ad2"
+    ]
+  },
+  "signature": "5046b3b3b760ed785c457e767c6777d2bdeaef5926cb53c2870533bd1d569334",
+  "provenance": {
+    "compiler_version": "stepproof-v2.1",
+    "model_used": "compiler",
+    "signing_key_id": "custom",
+    "ts": 1793741955.518
+  }
+}

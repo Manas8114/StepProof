@@ -143,6 +143,22 @@ class TinyBrowser:
             return self._call("fill_at", payload)
         return {"ok": False, "error": f"unknown input kind {kind!r}"}
 
+    def get_tabs(self) -> list[dict]:
+        """Return list of active browser tabs/windows (for OAuth popups and multi-tab workflows)."""
+        return self._call("tabs", None)
+
+    def switch_tab(self, index: int) -> dict:
+        """Switch active page to tab at given index."""
+        r = self._call("switch_tab", index)
+        self._after_nav()
+        return r
+
+    def close_tab(self, index: int) -> dict:
+        """Close tab at given index."""
+        r = self._call("close_tab", index)
+        self._after_nav()
+        return r
+
     def take_screenshot(self) -> str:
         """JPEG data URL (password fields masked). Also refreshes url/title on the worker thread."""
         shot, url, title = self._call("shot", None)
@@ -234,11 +250,40 @@ class TinyBrowser:
                 ctx = self._browser.new_context(viewport={"width": 1024, "height": 640},
                                                 accept_downloads=False)
                 self._page = ctx.new_page()
-            # dialog guard: never let a page's dialog block the worker; use approval gates instead
-            self._page.on("dialog", lambda d: d.dismiss())
-            self._page.on("download", lambda d: d.cancel())
+
+            self._pages = [self._page]
+
+            def _setup_page(pg):
+                pg.on("dialog", lambda d: d.dismiss())
+                pg.on("download", lambda d: d.cancel())
+                try:
+                    pg.add_style_tag(content="input[type=password]{display:none!important}")
+                except Exception:
+                    pass
+
+            def _on_new_page(new_pg):
+                _setup_page(new_pg)
+                if new_pg not in self._pages:
+                    self._pages.append(new_pg)
+                self._page = new_pg
+                events.BUS.publish("tab_opened", {
+                    "url": getattr(new_pg, "url", ""),
+                    "count": len(self._pages),
+                    "active_index": len(self._pages) - 1
+                })
+                def _on_close():
+                    if new_pg in self._pages:
+                        self._pages.remove(new_pg)
+                    if self._page == new_pg:
+                        self._page = self._pages[-1] if self._pages else None
+                        self._after_nav()
+                    events.BUS.publish("tab_closed", {"count": len(self._pages)})
+                new_pg.on("close", _on_close)
+
+            _setup_page(self._page)
+            ctx.on("page", _on_new_page)
+            self._page.on("popup", _on_new_page)
             self._page.goto("about:blank")
-            self._page.add_style_tag(content="input[type=password]{display:none!important}")
             while True:
                 op, arg, fut = self._cmd.get()          # blocking; __stop__ ends the loop
                 if op == "__stop__":
@@ -358,6 +403,38 @@ class TinyBrowser:
         if op == "fdrag":
             p.mouse.move(arg[0], arg[1]); p.mouse.down(); p.mouse.move(arg[2], arg[3]); p.mouse.up()
             return {"ok": True}
+        if op == "tabs":
+            res = []
+            for i, pg in enumerate(getattr(self, "_pages", [self._page])):
+                try:
+                    u = pg.url
+                    t = pg.title()
+                except Exception:
+                    u, t = "unknown", "unknown"
+                res.append({
+                    "index": i,
+                    "url": u,
+                    "title": t,
+                    "is_active": (pg == self._page)
+                })
+            return res
+        if op == "switch_tab":
+            idx = int(arg)
+            pages = getattr(self, "_pages", [self._page])
+            if 0 <= idx < len(pages):
+                self._page = pages[idx]
+                return {"ok": True, "active": idx, "url": self._page.url, "title": self._page.title()}
+            return {"ok": False, "error": f"tab index {idx} out of range (0-{len(pages)-1})"}
+        if op == "close_tab":
+            idx = int(arg)
+            pages = getattr(self, "_pages", [self._page])
+            if len(pages) <= 1:
+                return {"ok": False, "error": "cannot close the only open tab"}
+            if 0 <= idx < len(pages):
+                target_pg = pages[idx]
+                target_pg.close()
+                return {"ok": True, "remaining": len(getattr(self, "_pages", []))}
+            return {"ok": False, "error": f"tab index {idx} out of range"}
         raise ValueError(f"unknown op {op!r}")
 
     def _after_nav(self) -> None:
