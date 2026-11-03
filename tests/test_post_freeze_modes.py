@@ -370,3 +370,38 @@ def test_copilot_suggest_and_ask_api():
     assert r_safe.status_code == 200
     assert "Safety Status" in r_safe.json()["answer"]
 
+
+def test_monitor_recording_and_compilation_workflow():
+    """Verify that monitor recording and compilation workflow retains actions, returns steps > 0,
+    and supports rich element-at locators including fallback box coordinates."""
+    from fastapi.testclient import TestClient
+    from stepproof.api_v2 import app
+
+    client = TestClient(app)
+
+    # 1. Test element-at locator lookup
+    el_res = client.get("/api/v2/browser/element-at?x=50&y=50")
+    assert el_res.status_code == 200
+    el_data = el_res.json()
+    assert "locators" in el_data
+    assert len(el_data["locators"]) >= 1
+    assert any(l.get("kind") == "box" for l in el_data["locators"])
+
+    # 2. Record 4 actions
+    client.post("/api/v2/monitor/start", json={"site": ""})
+    client.post("/api/v2/monitor/record", json={"tool": "type", "text": "Acme", "locators": [{"kind": "css", "value": "#vendor"}]})
+    client.post("/api/v2/monitor/record", json={"tool": "type", "text": "42", "locators": [{"kind": "css", "value": "#amount"}]})
+    client.post("/api/v2/monitor/record", json={"tool": "select", "text": "Travel", "locators": [{"kind": "css", "value": "#category"}]})
+    client.post("/api/v2/monitor/record", json={"tool": "click", "text": "", "locators": [{"kind": "box", "value": "200,300"}]})
+
+    # 3. Compile procedure
+    comp_res = client.post("/api/v2/monitor/compile", json={"goal": "File Acme travel expense", "add_checks": []})
+    assert comp_res.status_code == 200
+    c_data = comp_res.json()
+    assert c_data["steps"] == 4
+    assert len(c_data["procedure"]["steps"]) == 4
+    assert not any("no recorded actions" in w for w in c_data.get("warnings", []))
+    assert c_data["procedure"]["manifest"]["step_count"] == 4
+    assert c_data["procedure"]["signature"]
+
+

@@ -339,18 +339,29 @@ def element_at(x: int = 0, y: int = 0):
     obs = _browser.observe()
     best = None
     for el in obs.get("elements", []):
-        if el.get("visible") and el["x"] <= x < el["x"] + el["w"] and el["y"] <= y < el["y"] + el["h"]:
+        if el.get("visible") and el["x"] <= x <= el["x"] + el["w"] and el["y"] <= y <= el["y"] + el["h"]:
             if best is None or el["w"] * el["h"] < best["w"] * best["h"]:
                 best = el
-    out = {"id": None, "locators": []}
+    out = {
+        "id": best.get("id") if best else None,
+        "role": best.get("role") if best else None,
+        "kind": best.get("kind") if best else None,
+        "name": best.get("name") if best else None,
+        "locators": [],
+    }
     if best:
         if best.get("id"):
             out["locators"].append({"kind": "css", "value": "#" + best["id"]})
         name = str(best.get("name", "")).strip()
         role = best.get("role", "")
         if name:
-            out["locators"].append({"kind": "role", "value": f"{role} {name}"})
+            out["locators"].append({"kind": "role", "value": f"{role} {name}".strip()})
             out["locators"].append({"kind": "text", "value": name})
+        cx = best["x"] + best["w"] // 2
+        cy = best["y"] + best["h"] // 2
+        out["locators"].append({"kind": "box", "value": f"{cx},{cy}"})
+    else:
+        out["locators"].append({"kind": "box", "value": f"{x},{y}"})
     return out
 
 
@@ -494,7 +505,7 @@ def backend_telemetry():
 def monitor_start(site: SiteIn, request: Request):
     raw = site.site.strip() if site and site.site else ""
     if not raw or raw == "current":
-        target = _browser.url if _browser.url and _browser.url != "about:blank" else f"http://localhost:{APP_PORT}/site/expense"
+        target = _browser.url if _browser.url and _browser.url != "about:blank" else ""
     else:
         target = _abs_site(raw, request)
     from .browser.session import _host_of

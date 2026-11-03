@@ -72,9 +72,12 @@ class TinyBrowser:
         host = _host_of(url)
         if not self._is_allowed(host):
             return {"ok": False, "error": f"refused: host {host!r} not on the allowlist"}
-        r = self._call("goto", url)
-        self._after_nav()
-        return r
+        try:
+            r = self._call("goto", url)
+            self._after_nav()
+            return r
+        except Exception as e:
+            return {"ok": False, "error": f"navigation failed: {e}"}
 
     # ---- URL-bar navigation (P0.1b): back/forward/reload + loading state.
     # Every history op re-verifies the result against the allowlist: the UI's URL bar can

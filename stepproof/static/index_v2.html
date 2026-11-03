@@ -1157,24 +1157,32 @@ if ($('#msite-cur-btn')) $('#msite-cur-btn').onclick = () => { $('#msite').value
 if ($('#xsite-cur-btn')) $('#xsite-cur-btn').onclick = () => { $('#xsite').value = $('#urlinput').value || 'current'; };
 
 // Monitor: Start recording & capture clicks
+let recordedCount = 0;
 $('#mrec').onclick = async () => {
   try {
     recording = !recording;
-    $('#mrec').textContent = recording ? '● Recording — click the live view to capture actions' : '● Start recording';
-    $('#mrec').className = recording ? 'btnrow danger' : 'btnrow primary';
-    const siteVal = ($('#msite').value || 'current').trim();
-    if (siteVal && siteVal !== 'current') {
-      const b = await japi('/api/v2/browser/start', { site: siteVal });
-      if (b && b.error) return err('browser start: ' + b.error);
+    if (recording) {
+      recordedCount = 0;
+      $('#mrec').textContent = '⏹ Stop recording (0 actions captured)';
+      $('#mrec').className = 'btnrow danger';
+      const siteVal = ($('#msite').value || 'current').trim();
+      if (siteVal && siteVal !== 'current') {
+        const b = await japi('/api/v2/browser/start', { site: siteVal });
+        if (b && b.error) return err('browser start: ' + b.error);
+      }
+      await japi('/api/v2/monitor/start', { site: siteVal });
+      await pollShot();
+    } else {
+      $('#mrec').className = 'btnrow primary';
+      $('#mrec').textContent = recordedCount > 0
+        ? `● Start new recording (${recordedCount} actions ready to compile)`
+        : '● Start recording';
     }
-    await japi('/api/v2/monitor/start', { site: siteVal });
-    await pollShot();
   } catch (e) {
     err('record: ' + e.message);
-    if (recording) {
-      $('#mrec').textContent = '● Start recording';
-      $('#mrec').className = 'btnrow primary';
-    }
+    recording = false;
+    $('#mrec').textContent = '● Start recording';
+    $('#mrec').className = 'btnrow primary';
   }
 };
 
@@ -1199,18 +1207,21 @@ $('#shot').onclick = async (e) => {
 
       let tool = 'click';
       let text = '';
-      const isInput = locs.some(l => l.value && (l.value.includes('input') || l.value.includes('textbox') || l.value.includes('#vendor') || l.value.includes('#amount') || l.value.includes('search')));
+      const isInput = (el.kind === 'input' || el.kind === 'textarea' || el.role === 'textbox' || el.role === 'combobox' || el.role === 'searchbox') ||
+        locs.some(l => l.value && /input|textbox|search|#vendor|#amount/i.test(l.value));
       if (isInput) {
-        const typed = prompt('Type text to record into this field (leave blank to just click):', '');
+        const fieldName = el.name ? ` (${el.name})` : '';
+        const typed = prompt(`Type text to record into this field${fieldName} (leave blank to just click):`, '');
         if (typed !== null && typed !== '') {
           tool = 'type';
           text = typed;
         }
       }
       const rec = await japi('/api/v2/monitor/record', { tool: tool, text: text, locators: locs, narration: $('#mnar').value });
+      recordedCount = rec.recorded || (recordedCount + 1);
       addEvt({ type: 'rec', data: rec });
       $('#mnar').value = '';
-      $('#mrec').textContent = `● Recording (${rec.recorded || 1} actions captured)`;
+      $('#mrec').textContent = `⏹ Stop recording (${recordedCount} actions captured)`;
       await pollShot();
     } catch (e2) {
       err('record action: ' + e2.message);
@@ -1229,8 +1240,17 @@ $('#shot').onclick = async (e) => {
 // Compile, Save & Run Learned Procedure
 $('#mcompile').onclick = async () => {
   try {
+    if (recording) {
+      recording = false;
+      $('#mrec').className = 'btnrow primary';
+      $('#mrec').textContent = `● Start new recording (${recordedCount} actions compiled)`;
+    }
     const c = await japi('/api/v2/monitor/compile', { goal: $('#mgoal').value || 'learned procedure', add_checks: [] });
     addEvt({ type: 'compile', data: { steps: c.steps, warnings: c.warnings } });
+    if (!c.procedure || !c.procedure.steps || c.procedure.steps.length === 0) {
+      err(c.warnings && c.warnings.length ? c.warnings.join(' | ') : 'No steps compiled. Record actions first.');
+      return;
+    }
     window.__proc = c.procedure;
     await japi('/api/v2/procedure/save?name=learned', { ...c.procedure });
     $('#msaved').textContent = `Procedure compiled (${c.steps} steps) → saved. "Run learned" executes it deterministically.`;
