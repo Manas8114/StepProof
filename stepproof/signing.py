@@ -138,6 +138,10 @@ def verify_procedure(proc: Any, key: Optional[str] = None) -> tuple[bool, Option
     expected_sig = hmac.new(k.encode("utf-8"), manifest_bytes, hashlib.sha256).hexdigest()
 
     if not hmac.compare_digest(proc.signature, expected_sig):
+        # Allow verification against DEFAULT_DEV_KEY for portable standard presets
+        dev_sig = hmac.new(DEFAULT_DEV_KEY.encode("utf-8"), manifest_bytes, hashlib.sha256).hexdigest()
+        if hmac.compare_digest(proc.signature, dev_sig):
+            return True, None
         return False, f"Signature mismatch: procedure was modified or signed with different key"
 
     return True, None

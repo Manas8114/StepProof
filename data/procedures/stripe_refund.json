@@ -182,11 +182,11 @@
       "78f3f67d3bbda1177d12991ae07f0c77ba7d20e4333880e7684986fac45b3ab4"
     ]
   },
-  "signature": "eae3aa3bde4f69fe02eaba896950576a03e49878248845bff2682b5b89eba944",
+  "signature": "8569684f7ef4c6331c1398ca0b8b0afeeed71088949eb413fc80c5857a85ca47",
   "provenance": {
     "compiler_version": "stepproof-v2.1",
     "model_used": "compiler",
-    "signing_key_id": "custom",
-    "ts": 1793741955.508
+    "signing_key_id": "dev-default",
+    "ts": 1793748820.837
   }
 }

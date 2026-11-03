@@ -13,6 +13,7 @@ import sys, json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from stepproof.proc import Procedure, Step, Locator
+from stepproof.signing import DEFAULT_DEV_KEY
 
 def generate_all_presets():
     d = Path(__file__).resolve().parent.parent / "data" / "procedures"
@@ -52,7 +53,7 @@ def generate_all_presets():
         success_checks=[{"kind": "text_visible", "spec": {"text": "Refund issued"}}, {"kind": "text_visible", "spec": {"text": "Status: Refunded"}}],
         source="enterprise_preset"
     )
-    p1.sign()
+    p1.sign(DEFAULT_DEV_KEY)
     (d / "stripe_refund.json").write_text(json.dumps(p1.to_dict(), indent=2))
 
     # 2. GitHub Issue Restock
@@ -85,7 +86,7 @@ def generate_all_presets():
         success_checks=[{"kind": "text_visible", "spec": {"text": "Restock WS-1042"}}, {"kind": "text_visible", "spec": {"text": "Open"}}],
         source="enterprise_preset"
     )
-    p2.sign()
+    p2.sign(DEFAULT_DEV_KEY)
     (d / "github_issue_restock.json").write_text(json.dumps(p2.to_dict(), indent=2))
 
     # 3. Google Forms Submission
@@ -118,7 +119,7 @@ def generate_all_presets():
         success_checks=[{"kind": "text_visible", "spec": {"text": "Your response has been recorded"}}],
         source="enterprise_preset"
     )
-    p3.sign()
+    p3.sign(DEFAULT_DEV_KEY)
     (d / "google_forms_submission.json").write_text(json.dumps(p3.to_dict(), indent=2))
 
     # 4. Salesforce Lead Update (with Shadow DOM Piercing)
@@ -151,7 +152,7 @@ def generate_all_presets():
         success_checks=[{"kind": "text_visible", "spec": {"text": "Lead Status: Qualified"}}, {"kind": "text_visible", "spec": {"text": "Rating: Hot"}}],
         source="enterprise_preset"
     )
-    p4.sign()
+    p4.sign(DEFAULT_DEV_KEY)
     (d / "salesforce_lead_update.json").write_text(json.dumps(p4.to_dict(), indent=2))
 
     # 5. Expense Compliance Audit
@@ -180,7 +181,7 @@ def generate_all_presets():
         success_checks=[{"kind": "text_visible", "spec": {"text": "Claim filed"}}, {"kind": "url_contains", "spec": {"url": "expense"}}],
         source="enterprise_preset"
     )
-    p5.sign()
+    p5.sign(DEFAULT_DEV_KEY)
     (d / "expense_compliance_audit.json").write_text(json.dumps(p5.to_dict(), indent=2))
 
     return [p1, p2, p3, p4, p5]

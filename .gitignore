@@ -3,6 +3,17 @@ data/*
 !data/procedures/
 data/procedures/*
 !data/procedures/*.json
+!data/images/
+data/images/*
+!data/images/pan.mp4
+!data/cache/
+data/cache/*
+!data/cache/sam/
+data/cache/sam/*
+!data/cache/sam/526996a239c92aec1e05-video-9e32521dd2.txt
+!data/clips/
+data/clips/*
+!data/clips/p1_ok.mp4
 data/keys/
 __pycache__/
 *.pyc

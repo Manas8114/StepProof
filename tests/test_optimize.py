@@ -25,8 +25,9 @@ def _write_tmp_clip(path: Path, n: int = 24, move_every: int = 3) -> Path:
 
 
 def test_cap_fps_reduces_frame_count(tmp_path):
+    clip = CLIP if CLIP.exists() else _write_tmp_clip(tmp_path / "clip.mp4", n=100, move_every=2)
     out = tmp_path / "capped.mp4"
-    info = optimize.cap_fps(CLIP, out, target_fps=5.0)
+    info = optimize.cap_fps(clip, out, target_fps=5.0)
     fps, n, _, _ = probe(out)
     assert abs(fps - 5.0) < 0.6, f"expected ~5 fps, got {fps}"
     assert n < 100 and info["dropped"] > 0, info
@@ -46,8 +47,9 @@ def test_static_head_tail_trim_drops_static(tmp_path):
 
 
 def test_downscale_shrinks_dimensions(tmp_path):
+    clip = CLIP if CLIP.exists() else _write_tmp_clip(tmp_path / "clip.mp4", n=24, move_every=3)
     out = tmp_path / "small.mp4"
-    info = optimize.downscale(CLIP, out, max_w=160, max_h=120)
+    info = optimize.downscale(clip, out, max_w=160, max_h=120)
     assert (info["width"], info["height"]) == (160, 120)
     assert info["scale"] < 1.0
 
