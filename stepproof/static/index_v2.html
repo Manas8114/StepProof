@@ -177,7 +177,7 @@ h2 {
   font: inherit;
   font-size: 12px;
   font-weight: 500;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.15s ease-out;
   white-space: nowrap;
 }
 .tabs button:hover {
@@ -194,7 +194,7 @@ h2 {
 /* Forms & Inputs */
 button {
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.15s ease-out, transform 0.12s ease-out;
   font: inherit;
 }
 textarea, input, select {
@@ -269,6 +269,10 @@ label {
   letter-spacing: 0.05em;
   pointer-events: none;
   box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  transition: background-color 0.25s ease-out, color 0.25s ease-out, box-shadow 0.25s ease-out;
+}
+[class*="state-"] {
+  transition: background-color 0.25s ease-out, color 0.25s ease-out, box-shadow 0.25s ease-out;
 }
 .state-RUNNING { background: var(--ok); color: #041a0e; }
 .state-PLANNING { background: var(--acc); color: #04121e; }
@@ -438,7 +442,7 @@ label {
   border-radius: 0 6px 6px 0;
   background: rgba(255, 255, 255, 0.015);
   font-size: 11.5px;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out;
   word-break: break-word;
 }
 .evt:hover {
@@ -468,7 +472,7 @@ label {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 10px 12px;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.15s ease-out;
 }
 .thought-card:hover {
   border-color: var(--line-strong);

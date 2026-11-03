@@ -193,3 +193,4 @@ def detect_challenge(page: Any) -> ChallengeInfo:
         kind="none",
         page_url=current_url,
     )
+

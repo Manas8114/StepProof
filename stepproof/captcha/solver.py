@@ -323,3 +323,4 @@ class CaptchaHandler:
             "challenge": ch.to_dict()
         })
         return ch, takeover_res
+
