@@ -110,6 +110,7 @@ def _disabled_with_reason(page, sel: str) -> bool:
     return bool(el.get_attribute("title") or el.get_attribute("aria-disabled"))
 
 
+@pytest.mark.e2e
 def test_button_audit(app, browser):
     page = browser.new_page()
     page.on("console", lambda m: print("PAGE CONSOLE:", m.type, m.text))

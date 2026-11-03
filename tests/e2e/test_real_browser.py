@@ -20,6 +20,7 @@ def _can_connect_public():
         return False
 
 
+@pytest.mark.e2e
 @pytest.mark.skipif(not _can_connect_public(), reason="the-internet.herokuapp.com unreachable (offline mode)")
 def test_real_browser_on_public_allowlisted_site():
     tb = TinyBrowser(allowlist={"the-internet.herokuapp.com"})

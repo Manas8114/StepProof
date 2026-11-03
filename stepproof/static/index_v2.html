@@ -620,7 +620,14 @@ label {
 ::-webkit-scrollbar-thumb:hover { background: var(--mut-dark); }
 
 /* Tab Panel Transitions */
-[id^="m-"]:not(#m-learned-box):not(#m-step-count):not(#m-steps-container) {
+.tab-panel {
+  display: block;
+}
+.tab-panel.hide {
+  display: none !important;
+}
+.tab-panel.active {
+  display: block !important;
   animation: panel-enter 0.14s ease-out;
 }
 @keyframes panel-enter {
@@ -636,7 +643,7 @@ label {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
-  .gate, .state-AWAITING_APPROVAL, .pulse, #telemetry-status-dot, [id^="m-"], .evt {
+  .gate, .state-AWAITING_APPROVAL, .pulse, #telemetry-status-dot, .tab-panel, .evt {
     animation: none !important;
   }
 }
@@ -681,7 +688,7 @@ label {
     </div>
 
     <!-- Monitor Tab -->
-    <div id="m-monitor">
+    <div id="m-monitor" class="tab-panel active">
       <div style="margin-bottom:12px;background:#18181b;border:1px solid #27272a;border-radius:8px;padding:8px 10px;">
         <label style="margin:0 0 4px;color:#38bdf8;font-size:11px;font-weight:700;">📋 Load Enterprise Presets (Signed Templates)</label>
         <div style="display:flex;gap:6px;">
@@ -726,7 +733,7 @@ label {
     </div>
 
     <!-- Execute Tab -->
-    <div id="m-execute" class="hide">
+    <div id="m-execute" class="tab-panel hide">
       <h2>Execute (autonomous agent)</h2>
       <label>Goal (typed or spoken)</label>
       <input id="xgoal" placeholder="Restock WS-1042 by 5, then confirm">
@@ -750,7 +757,7 @@ label {
     </div>
 
     <!-- Copilot Tab (Live Next-Step Suggestion & Ask Anything) -->
-    <div id="m-copilot" class="hide">
+    <div id="m-copilot" class="tab-panel hide">
       <h2>Live Co-pilot & Suggestions</h2>
       <p class="note">Real-time perception engine predicts the next logical step and answers questions about any web page.</p>
 
@@ -794,7 +801,7 @@ label {
     </div>
 
     <!-- Thoughts Tab (Dedicated CoT & Deliberation Log) -->
-    <div id="m-thoughts" class="hide">
+    <div id="m-thoughts" class="tab-panel hide">
       <h2>Agent Thinking Log <span class="tag" id="thought-count-badge">0 thoughts</span></h2>
       <p class="note">Complete structured trace of the agent's perception, deliberation, safety gate checks, and recoveries.</p>
       <div class="btnrow" style="margin:4px 0 8px;">
@@ -809,7 +816,7 @@ label {
     </div>
 
     <!-- Telemetry Tab (Backend Bridge & Metrics) -->
-    <div id="m-telemetry" class="hide">
+    <div id="m-telemetry" class="tab-panel hide">
       <h2>Backend Telemetry Bridge</h2>
       <div class="stat-grid">
         <div class="stat-card"><div class="lbl">Agent State</div><div class="val" id="telem-state">IDLE</div></div>
@@ -880,7 +887,7 @@ label {
     </div>
 
     <!-- Coach Tab -->
-    <div id="m-coach" class="hide">
+    <div id="m-coach" class="tab-panel hide">
       <h2>Coach (suggest + compare)</h2>
       <label>Human baseline steps</label><input id="hsteps" type="number" value="6">
       <label>Human baseline time (s)</label><input id="hwall" type="number" value="30">
@@ -889,7 +896,7 @@ label {
     </div>
 
     <!-- Tour Tab -->
-    <div id="m-tour" class="hide">
+    <div id="m-tour" class="tab-panel hide">
       <h2>Guided tour</h2>
       <p class="note">One-click showcase: Learn → Execute+gate → Takeover → Prove, streamed live on the event feed.</p>
       <div class="btnrow"><button class="primary" id="tourrun">▶ Run guided tour</button></div>
@@ -900,7 +907,7 @@ label {
     </div>
 
     <!-- Tracking Tab -->
-    <div id="m-tracking" class="hide">
+    <div id="m-tracking" class="tab-panel hide">
       <h2>SAM 3.1 Video Tracking</h2>
       <p class="note">Zero-shot dynamic tracking: stable object IDs across frames without retraining.</p>
       <div style="position:relative;width:100%;aspect-ratio:640/360;background:#000;border-radius:8px;overflow:hidden;margin-bottom:8px;">
@@ -1122,7 +1129,11 @@ $('#tabs').onclick = e => {
   if (!b) return;
   ['monitor', 'execute', 'copilot', 'thoughts', 'telemetry', 'coach', 'tour', 'tracking'].forEach(m => {
     const el = $('#m-' + m);
-    if (el) el.classList.toggle('hide', m !== b.dataset.m);
+    if (el) {
+      const isTarget = m === b.dataset.m;
+      el.classList.toggle('hide', !isTarget);
+      el.classList.toggle('active', isTarget);
+    }
   });
   [...$('#tabs').children].forEach(x => x.classList.toggle('on', x === b));
   mode = b.dataset.m;

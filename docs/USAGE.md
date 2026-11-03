@@ -81,5 +81,8 @@ STEPPROOF_PROVIDER=mock STEPPROOF_DATA=data python -m eval.run_eval --manifest d
 
 ## 7. Tests
 ```bash
-python -m pytest -q        # 35 tests (v1 frozen + v2 integration incl. tour + circuit breaker)
+python -m pytest -q        # Hermetic unit & integration test suite (deselected -m "not e2e" by default)
+python -m pytest -m e2e tests/e2e/test_button_audit.py -v  # E2E Playwright button & HUD audit
 ```
+
+> **Note on Port 8011 Parity**: Tests run cleanly whether or not the companion app is running. When the app is active, `site_server` automatically reuses the running instance on port 8011; if port 8011 is bound to an unrecognized service, tests requiring it will gracefully skip without false errors.

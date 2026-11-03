@@ -24,7 +24,16 @@ def site_server():
         except OSError:
             time.sleep(0.3)
     if httpd is None:
-        raise RuntimeError("could not bind demo server to :8011 after 20 attempts")
+        # Port 8011 is already occupied. Check if it is the running StepProof app or demo server.
+        try:
+            import urllib.request
+            with urllib.request.urlopen("http://127.0.0.1:8011/expense/", timeout=1.0) as resp:
+                if resp.status == 200:
+                    yield "http://127.0.0.1:8011"
+                    return
+        except Exception:
+            pass
+        pytest.skip("Port 8011 already occupied by an unrecognized service; stop server on :8011 to run demo server fixture")
     t = threading.Thread(target=httpd.serve_forever, daemon=True)
     t.start()
     time.sleep(0.3)
