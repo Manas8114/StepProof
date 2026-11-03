@@ -362,9 +362,20 @@ def browser_input(body: InputIn):
 
 @app.post("/api/v2/agent/run")
 def agent_run(site: GoalIn, request: Request):
-    r = _browser.start_site(_abs_site(site.site, request), base=str(request.base_url))
-    if not r.get("ok"):
-        return {"state": "IDLE", "goal": site.goal, "error": r.get("error", "browser start failed")}
+    raw_site = site.site.strip() if site and site.site else ""
+    if not raw_site or raw_site == "current":
+        target = _browser.url if _browser.url and _browser.url != "about:blank" else f"http://localhost:{APP_PORT}/site/expense"
+    else:
+        target = _abs_site(raw_site, request)
+    from .browser.session import _host_of
+    h = _host_of(target)
+    if h and h not in ALLOW:
+        ALLOW.add(h)
+        _browser.allow_host(h)
+    if target and target != _browser.url:
+        r = _browser.start_site(target, base=str(request.base_url))
+        if not r.get("ok"):
+            return {"state": "IDLE", "goal": site.goal, "error": r.get("error", "browser start failed")}
     _agent.start(site.goal)
     return {"state": "RUNNING", "goal": site.goal}
 
@@ -481,8 +492,18 @@ def backend_telemetry():
 
 @app.post("/api/v2/monitor/start")
 def monitor_start(site: SiteIn, request: Request):
-    _recorder.start(_abs_site(site.site, request))
-    return {"ok": True, "note": "perform the task; narrate via /monitor/narrate"}
+    raw = site.site.strip() if site and site.site else ""
+    if not raw or raw == "current":
+        target = _browser.url if _browser.url and _browser.url != "about:blank" else f"http://localhost:{APP_PORT}/site/expense"
+    else:
+        target = _abs_site(raw, request)
+    from .browser.session import _host_of
+    h = _host_of(target)
+    if h and h not in ALLOW:
+        ALLOW.add(h)
+        _browser.allow_host(h)
+    _recorder.start(target)
+    return {"ok": True, "url": _browser.url, "note": "perform the task; narrate via /monitor/narrate"}
 
 
 @app.post("/api/v2/monitor/record")

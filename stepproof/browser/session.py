@@ -65,7 +65,10 @@ class TinyBrowser:
 
     def goto(self, url: str, base: str | None = None) -> dict:
         """Allowlist-gated navigation. Refused (and explained) when the host is not allowed."""
-        url = _absolutize(url, base)
+        raw = (url or "").strip()
+        if not raw or raw == "current":
+            return {"ok": True, "url": self.url}
+        url = _absolutize(raw, base)
         host = _host_of(url)
         if not self._is_allowed(host):
             return {"ok": False, "error": f"refused: host {host!r} not on the allowlist"}

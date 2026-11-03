@@ -390,12 +390,17 @@ label {
 
 /* Gate & Dialogs */
 .gate {
-  background: var(--warn-bg);
-  border: 1px solid var(--warn-border);
+  background: #2a1905;
+  border: 2px solid #f59e0b;
   border-radius: 9px;
-  padding: 12px;
+  padding: 14px 16px;
   margin: 10px 0;
-  box-shadow: 0 4px 16px rgba(243, 156, 18, 0.15);
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.4);
+  animation: pulse-gate 2s infinite ease-in-out;
+}
+@keyframes pulse-gate {
+  0%, 100% { border-color: #f59e0b; box-shadow: 0 0 16px rgba(245, 158, 11, 0.35); }
+  50% { border-color: #fbbf24; box-shadow: 0 0 28px rgba(251, 191, 36, 0.65); }
 }
 .gate .q {
   font-weight: 700;
@@ -639,13 +644,13 @@ label {
     <!-- Monitor Tab -->
     <div id="m-monitor">
       <h2>Monitor (learn from human)</h2>
-      <label>Site</label>
-      <select id="msite">
-        <option value="/site/expense">Expense claim</option>
-        <option value="/site/inventory">Inventory ledger</option>
-      </select>
+      <label>Site to learn on (or use current page)</label>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <input id="msite" value="current" placeholder="URL or 'current' for active page" style="flex:1;">
+        <button id="msite-cur-btn" class="ghost" type="button" style="white-space:nowrap;padding:4px 8px;font-size:12px;">Use Current</button>
+      </div>
       <button class="btnrow primary" id="mrec" style="width:100%;margin-top:6px;">● Start recording</button>
-      <p class="note" style="margin-top:6px">Click the live browser view below to record actions. Optional narration:</p>
+      <p class="note" style="margin-top:6px">Click the live browser view below to record actions. Inputs prompt for text. Optional narration:</p>
       <label>Narration</label>
       <input id="mnar" placeholder="e.g., Click the Category dropdown">
       <label>Goal (compile into Procedure)</label>
@@ -656,6 +661,15 @@ label {
         <button id="mrun">Run learned</button>
       </div>
       <p class="note" id="msaved"></p>
+
+      <!-- Compiled steps display -->
+      <div id="m-learned-box" style="margin-top:12px;" class="hide">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <label style="margin:0;color:#22c55e;">✓ Compiled Procedure Steps</label>
+          <span id="m-step-count" class="tag" style="background:#064e3b;color:#34d399;">0 steps</span>
+        </div>
+        <div id="m-steps-container" style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;background:#18181b;padding:8px;border-radius:8px;border:1px solid #27272a;"></div>
+      </div>
     </div>
 
     <!-- Execute Tab -->
@@ -663,12 +677,15 @@ label {
       <h2>Execute (autonomous agent)</h2>
       <label>Goal (typed or spoken)</label>
       <input id="xgoal" placeholder="Restock WS-1042 by 5, then confirm">
-      <label>Site</label>
-      <select id="xsite">
-        <option value="/site/expense">Expense claim</option>
-        <option value="/site/inventory">Inventory ledger</option>
-        <option value="/site/hostile">Hostile page (injection test)</option>
-      </select>
+      <label>Site (or use current page)</label>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <input id="xsite" value="current" placeholder="URL or 'current' for active page" style="flex:1;">
+        <button id="xsite-cur-btn" class="ghost" type="button" style="white-space:nowrap;padding:4px 8px;font-size:12px;">Use Current</button>
+      </div>
+      <div style="margin:6px 0 8px;display:flex;align-items:center;gap:6px;background:#27272a;padding:6px 10px;border-radius:6px;">
+        <input type="checkbox" id="chk-auto-approve" style="cursor:pointer;">
+        <label for="chk-auto-approve" style="margin:0;font-size:12px;cursor:pointer;color:#e4e4e7;">Auto-approve external actions (Continuous Demo Mode)</label>
+      </div>
       <div class="btnrow" style="margin-top:8px">
         <button class="primary" id="xstart">Start agent</button>
         <button id="xpause">Pause / takeover</button>
@@ -1136,15 +1153,21 @@ $('#navreload').onclick = () => nav('reload');
 $('#navgo').onclick = () => { const u = $('#urlinput').value.trim(); if (u) nav('goto', u); };
 $('#urlinput').addEventListener('keydown', e => { if (e.key === 'Enter') nav('goto', $('#urlinput').value.trim()); });
 
+if ($('#msite-cur-btn')) $('#msite-cur-btn').onclick = () => { $('#msite').value = $('#urlinput').value || 'current'; };
+if ($('#xsite-cur-btn')) $('#xsite-cur-btn').onclick = () => { $('#xsite').value = $('#urlinput').value || 'current'; };
+
 // Monitor: Start recording & capture clicks
 $('#mrec').onclick = async () => {
   try {
     recording = !recording;
     $('#mrec').textContent = recording ? '● Recording — click the live view to capture actions' : '● Start recording';
     $('#mrec').className = recording ? 'btnrow danger' : 'btnrow primary';
-    const b = await japi('/api/v2/browser/start', { site: $('#msite').value });
-    if (b && b.error) return err('browser start: ' + b.error);
-    await japi('/api/v2/monitor/start', { site: $('#msite').value });
+    const siteVal = ($('#msite').value || 'current').trim();
+    if (siteVal && siteVal !== 'current') {
+      const b = await japi('/api/v2/browser/start', { site: siteVal });
+      if (b && b.error) return err('browser start: ' + b.error);
+    }
+    await japi('/api/v2/monitor/start', { site: siteVal });
     await pollShot();
   } catch (e) {
     err('record: ' + e.message);
@@ -1173,11 +1196,24 @@ $('#shot').onclick = async (e) => {
     try {
       const el = await api(`/api/v2/browser/element-at?x=${x}&y=${y}`).catch(() => ({ locators: [] }));
       const locs = el.locators && el.locators.length ? el.locators : [{ kind: 'box', value: `${x},${y}` }];
-      const rec = await japi('/api/v2/monitor/record', { tool: 'click', locators: locs, narration: $('#mnar').value });
+
+      let tool = 'click';
+      let text = '';
+      const isInput = locs.some(l => l.value && (l.value.includes('input') || l.value.includes('textbox') || l.value.includes('#vendor') || l.value.includes('#amount') || l.value.includes('search')));
+      if (isInput) {
+        const typed = prompt('Type text to record into this field (leave blank to just click):', '');
+        if (typed !== null && typed !== '') {
+          tool = 'type';
+          text = typed;
+        }
+      }
+      const rec = await japi('/api/v2/monitor/record', { tool: tool, text: text, locators: locs, narration: $('#mnar').value });
       addEvt({ type: 'rec', data: rec });
       $('#mnar').value = '';
+      $('#mrec').textContent = `● Recording (${rec.recorded || 1} actions captured)`;
+      await pollShot();
     } catch (e2) {
-      err('record click: ' + e2.message);
+      err('record action: ' + e2.message);
     }
   } else {
     // In execute mode, PAUSED_HUMAN takeover, or direct manual push: forward click to live browser!
@@ -1198,6 +1234,22 @@ $('#mcompile').onclick = async () => {
     window.__proc = c.procedure;
     await japi('/api/v2/procedure/save?name=learned', { ...c.procedure });
     $('#msaved').textContent = `Procedure compiled (${c.steps} steps) → saved. "Run learned" executes it deterministically.`;
+
+    const box = $('#m-learned-box');
+    if (box) {
+      box.classList.remove('hide');
+      $('#m-step-count').textContent = `${c.steps} steps`;
+      $('#m-steps-container').innerHTML = (c.procedure.steps || []).map((s, idx) => `
+        <div style="background:#27272a;padding:8px 10px;border-radius:6px;font-size:12px;border:1px solid #3f3f46;">
+          <div style="display:flex;justify-content:space-between;color:#a1a1aa;font-size:11px;">
+            <span class="mono">Step ${idx+1}: <b style="color:#22c55e;">${s.action.toUpperCase()}</b></span>
+            <span style="color:#60a5fa">${s.vision_concept || 'DOM target'}</span>
+          </div>
+          <div style="color:#f4f4f5;margin-top:2px;">${s.description || s.action} ${s.arg && s.arg.text ? '<b>"' + s.arg.text + '"</b>' : ''}</div>
+          <div class="note mono" style="font-size:10px;color:#71717a;margin-top:2px;">Target: ${s.locators && s.locators[0] ? s.locators[0].value : 'coords'}</div>
+        </div>
+      `).join('');
+    }
   } catch (e) {
     err('Compile failed: ' + e.message);
   }
@@ -1286,6 +1338,10 @@ document.addEventListener('keydown', e => {
 
 // Approval Gate & Ask Human UI
 function showGate(d) {
+  if ($('#chk-auto-approve') && $('#chk-auto-approve').checked) {
+    setTimeout(() => gateApprove(true), 150);
+    return;
+  }
   const g = $('#gate');
   g.classList.remove('hide');
   g.innerHTML = `
@@ -1296,6 +1352,7 @@ function showGate(d) {
       <button class="danger" onclick="gateApprove(false)">Deny</button>
     </div>
   `;
+  g.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 async function gateApprove(allow) {
   try {
@@ -1384,7 +1441,7 @@ async function updateTelemetryDashboard() {
     const cum = (costData && costData.cumulative) || {};
     $('#telem-act-cost').textContent = `${cum.billed_frames || 0} frames / ${cum.total_tokens || 0} tok`;
 
-    const estData = await api('/api/v2/budget/estimate', 'POST', {}).catch(() => ({}));
+    const estData = await japi('/api/v2/budget/estimate', {}).catch(() => ({}));
     if (estData && estData.estimate) {
       $('#telem-est-cost').textContent = `~${estData.estimate.estimated_sam_frames} frames / ~${estData.estimate.estimated_tokens} tok`;
     }
@@ -1402,9 +1459,9 @@ $('#telem-refresh-btn').onclick = updateTelemetryDashboard;
 
 $('#audit-verify-btn').onclick = async () => {
   try {
-    const res = await api('/api/v2/audit/verify', 'POST', {});
+    const res = await japi('/api/v2/audit/verify', {});
     if (res.valid) {
-      $('#audit-status').textContent = `✓ Valid (${res.chain_length} entries, hash: ${res.last_hash.slice(0, 10)}...)`;
+      $('#audit-status').textContent = `✓ Valid (${res.chain_length} entries, hash: ${(res.last_hash || '').slice(0, 10)}...)`;
       $('#audit-status').style.color = '#22c55e';
     } else {
       $('#audit-status').textContent = `✗ Chain Broken: ${res.error}`;
@@ -1418,7 +1475,7 @@ $('#audit-verify-btn').onclick = async () => {
 $('#pii-toggle-btn').onclick = async () => {
   try {
     const cur = await api('/api/v2/redaction');
-    const updated = await api('/api/v2/redaction', 'POST', { enabled: !cur.enabled });
+    const updated = await japi('/api/v2/redaction', { enabled: !cur.enabled });
     $('#pii-toggle-btn').textContent = updated.enabled ? 'ON' : 'OFF';
     $('#pii-toggle-btn').style.color = updated.enabled ? '#22c55e' : '#ef4444';
   } catch (e) {}

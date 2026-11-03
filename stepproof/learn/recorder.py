@@ -32,7 +32,8 @@ class Recorder:
         self._t0 = time.time()
 
     def start(self, site_url: str) -> None:
-        self.browser.start_site(site_url)
+        if site_url and site_url != "about:blank" and site_url != self.browser.url:
+            self.browser.start_site(site_url)
         self._t0 = time.time()
         self.actions = []
 

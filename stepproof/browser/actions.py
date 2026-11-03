@@ -61,13 +61,57 @@ def classify_action(name: str, arg: dict, tb=None) -> tuple[bool, bool]:
     return False, False
 
 
+def _resolve_target(tb, sel: str | None) -> tuple[str | None, int | None, int | None]:
+    """Resolve a selector string.
+    If it's an element index like '[0]' or '[1]', map it to:
+    1. Its actual CSS ID (e.g. '#vendor') or CSS selector
+    2. Or its center coordinates (cx, cy) so fill_at / click_box can actuate it.
+    """
+    if not sel or not tb:
+        return sel, None, None
+    s = str(sel).strip()
+    m = re.match(r"^\[(\d+)\]$", s)
+    if m:
+        try:
+            idx = int(m.group(1))
+            obs = tb.observe()
+            elements = [e for e in obs.get("elements", []) if e.get("visible")]
+            if idx < len(elements):
+                el = elements[idx]
+                if el.get("id"):
+                    return f"#{el['id']}", None, None
+                name = el.get("name", "")
+                if el.get("kind") == "input" and name:
+                    return f"input[name='{name}']", None, None
+                cx = el["x"] + el["w"] // 2
+                cy = el["y"] + el["h"] // 2
+                return None, cx, cy
+        except Exception:
+            pass
+    return sel, None, None
+
+
 def _label_of(tb, selector: str) -> str | None:
     """Visible label of the element a CSS selector addresses; None when no such element
     exists (deterministic page read - no model)."""
+    if not selector:
+        return None
+    rsel, cx, cy = _resolve_target(tb, selector)
+    if not rsel:
+        if cx is not None and cy is not None:
+            expr = ("(()=>{const el=document.elementFromPoint(%d, %d);"
+                    "if(!el)return null;"
+                    "return (el.textContent||el.getAttribute('aria-label')||el.id||'').trim().slice(0,60);})()"
+                    % (cx, cy))
+            try:
+                return tb.act("eval", {"expr": expr})
+            except Exception:
+                return None
+        return None
     expr = ("(()=>{const el=document.querySelector(%r);"
             "if(!el)return null;"
             "return (el.textContent||el.getAttribute('aria-label')||el.id||'').trim().slice(0,60);})()"
-            % selector)
+            % rsel)
     try:
         return tb.act("eval", {"expr": expr})
     except Exception:
@@ -84,8 +128,16 @@ def execute_action(tb, name: str, arg: dict) -> ActionResult:
         if name == "click":
             sel, selname = arg.get("selector"), arg.get("name")
             if sel:
-                tb.act("click_sel", {"selector": sel})
-                detail = f"clicked {sel}"
+                rsel, cx, cy = _resolve_target(tb, sel)
+                if rsel:
+                    tb.act("click_sel", {"selector": rsel})
+                    detail = f"clicked {rsel}"
+                elif cx is not None and cy is not None:
+                    tb.act("click_box", {"x": cx, "y": cy})
+                    detail = f"clicked @({cx},{cy}) (resolved from {sel})"
+                else:
+                    tb.act("click_sel", {"selector": sel})
+                    detail = f"clicked {sel}"
             elif selname:
                 _click_by_name(tb, selname)
                 detail = f"clicked {selname!r}"
@@ -96,12 +148,25 @@ def execute_action(tb, name: str, arg: dict) -> ActionResult:
                 raise ValueError("click needs 'selector', 'name', or (x,y) coordinates")
         elif name in ("type", "fill"):
             sel = arg.get("selector")
+            text = str(arg.get("text", "") or arg.get("value", ""))
             if sel:
-                tb.act("fill", {"selector": sel, "text": arg.get("text", "")})
-                detail = f"typed into {sel}"
+                rsel, cx, cy = _resolve_target(tb, sel)
+                if rsel:
+                    tb.act("fill", {"selector": rsel, "text": text})
+                    detail = f"typed into {rsel}"
+                elif cx is not None and cy is not None:
+                    res = tb.act("fill_at", {"x": cx, "y": cy,
+                                             "text": text,
+                                             "enter": bool(arg.get("enter", False))})
+                    if isinstance(res, dict) and not res.get("ok"):
+                        raise RuntimeError(res.get("error", "fill_at failed"))
+                    detail = f"typed into @({cx},{cy}) (resolved from {sel})"
+                else:
+                    tb.act("fill", {"selector": sel, "text": text})
+                    detail = f"typed into {sel}"
             elif "x" in arg and "y" in arg:
                 res = tb.act("fill_at", {"x": int(arg["x"]), "y": int(arg["y"]),
-                                         "text": str(arg.get("text", "") or arg.get("value", "")),
+                                         "text": text,
                                          "enter": bool(arg.get("enter", False))})
                 if isinstance(res, dict) and not res.get("ok"):
                     raise RuntimeError(res.get("error", "fill_at failed"))
@@ -121,9 +186,20 @@ def execute_action(tb, name: str, arg: dict) -> ActionResult:
             detail = r.get("url") if ok else r.get("error", "goto failed")
         elif name == "select":
             sel = arg.get("selector")
+            val = str(arg.get("value", ""))
             if sel:
-                tb.act("select", {"selector": sel, "value": arg.get("value")})
-                detail = f"selected {arg.get('value')} in {sel}"
+                rsel, cx, cy = _resolve_target(tb, sel)
+                if rsel:
+                    tb.act("select", {"selector": rsel, "value": val})
+                    detail = f"selected {val} in {rsel}"
+                elif cx is not None and cy is not None:
+                    res = tb.act("select_at", {"x": cx, "y": cy, "value": val})
+                    if isinstance(res, dict) and not res.get("ok"):
+                        raise RuntimeError(res.get("error", "select_at failed"))
+                    detail = f"selected {val} @({cx},{cy}) (resolved from {sel})"
+                else:
+                    tb.act("select", {"selector": sel, "value": val})
+                    detail = f"selected {val} in {sel}"
             elif "x" in arg and "y" in arg:
                 res = tb.act("select_at", {"x": int(arg["x"]), "y": int(arg["y"]), "value": str(arg.get("value", ""))})
                 if isinstance(res, dict) and not res.get("ok"):
