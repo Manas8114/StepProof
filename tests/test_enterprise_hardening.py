@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from stepproof.proc import Procedure
+from stepproof.proc import Procedure, Step
 from stepproof.signing import verify_procedure
 from stepproof.browser.observe import observe_page
 from stepproof.api_v2 import app
@@ -162,4 +162,33 @@ def test_anti_stagnation_detection():
             break
 
     assert stagnant_count == 3, "Should count 3 consecutive stagnant actions"
+
+
+def test_dev_default_key_fallback_is_scoped():
+    """Verify that DEFAULT_DEV_KEY is only accepted when provenance explicitly declares dev-default."""
+    from stepproof.signing import verify_procedure, sign_procedure, DEFAULT_DEV_KEY
+
+    # 1. Procedure signed with DEFAULT_DEV_KEY and declared dev-default -> verifies
+    p1 = Procedure(goal="Dev test", site="http://localhost:8011", steps=[])
+    sign_procedure(p1, key=DEFAULT_DEV_KEY)
+    assert p1.provenance.get("signing_key_id") == "dev-default"
+    ok, _ = verify_procedure(p1)
+    assert ok is True
+
+    # 2. Procedure signed with DEFAULT_DEV_KEY but claiming custom key -> REJECTED
+    p2 = Procedure(goal="Dev test", site="http://localhost:8011", steps=[])
+    sign_procedure(p2, key=DEFAULT_DEV_KEY)
+    p2.provenance["signing_key_id"] = "custom"
+    ok, err = verify_procedure(p2, key="secret-prod-key-12345")
+    assert ok is False
+    assert "Signature mismatch" in err
+
+    # 3. Tampered step in dev-default procedure -> REJECTED as tampered
+    p3 = Procedure(goal="Dev test", site="http://localhost:8011", steps=[])
+    sign_procedure(p3, key=DEFAULT_DEV_KEY)
+    p3.steps.append(Step(id="s99", description="tampered", action="click", arg={}))
+    ok, err = verify_procedure(p3)
+    assert ok is False
+    assert "Tampered procedure body" in err
+
 

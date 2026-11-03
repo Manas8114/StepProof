@@ -37,3 +37,7 @@ jobs:
           STEPPROOF_PROVIDER=mock STEPPROOF_DATA=data python -m eval.run_eval --help
           STEPPROOF_PROVIDER=mock STEPPROOF_DATA=data python -m eval.run_eval_v2 --help
 
+      - name: Run E2E real browser smoke test
+        run: |
+          python -m pytest -m e2e tests/e2e/test_real_browser.py -v
+
