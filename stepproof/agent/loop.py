@@ -171,6 +171,25 @@ class AgentLoop:
             shot = self.browser.take_screenshot()
             obs = self.browser.observe()
 
+            # Anti-bot and CAPTCHA challenge detection & automated/human resolution
+            captcha_info = self.browser.detect_captcha()
+            if captcha_info.get("detected"):
+                kind = captcha_info.get("kind", "unknown")
+                self._log_thought(steps + 1, "SECURITY_CHALLENGE", f"Anti-Bot Challenge Detected ({kind})",
+                                  f"Detected {kind} challenge on {self.browser.url}. Attempting automated solve / handler.")
+                solve_res = self.browser.solve_captcha()
+                res_dict = solve_res.get("result", {})
+                if res_dict.get("ok"):
+                    self._log_thought(steps + 1, "SECURITY_CHALLENGE", "Challenge Resolved",
+                                      f"Successfully solved {kind} challenge via {res_dict.get('method')}.")
+                    time.sleep(0.5)
+                    continue
+                else:
+                    self._log_thought(steps + 1, "SECURITY_CHALLENGE", "Operator Takeover Required",
+                                      f"{kind} challenge requires operator intervention. Halting for human takeover.")
+                    self.pause()
+                    self._maybe_wait_for_human()
+
             # Pre-flight PII redaction pass: strip emails, credit cards, phones, SSNs
             from ..redact import get_redactor
             redactor = get_redactor()

@@ -1550,8 +1550,10 @@ $('#msave').onclick = async () => {
   }
 };
 $('#mrun').onclick = async () => {
+  $('#msaved').textContent = 'Executing learned procedure...';
   try {
     const r = await japi('/api/v2/procedure/run', { name: 'learned', approve: true });
+    $('#msaved').textContent = 'Learned execution: ' + (r.success ? 'PASSED' : 'FINISHED (see checks)');
     addEvt({ type: 'exec', data: { success: r.success, checks: (r.checks || []).map(c => c.name + '=' + (c.passed ? 'ok' : 'no')) } });
     showSugg('deterministic', [{
       what: 'Learned procedure finished. Success: ' + (r.success ? 'YES' : 'NO — see checks'),

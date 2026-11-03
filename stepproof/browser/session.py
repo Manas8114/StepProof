@@ -25,7 +25,8 @@ class TinyBrowser:
     """
 
     def __init__(self, allowlist: set[str] | None = None,
-                 user_data_dir: str | None = None) -> None:
+                 user_data_dir: str | None = None,
+                 cdp_url: str | None = None) -> None:
         from stepproof import config as cfg
         default_allow = {"localhost:8011", "localhost:8012", "127.0.0.1:8011", "127.0.0.1:8012"}.union(cfg.ALLOWED_HOSTS)
         self.allowlist = allowlist if allowlist is not None else default_allow
@@ -35,6 +36,7 @@ class TinyBrowser:
         self.title = ""
         self.loading = False             # page not yet finished loading (URL-bar state)
         self._profile = user_data_dir
+        self._cdp_url = cdp_url
         self._worker = threading.Thread(target=self._run_worker, daemon=True)
         self._cmd: queue.Queue[tuple[str, object, Future]] = queue.Queue()
         self._done = threading.Event()
@@ -159,11 +161,22 @@ class TinyBrowser:
         self._after_nav()
         return r
 
+    def detect_captcha(self) -> dict:
+        """Detect Cloudflare Turnstile, hCaptcha, reCAPTCHA, or interstitial on active page."""
+        return self._call("detect_captcha", None)
+
+    def solve_captcha(self, provider: str | None = None, api_key: str | None = None) -> dict:
+        """Attempt automated or remote solving for detected anti-bot challenge."""
+        return self._call("solve_captcha", {"provider": provider, "api_key": api_key})
+
     def take_screenshot(self) -> str:
         """JPEG data URL (password fields masked). Also refreshes url/title on the worker thread."""
-        shot, url, title = self._call("shot", None)
-        self.last_shot, self.url, self.title = shot, url, title
-        return shot
+        try:
+            shot, url, title = self._call("shot", None)
+            self.last_shot, self.url, self.title = shot, url, title
+            return shot
+        except Exception:
+            return self.last_shot or ""
 
     @property
     def worker_done(self) -> threading.Event:
@@ -236,9 +249,17 @@ class TinyBrowser:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as pw:
             # real browser (P0.1b): persistent profile when given (the live companion),
+            # remote CDP grid worker when cdp_url is specified,
             # ephemeral for eval/tests so concurrent instances don't fight for the lock
             launch = dict(headless=True)
-            if self._profile:
+            if self._cdp_url:
+                self._browser = pw.chromium.connect_over_cdp(self._cdp_url)
+                ctx = self._browser.contexts[0] if self._browser.contexts else self._browser.new_context(
+                    viewport={"width": 1024, "height": 640},
+                    accept_downloads=False
+                )
+                self._page = ctx.pages[0] if ctx.pages else ctx.new_page()
+            elif self._profile:
                 Path(self._profile).mkdir(parents=True, exist_ok=True)
                 ctx = pw.chromium.launch_persistent_context(self._profile, headless=True,
                                                             viewport={"width": 1024, "height": 640},
@@ -310,8 +331,30 @@ class TinyBrowser:
             self._wait_load(p)
             return {"ok": True}
         if op == "shot":
-            shot = p.screenshot(type="jpeg", quality=_SHOT_Q)
-            return ("data:image/jpeg;base64," + base64.b64encode(shot).decode()), p.url, p.title()
+            try:
+                shot = p.screenshot(type="jpeg", quality=_SHOT_Q)
+                return ("data:image/jpeg;base64," + base64.b64encode(shot).decode()), p.url, p.title()
+            except Exception:
+                try:
+                    import time as _t
+                    _t.sleep(0.1)
+                    shot = p.screenshot(type="jpeg", quality=_SHOT_Q)
+                    return ("data:image/jpeg;base64," + base64.b64encode(shot).decode()), p.url, p.title()
+                except Exception:
+                    return (self.last_shot or ""), getattr(p, "url", ""), (p.title() if hasattr(p, "title") else "")
+        if op == "detect_captcha":
+            from ..captcha.detector import detect_challenge
+            ch = detect_challenge(p)
+            return ch.to_dict()
+        if op == "solve_captcha":
+            from ..captcha.solver import CaptchaHandler
+            handler = CaptchaHandler(
+                auto_solve_turnstile=True,
+                remote_provider=arg.get("provider") if isinstance(arg, dict) else None,
+                provider_api_key=arg.get("api_key") if isinstance(arg, dict) else None
+            )
+            ch, res = handler.handle(p)
+            return {"challenge": ch.to_dict(), "result": res.to_dict()}
         if op == "observe":
             self._dismiss_popups(p)
             from .observe import observe_page
@@ -438,7 +481,10 @@ class TinyBrowser:
         raise ValueError(f"unknown op {op!r}")
 
     def _after_nav(self) -> None:
-        self.take_screenshot()
+        try:
+            self.take_screenshot()
+        except Exception:
+            pass
         events.BUS.publish("nav", {"url": self.url, "title": self.title})
 
 

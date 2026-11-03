@@ -49,3 +49,4 @@ class EventBus:
 
 
 BUS = EventBus()
+emit = BUS.publish

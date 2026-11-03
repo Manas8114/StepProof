@@ -208,6 +208,81 @@ python -m eval.run_eval_v2             # includes live condition A if API reacha
 
 ---
 
+## Cloudflare Turnstile & Anti-Bot CAPTCHA Handling
+
+StepProof provides enterprise-grade detection and automated solving for Cloudflare Turnstile, hCaptcha, Google reCAPTCHA, and Cloudflare interstitial challenges:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│               ANTI-BOT CHALLENGE RESOLUTION PIPELINE                   │
+│                                                                        │
+│   Page Navigation / Perception                                         │
+│                │                                                       │
+│                ▼                                                       │
+│   [detect_challenge(page)] ──── (No Challenge) ───► Continue Run       │
+│                │                                                       │
+│                ▼ (Challenge Detected: Turnstile / hCaptcha / reCAPTCHA) │
+│   ┌────────────────────────────────────────────────────────────────┐   │
+│   │ 1. Local Turnstile Solver (DOM checkbox locating, coordinate   │   │
+│   │    jitter actuation, token resolution polling)                 │   │
+│   │ 2. Remote Provider Solver (Pluggable 2Captcha, CapSolver,      │   │
+│   │    AntiCaptcha, offline Mock)                                  │   │
+│   └────────────────────────┬───────────────────────────────────────┘   │
+│                            │                                           │
+│            ┌───────────────┴───────────────┐                           │
+│            ▼ (Solved)                      ▼ (Unresolved / Hostile)    │
+│     Resume Execution                 Graceful Takeover:                │
+│                                      PAUSED_HUMAN + UI Notification    │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Built-in Local Turnstile Solver**: Automatically locates Turnstile container/iframe, computes center coordinates, actuates with human-like jittered movement, and awaits token verification.
+- **Pluggable Remote Solvers**: Built-in HTTP adapter for 2Captcha, CapSolver, and Anti-Captcha (`CAPTCHA_PROVIDER`, `CAPTCHA_API_KEY`).
+- **Graceful Fallback**: If an anti-bot challenge cannot be bypassed automatically, the engine transitions to `PAUSED_HUMAN` and notifies the operator.
+- **REST Endpoints**:
+  - `GET /api/v2/browser/captcha/detect`: Active page challenge audit.
+  - `POST /api/v2/browser/captcha/solve`: Automated or remote challenge resolution.
+
+---
+
+## Distributed Cloud Cluster Execution
+
+Scale from a single local browser to 100+ concurrent headless workers across AWS, GCP, or managed browser grids (Browserbase, Playwright Grid, Browserless.io, Docker Swarm):
+
+- **Remote CDP Connection**: Connect workers to remote browser grids via `connect_over_cdp` using standard WebSocket CDP URLs (`wss://...`).
+- **ClusterManager Pool**: Dynamic registration of local and remote CDP workers (`POST /api/v2/cluster/nodes`), worker health monitoring, and asynchronous job queuing.
+- **Parallel CLI Runner**:
+  ```bash
+  python scripts/cluster_run.py --workers 4 --procedures data/procedures/*.json --out reports/cluster_suite.xml
+  python scripts/cluster_run.py --cdp-urls wss://grid-1.corp:9222,wss://grid-2.corp:9222 --procedures data/procedures/*.json --format html --out reports/cluster_report.html
+  ```
+- **Enterprise Reporting**: Generates aggregated JUnit XML (for Jenkins, GitHub Actions, GitLab CI) and rich dark-mode HTML dashboards.
+- **REST Endpoints**:
+  - `GET /api/v2/cluster/status`: Cluster capacity and job queue depth.
+  - `GET /api/v2/cluster/nodes` / `POST /api/v2/cluster/nodes`: Worker pool lifecycle.
+  - `POST /api/v2/cluster/jobs` / `GET /api/v2/cluster/jobs`: Batch job dispatch.
+  - `GET /api/v2/cluster/report`: Download aggregated JUnit XML or HTML reports.
+
+---
+
+## Automated Scheduling (A2)
+
+Run continuous verification on recurring schedules:
+
+- **Linux / macOS (Cron)**:
+  ```bash
+  # Run nightly verification at 2:00 AM
+  0 2 * * * cd /opt/stepproof && .venv/bin/python -m stepproof.testmode.suite --procs data/procedures/*.json --once >> /var/log/stepproof_nightly.log 2>&1
+  ```
+- **Windows Task Scheduler**:
+  ```powershell
+  schtasks /Create /SC DAILY /TN "StepProof\NightlySuite" /TR "powershell -Command cd C:\stepproof; .\.venv\Scripts\python.exe -m stepproof.testmode.suite --procs data\procedures\*.json --once" /ST 02:00
+  ```
+- **macOS (launchd)**:
+  Configure `~/Library/LaunchAgents/com.stepproof.suite.plist` with `StartCalendarInterval` and program arguments pointing to `stepproof.testmode.suite`.
+
+---
+
 ## Verification & Disclosures
 
 - **Verification Record**: See [`docs/VERIFIED.md`](docs/VERIFIED.md) for full verification against Meta documentation (SAM pricing/billing, Responses API shapes, MCP supervisor consumption).

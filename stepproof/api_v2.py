@@ -13,8 +13,8 @@ from __future__ import annotations
 import json, threading
 from pathlib import Path
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
@@ -1288,6 +1288,119 @@ def skills_reteach(body: ReteachIn):
     if ok:
         proc_file.write_text(json.dumps(updated_proc.to_dict(), indent=2), encoding="utf-8")
     return {"ok": ok, "message": msg, "procedure": updated_proc.to_dict()}
+
+
+# ==============================================================================
+# Cloudflare Turnstile & Anti-Bot CAPTCHA Endpoints
+# ==============================================================================
+
+class CaptchaSolveIn(BaseModel):
+    provider: Optional[str] = None
+    api_key: Optional[str] = None
+
+
+@app.get("/api/v2/browser/captcha/detect")
+def browser_captcha_detect():
+    """Inspect active page DOM/frames for Cloudflare Turnstile, hCaptcha, reCAPTCHA, or Cloudflare interstitials."""
+    return _browser.detect_captcha()
+
+
+@app.post("/api/v2/browser/captcha/solve")
+def browser_captcha_solve(body: Optional[CaptchaSolveIn] = None):
+    """Attempt automated or remote solving for detected anti-bot challenge on active page."""
+    provider = body.provider if body else None
+    api_key = body.api_key if body else None
+    return _browser.solve_captcha(provider=provider, api_key=api_key)
+
+
+# ==============================================================================
+# Distributed Cloud Cluster Execution Endpoints
+# ==============================================================================
+
+class ClusterNodeRegisterIn(BaseModel):
+    node_id: Optional[str] = None
+    node_type: str = "local"  # "local" | "cdp"
+    cdp_url: Optional[str] = None
+    concurrency: int = 1
+    capabilities: list[str] = []
+
+
+class ClusterJobSubmitIn(BaseModel):
+    procedure: dict
+    name: Optional[str] = None
+
+
+@app.get("/api/v2/cluster/status")
+def cluster_status():
+    """Retrieve cluster health, worker pool capacities, queue depth, and throughput metrics."""
+    from .cluster import get_cluster_manager
+    return get_cluster_manager().get_status()
+
+
+@app.get("/api/v2/cluster/nodes")
+def cluster_nodes_list():
+    """List registered execution workers across local and remote CDP endpoints."""
+    from .cluster import get_cluster_manager
+    return get_cluster_manager().list_nodes()
+
+
+@app.post("/api/v2/cluster/nodes")
+def cluster_node_register(body: ClusterNodeRegisterIn):
+    """Register a new execution worker (local Playwright worker or remote CDP endpoint)."""
+    from .cluster import get_cluster_manager
+    node = get_cluster_manager().register_node(
+        node_id=body.node_id,
+        node_type=body.node_type,
+        cdp_url=body.cdp_url,
+        concurrency=body.concurrency,
+        capabilities=body.capabilities or None,
+    )
+    return node.to_dict()
+
+
+@app.delete("/api/v2/cluster/nodes/{node_id}")
+def cluster_node_deregister(node_id: str):
+    """Deregister an execution worker from the cluster pool."""
+    from .cluster import get_cluster_manager
+    ok = get_cluster_manager().deregister_node(node_id)
+    if not ok:
+        raise HTTPException(404, f"Worker node {node_id!r} not found")
+    return {"ok": True, "node_id": node_id}
+
+
+@app.get("/api/v2/cluster/jobs")
+def cluster_jobs_list(limit: int = 100):
+    """List submitted cluster execution jobs and statuses."""
+    from .cluster import get_cluster_manager
+    return get_cluster_manager().list_jobs(limit=limit)
+
+
+@app.post("/api/v2/cluster/jobs")
+def cluster_job_submit(body: ClusterJobSubmitIn):
+    """Submit a procedure for distributed cluster execution."""
+    from .cluster import get_cluster_manager
+    job_id = get_cluster_manager().submit_job(body.procedure, name=body.name or "")
+    return {"job_id": job_id, "status": "queued"}
+
+
+@app.get("/api/v2/cluster/jobs/{job_id}")
+def cluster_job_get(job_id: str):
+    """Retrieve status, duration, logs, and artifacts for a specific cluster job."""
+    from .cluster import get_cluster_manager
+    job = get_cluster_manager().get_job(job_id)
+    if not job:
+        raise HTTPException(404, f"Cluster job {job_id!r} not found")
+    return job
+
+
+@app.get("/api/v2/cluster/report")
+def cluster_report(format: str = "junit"):
+    """Download aggregated enterprise execution report (JUnit XML or HTML)."""
+    from .cluster import get_cluster_manager
+    rep = get_cluster_manager().generate_aggregate_report(format=format)
+    media_type = "text/html" if format.lower() == "html" else "application/xml"
+    return Response(content=rep, media_type=media_type)
+
 
 
 
