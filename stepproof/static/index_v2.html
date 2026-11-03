@@ -815,6 +815,30 @@ label {
         <button class="ghost" id="pii-toggle-btn" style="padding:3px 8px;font-size:11px;color:#22c55e;">ON</button>
       </div>
 
+      <label>Anti-Bot / CAPTCHA Guard</label>
+      <div style="background:#27272a;padding:8px 10px;border-radius:6px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:11px;color:#a1a1aa;">Cloudflare Turnstile & Challenges</span>
+          <span id="captcha-status-badge" style="font-size:10px;padding:2px 6px;border-radius:4px;background:#18181b;color:#a1a1aa;">CLEAN</span>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="ghost" id="captcha-detect-btn" style="flex:1;padding:3px 6px;font-size:11px;">🔍 Detect</button>
+          <button class="ghost" id="captcha-solve-btn" style="flex:1;padding:3px 6px;font-size:11px;color:#38bdf8;">⚡ Solve</button>
+        </div>
+      </div>
+
+      <label>Distributed Cloud Cluster</label>
+      <div style="background:#27272a;padding:8px 10px;border-radius:6px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;color:#a1a1aa;">Active Workers</span>
+          <span id="cluster-nodes-badge" style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;">1 Local</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+          <span style="font-size:11px;color:#71717a;" id="cluster-queue-lbl">Queue Depth: 0 jobs</span>
+          <button class="ghost" id="cluster-refresh-btn" style="padding:2px 6px;font-size:10px;">Refresh</button>
+        </div>
+      </div>
+
       <div class="btnrow" style="margin-top:10px;">
         <button class="ghost" id="telem-refresh-btn" style="width:100%">⟳ Refresh Backend Health</button>
       </div>
@@ -1573,9 +1597,13 @@ $('#xstart').onclick = async () => {
     err('Please enter a goal first (e.g. "File an Acme office expense of $42").');
     return;
   }
+  setState('PLANNING');
   try {
     const r = await japi('/api/v2/agent/run', { goal: goalVal, site: $('#xsite').value });
-    if (r.error) return err('agent run: ' + r.error);
+    if (r.error) {
+      setState('IDLE');
+      return err('agent run: ' + r.error);
+    }
     setState(r.state || 'RUNNING');
     addEvt({ type: 'agent_start', data: { goal: goalVal } });
     thoughtHistory = [];
@@ -1764,6 +1792,50 @@ $('#pii-toggle-btn').onclick = async () => {
     $('#pii-toggle-btn').style.color = updated.enabled ? '#22c55e' : '#ef4444';
   } catch (e) {}
 };
+
+$('#captcha-detect-btn').onclick = async () => {
+  try {
+    const ch = await api('/api/v2/browser/captcha/detect');
+    const badge = $('#captcha-status-badge');
+    if (ch.detected) {
+      badge.textContent = ch.kind.toUpperCase();
+      badge.style.background = 'rgba(239,68,68,0.2)';
+      badge.style.color = '#ef4444';
+    } else {
+      badge.textContent = 'CLEAN';
+      badge.style.background = '#18181b';
+      badge.style.color = '#a1a1aa';
+    }
+  } catch (e) {}
+};
+
+$('#captcha-solve-btn').onclick = async () => {
+  try {
+    $('#captcha-status-badge').textContent = 'SOLVING...';
+    const r = await japi('/api/v2/browser/captcha/solve', { provider: 'mock' });
+    const badge = $('#captcha-status-badge');
+    if (r.result && r.result.ok) {
+      badge.textContent = 'SOLVED';
+      badge.style.background = 'rgba(34,197,94,0.2)';
+      badge.style.color = '#22c55e';
+    } else {
+      badge.textContent = 'UNRESOLVED';
+      badge.style.background = 'rgba(239,68,68,0.2)';
+      badge.style.color = '#ef4444';
+    }
+  } catch (e) {}
+};
+
+async function updateClusterStatus() {
+  try {
+    const cst = await api('/api/v2/cluster/status');
+    const total = cst.nodes ? cst.nodes.total : 0;
+    const idle = cst.nodes ? cst.nodes.idle : 0;
+    $('#cluster-nodes-badge').textContent = `${total} (${idle} Idle)`;
+    $('#cluster-queue-lbl').textContent = `Queue: ${cst.jobs ? cst.jobs.queued : 0} queued, ${cst.jobs ? cst.jobs.running : 0} running`;
+  } catch (e) {}
+}
+$('#cluster-refresh-btn').onclick = updateClusterStatus;
 
 // Coach
 $('#cgo').onclick = async () => {

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="StepProof Cluster Suite" tests="1" failures="0" errors="0" time="3.070">
+  <testcase name="ACME enterprise expense compliance audit and approval flow" classname="stepproof.procedures.ACME enterprise expense compliance audit and approval flow" time="3.070">
+  </testcase>
+</testsuite>

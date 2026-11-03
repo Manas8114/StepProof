@@ -84,11 +84,11 @@ class ClusterNode:
             try:
                 # If procedure specifies a start url or site, navigate
                 steps = getattr(proc, "steps", [])
-                start_url = getattr(proc, "url", None)
+                start_url = getattr(proc, "site", None) or getattr(proc, "url", None)
                 if not start_url and steps and hasattr(steps[0], "arg") and isinstance(steps[0].arg, dict):
-                    start_url = steps[0].arg.get("url")
+                    start_url = steps[0].arg.get("url") or steps[0].arg.get("site")
                 if start_url:
-                    tb.goto(start_url)
+                    tb.start_site(start_url, base="http://localhost:8011")
 
                 res = execute_procedure(tb, proc)
                 elapsed = time.time() - t0
