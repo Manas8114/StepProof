@@ -243,6 +243,9 @@ StepProof provides enterprise-grade detection and automated solving for Cloudfla
   - `GET /api/v2/browser/captcha/detect`: Active page challenge audit.
   - `POST /api/v2/browser/captcha/solve`: Automated or remote challenge resolution.
 
+> **Dual-Use & Safety Policy Disclosure**:
+> Automated CAPTCHA/Turnstile resolution is an **opt-in operator capability** intended exclusively for authorized internal enterprise portals, staging environments, and allowlisted vendor sites. All actuations remain strictly subject to StepProof's host allowlist, cryptographic audit spine, and human-in-the-loop safety gates. When encountering hostile, unknown, or unresolvable challenges, StepProof does not attempt brute-force evasion; it immediately transitions to `PAUSED_HUMAN` to defer to human judgment.
+
 ---
 
 ## Distributed Cloud Cluster Execution

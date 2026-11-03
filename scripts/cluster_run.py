@@ -28,6 +28,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="StepProof Distributed Cluster Test Runner")
     parser.add_argument("--workers", type=int, default=2, help="Number of local Chromium worker nodes (default: 2)")
     parser.add_argument("--cdp-urls", type=str, default="", help="Comma-separated list of remote CDP endpoint URLs")
+    parser.add_argument("--base-url", type=str, default="", help="Base URL for resolving relative procedure routes")
     parser.add_argument("--procedures", nargs="+", required=True, help="List or glob of procedure JSON file paths")
     parser.add_argument("--out", type=str, default="reports/cluster_run.xml", help="Output path for aggregated report")
     parser.add_argument("--format", choices=["junit", "html"], default="junit", help="Report format (junit or html)")
@@ -63,12 +64,12 @@ def main() -> int:
     if cdp_list:
         for i, cdp_url in enumerate(cdp_list):
             node_id = f"cdp-worker-{i+1}"
-            cm.register_node(node_id=node_id, node_type="cdp", cdp_url=cdp_url)
+            cm.register_node(node_id=node_id, node_type="cdp", cdp_url=cdp_url, base_url=args.base_url or None)
             print(f"Registered remote CDP worker: {node_id} ({cdp_url[:40]}...)")
     else:
         for i in range(args.workers):
             node_id = f"local-worker-{i+1}"
-            cm.register_node(node_id=node_id, node_type="local")
+            cm.register_node(node_id=node_id, node_type="local", base_url=args.base_url or None)
             print(f"Registered local worker: {node_id}")
 
     # Submit batch

@@ -77,7 +77,7 @@ Status 2026-10-31 (end of day): live API access is confirmed and working (B1-B3 
 | V22 | Lead A Self-healing web tests & reports | `stepproof/harness/`: locator drift reporting, self-rewriting procedures (winning locator promoted), JUnit XML + HTML dashboards |
 | V23 | Lead B Standalone proof verifier | `stepproof/verifier/`: zero-server proof verifier walking hash chains and validating evidence; `v1_adapter.py` for physical assembly clips |
 | V24 | Lead C Operator skill compiler & gated re-teach | `stepproof/skills/`: describe-or-demo → `{slot}` parameterised skills; human-gated re-teach flow (never silent retraining) |
-| V25 | Cloudflare Turnstile & Anti-Bot CAPTCHAs | `stepproof/captcha/`: local Turnstile solver (DOM locator, coordinate jitter, token polling), pluggable remote providers (2Captcha, CapSolver, Anti-Captcha, offline Mock), graceful `PAUSED_HUMAN` takeover |
+| V25 | Cloudflare Turnstile & Anti-Bot CAPTCHAs | `stepproof/captcha/`: opt-in local Turnstile solver (DOM locator, coordinate jitter, token polling) for authorized enterprise domains, pluggable remote providers (2Captcha, CapSolver, Anti-Captcha, offline Mock), strict `PAUSED_HUMAN` takeover on evasion failure |
 | V26 | Distributed Cloud Cluster Execution | `stepproof/cluster/`: remote CDP grid connection (`connect_over_cdp`), multi-worker pool manager, asynchronous job queue, parallel CLI runner (`scripts/cluster_run.py`), aggregated enterprise JUnit/HTML reporting |
 
 ## W. Launch video (/brag)

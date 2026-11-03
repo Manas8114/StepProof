@@ -15,7 +15,6 @@ import json, time
 from pathlib import Path
 from typing import Any
 from .. import config as cfg
-from ..checks import _js
 
 LOCATE_TOOL = {"type": "function", "name": "locate_element",
                "description": "Locate a visible UI element in the screenshot.",

@@ -400,7 +400,11 @@ label {
   padding: 14px 16px;
   margin: 10px 0;
   box-shadow: 0 0 24px rgba(245, 158, 11, 0.4);
-  animation: pulse-gate 2s infinite ease-in-out;
+  animation: gate-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1), pulse-gate 2s 0.2s infinite ease-in-out;
+}
+@keyframes gate-enter {
+  0% { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 @keyframes pulse-gate {
   0%, 100% { border-color: #f59e0b; box-shadow: 0 0 16px rgba(245, 158, 11, 0.35); }
@@ -444,6 +448,11 @@ label {
   font-size: 11.5px;
   transition: background-color 0.15s ease-out, border-color 0.15s ease-out;
   word-break: break-word;
+  animation: evt-appear 0.12s ease-out;
+}
+@keyframes evt-appear {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .evt:hover {
   background: rgba(255, 255, 255, 0.04);
@@ -609,6 +618,28 @@ label {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--mut-dark); }
+
+/* Tab Panel Transitions */
+[id^="m-"]:not(#m-learned-box):not(#m-step-count):not(#m-steps-container) {
+  animation: panel-enter 0.14s ease-out;
+}
+@keyframes panel-enter {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Accessibility: Reduced Motion Guard */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .gate, .state-AWAITING_APPROVAL, .pulse, #telemetry-status-dot, [id^="m-"], .evt {
+    animation: none !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -1799,8 +1830,9 @@ $('#pii-toggle-btn').onclick = async () => {
 
 $('#captcha-detect-btn').onclick = async () => {
   try {
-    const ch = await api('/api/v2/browser/captcha/detect');
     const badge = $('#captcha-status-badge');
+    badge.textContent = 'CHECKING...';
+    const ch = await api('/api/v2/browser/captcha/detect');
     if (ch.detected) {
       badge.textContent = ch.kind.toUpperCase();
       badge.style.background = 'rgba(239,68,68,0.2)';
@@ -1832,12 +1864,16 @@ $('#captcha-solve-btn').onclick = async () => {
 
 async function updateClusterStatus() {
   try {
+    $('#cluster-refresh-btn').textContent = '...';
     const cst = await api('/api/v2/cluster/status');
     const total = cst.nodes ? cst.nodes.total : 0;
     const idle = cst.nodes ? cst.nodes.idle : 0;
     $('#cluster-nodes-badge').textContent = `${total} (${idle} Idle)`;
     $('#cluster-queue-lbl').textContent = `Queue: ${cst.jobs ? cst.jobs.queued : 0} queued, ${cst.jobs ? cst.jobs.running : 0} running`;
-  } catch (e) {}
+    $('#cluster-refresh-btn').textContent = 'Refresh';
+  } catch (e) {
+    $('#cluster-refresh-btn').textContent = 'Refresh';
+  }
 }
 $('#cluster-refresh-btn').onclick = updateClusterStatus;
 

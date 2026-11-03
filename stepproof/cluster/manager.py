@@ -73,6 +73,7 @@ class ClusterManager:
         cdp_url: Optional[str] = None,
         concurrency: int = 1,
         capabilities: Optional[list[str]] = None,
+        base_url: Optional[str] = None,
     ) -> ClusterNode:
         with self._lock:
             node = ClusterNode(
@@ -81,6 +82,7 @@ class ClusterManager:
                 cdp_url=cdp_url,
                 concurrency=concurrency,
                 capabilities=capabilities,
+                base_url=base_url,
             )
             self._nodes[node.node_id] = node
             return node

@@ -281,12 +281,14 @@ def test_api_v2_captcha_and_cluster_endpoints():
         "node_id": "test-remote-cdp-node",
         "node_type": "cdp",
         "cdp_url": "wss://remote-grid:9222",
+        "base_url": "https://remote.grid.corp",
         "concurrency": 2,
         "capabilities": ["chromium", "turnstile"]
     }
     resp_reg = client.post("/api/v2/cluster/nodes", json=node_payload)
     assert resp_reg.status_code == 200
     assert resp_reg.json()["node_id"] == "test-remote-cdp-node"
+    assert resp_reg.json()["base_url"] == "https://remote.grid.corp"
 
     # 5. Test Cluster List Nodes
     resp_nodes = client.get("/api/v2/cluster/nodes")
@@ -319,3 +321,54 @@ def test_api_v2_captcha_and_cluster_endpoints():
     resp_dereg = client.delete("/api/v2/cluster/nodes/test-remote-cdp-node")
     assert resp_dereg.status_code == 200
     assert resp_dereg.json()["ok"] is True
+
+
+def test_cluster_node_base_url_resolution():
+    """Verify that remote CDP nodes do not inject local host base unless configured."""
+    # 1. Local node without base_url defaults to http://localhost:8011
+    local_node = ClusterNode(node_id="test-local-1", node_type="local")
+    assert local_node.base_url is None
+    d_local = local_node.to_dict()
+    assert d_local["node_type"] == "local"
+    assert d_local["base_url"] is None
+
+    # 2. CDP node without base_url remains None (does not inject local base)
+    cdp_node = ClusterNode(node_id="test-cdp-1", node_type="cdp", cdp_url="wss://worker.corp:9222")
+    assert cdp_node.base_url is None
+    assert cdp_node.to_dict()["base_url"] is None
+
+    # 3. CDP node with custom base_url preserves it
+    cdp_custom = ClusterNode(
+        node_id="test-cdp-2",
+        node_type="cdp",
+        cdp_url="wss://worker.corp:9222",
+        base_url="https://staging.internal.corp",
+    )
+    assert cdp_custom.base_url == "https://staging.internal.corp"
+    assert cdp_custom.to_dict()["base_url"] == "https://staging.internal.corp"
+
+    # 4. Verify base resolution in execute_procedure invocation logic
+    mock_proc = {
+        "site": "/site/expense",
+        "steps": [],
+    }
+    with patch("stepproof.cluster.node.execute_procedure") as mock_exec, \
+         patch("stepproof.browser.session.TinyBrowser") as mock_tb_cls:
+        mock_tb = MagicMock()
+        mock_tb_cls.return_value = mock_tb
+        mock_exec.return_value = MagicMock(success=True, steps_run=1, healed_steps=[], error="")
+
+        # Test local node execution -> injects http://localhost:8011
+        local_node.execute_procedure(mock_proc)
+        mock_tb.start_site.assert_called_with("/site/expense", base="http://localhost:8011")
+
+        # Test remote cdp node execution -> injects None (no local base)
+        mock_tb.reset_mock()
+        cdp_node.execute_procedure(mock_proc)
+        mock_tb.start_site.assert_called_with("/site/expense", base=None)
+
+        # Test remote cdp node with explicit base_url -> injects custom base
+        mock_tb.reset_mock()
+        cdp_custom.execute_procedure(mock_proc)
+        mock_tb.start_site.assert_called_with("/site/expense", base="https://staging.internal.corp")
+

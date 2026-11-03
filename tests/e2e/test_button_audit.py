@@ -150,7 +150,7 @@ def test_button_audit(app, browser):
         time.sleep(0.25)
 
     # ---- tabs (state change = target panel visible)
-    for m in ("execute", "coach", "tour", "tracking", "monitor"):
+    for m in ("execute", "coach", "tour", "tracking", "telemetry", "thoughts", "monitor"):
         audit(f"#tabs button[data-m='{m}']", settle=0.3)
 
     # ---- monitor: record a real action so compile/save/run have data
@@ -198,6 +198,15 @@ def test_button_audit(app, browser):
     audit("#trackplay", settle=0.8)
     audit("#trackpause", settle=0.5)
     audit("#trackreset", settle=0.5)
+
+    # ---- telemetry & HUD controls
+    goto_mode("telemetry")
+    audit("#telem-refresh-btn", settle=0.6)
+    audit("#cluster-refresh-btn", settle=0.6)
+    audit("#captcha-detect-btn", settle=0.6)
+    audit("#captcha-solve-btn", settle=0.6)
+    audit("#pii-toggle-btn", settle=0.5)
+    audit("#audit-verify-btn", settle=0.6)
 
     # ---- center controls
     audit("#fresh", settle=0.5)

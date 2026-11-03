@@ -35,10 +35,12 @@ class ClusterNode:
         cdp_url: Optional[str] = None,
         concurrency: int = 1,
         capabilities: Optional[list[str]] = None,
+        base_url: Optional[str] = None,
     ) -> None:
         self.node_id = node_id or f"node-{uuid.uuid4().hex[:8]}"
         self.node_type = node_type
         self.cdp_url = cdp_url
+        self.base_url = base_url
         self.concurrency = max(1, concurrency)
         self.capabilities = capabilities or ["chromium", "turnstile_solver", "v2_executor"]
         self.status: str = "idle"  # "idle" | "busy" | "offline" | "error"
@@ -55,6 +57,7 @@ class ClusterNode:
             "node_id": self.node_id,
             "node_type": self.node_type,
             "cdp_url": self.cdp_url,
+            "base_url": self.base_url,
             "concurrency": self.concurrency,
             "capabilities": self.capabilities,
             "status": self.status,
@@ -88,7 +91,8 @@ class ClusterNode:
                 if not start_url and steps and hasattr(steps[0], "arg") and isinstance(steps[0].arg, dict):
                     start_url = steps[0].arg.get("url") or steps[0].arg.get("site")
                 if start_url:
-                    tb.start_site(start_url, base="http://localhost:8011")
+                    base = self.base_url or ("http://localhost:8011" if self.node_type == "local" else None)
+                    tb.start_site(start_url, base=base)
 
                 res = execute_procedure(tb, proc)
                 elapsed = time.time() - t0

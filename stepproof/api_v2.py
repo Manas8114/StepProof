@@ -1321,6 +1321,7 @@ class ClusterNodeRegisterIn(BaseModel):
     node_id: Optional[str] = None
     node_type: str = "local"  # "local" | "cdp"
     cdp_url: Optional[str] = None
+    base_url: Optional[str] = None
     concurrency: int = 1
     capabilities: list[str] = []
 
@@ -1352,6 +1353,7 @@ def cluster_node_register(body: ClusterNodeRegisterIn):
         node_id=body.node_id,
         node_type=body.node_type,
         cdp_url=body.cdp_url,
+        base_url=body.base_url,
         concurrency=body.concurrency,
         capabilities=body.capabilities or None,
     )
