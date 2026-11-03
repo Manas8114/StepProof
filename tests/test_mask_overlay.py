@@ -1,6 +1,9 @@
 """Unit tests for T8: Mask evidence overlay (meta_sam_parser decode + compositing)."""
 from pathlib import Path
 from unittest.mock import MagicMock
+import pytest
+
+PIL = pytest.importorskip("PIL", reason="pillow is optional")
 from PIL import Image
 from stepproof.browser.vision_heal import SamVisionHealer
 from stepproof import config as cfg
