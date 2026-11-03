@@ -259,6 +259,8 @@ Scale from a single local browser to 100+ concurrent headless workers across AWS
   python scripts/cluster_run.py --workers 4 --procedures data/procedures/*.json --out reports/cluster_suite.xml
   python scripts/cluster_run.py --cdp-urls wss://grid-1.corp:9222,wss://grid-2.corp:9222 --procedures data/procedures/*.json --format html --out reports/cluster_report.html
   ```
+
+> **Remote Grid & Host Allowlist**: When connecting workers to remote browser grids or corporate intranets via `--cdp-urls` and `--base-url`, make sure target domains are listed in the `ALLOWED_HOSTS` environment variable (e.g. `export ALLOWED_HOSTS="app.workday.com,salesforce.com,intranet.corp"`). StepProof enforces the allowlist boundary across all cluster nodes, immediately reporting `INFRA_ERROR: navigation refused` if an untrusted host is requested.
 - **Enterprise Reporting**: Generates aggregated JUnit XML (for Jenkins, GitHub Actions, GitLab CI) and rich dark-mode HTML dashboards.
 - **REST Endpoints**:
   - `GET /api/v2/cluster/status`: Cluster capacity and job queue depth.

@@ -355,6 +355,7 @@ def test_cluster_node_base_url_resolution():
     with patch("stepproof.cluster.node.execute_procedure") as mock_exec, \
          patch("stepproof.browser.session.TinyBrowser") as mock_tb_cls:
         mock_tb = MagicMock()
+        mock_tb.start_site.return_value = {"ok": True, "url": "https://example.com"}
         mock_tb_cls.return_value = mock_tb
         mock_exec.return_value = MagicMock(success=True, steps_run=1, healed_steps=[], error="")
 
@@ -364,11 +365,39 @@ def test_cluster_node_base_url_resolution():
 
         # Test remote cdp node execution -> injects None (no local base)
         mock_tb.reset_mock()
+        mock_tb.start_site.return_value = {"ok": True, "url": "https://example.com"}
         cdp_node.execute_procedure(mock_proc)
         mock_tb.start_site.assert_called_with("/site/expense", base=None)
 
         # Test remote cdp node with explicit base_url -> injects custom base
         mock_tb.reset_mock()
+        mock_tb.start_site.return_value = {"ok": True, "url": "https://example.com"}
         cdp_custom.execute_procedure(mock_proc)
         mock_tb.start_site.assert_called_with("/site/expense", base="https://staging.internal.corp")
+
+
+def test_cluster_node_navigation_refusal_short_circuit():
+    """Verify that when start_site navigation is refused by allowlist, node immediately returns INFRA_ERROR."""
+    node = ClusterNode(node_id="test-infra-1", node_type="cdp", cdp_url="wss://worker.corp:9222")
+    mock_proc = {
+        "site": "https://untrusted.host.corp/login",
+        "steps": [{"id": "s1", "description": "click submit", "action": "click", "arg": {"name": "Submit"}}],
+    }
+    with patch("stepproof.cluster.node.execute_procedure") as mock_exec, \
+         patch("stepproof.browser.session.TinyBrowser") as mock_tb_cls:
+        mock_tb = MagicMock()
+        mock_tb_cls.return_value = mock_tb
+        mock_tb.start_site.return_value = {
+            "ok": False,
+            "error": "refused: host 'untrusted.host.corp' not on the allowlist"
+        }
+
+        res = node.execute_procedure(mock_proc)
+        assert res["ok"] is False
+        assert res["verdict"] == "INFRA_ERROR"
+        assert "refused" in res["error"]
+        assert res["steps_run"] == 0
+        # execute_procedure MUST NOT have been called on blank page
+        mock_exec.assert_not_called()
+
 

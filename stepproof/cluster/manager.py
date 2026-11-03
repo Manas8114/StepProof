@@ -46,7 +46,8 @@ class ClusterJob:
 class ClusterManager:
     """Multi-worker cluster manager and scheduler."""
 
-    def __init__(self, auto_start_worker: bool = True) -> None:
+    def __init__(self, auto_start_worker: bool = True, max_jobs_history: int = 1000) -> None:
+        self.max_jobs_history = max_jobs_history
         self._nodes: dict[str, ClusterNode] = {}
         self._jobs: dict[str, ClusterJob] = {}
         self._job_queue: queue.Queue[str] = queue.Queue()
@@ -130,6 +131,15 @@ class ClusterManager:
             status="queued"
         )
         with self._lock:
+            # Enforce bounded history capacity (FIFO eviction of completed/failed jobs)
+            if len(self._jobs) >= self.max_jobs_history:
+                evictable = [
+                    jid for jid, j in self._jobs.items()
+                    if j.status in ("completed", "failed")
+                ]
+                for jid in evictable[:len(self._jobs) - self.max_jobs_history + 1]:
+                    del self._jobs[jid]
+
             self._jobs[job_id] = job
             self._job_queue.put(job_id)
         return job_id

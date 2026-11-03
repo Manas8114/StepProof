@@ -27,10 +27,18 @@ def site_server():
         # Port 8011 is already occupied. Check if it is the running StepProof app or demo server.
         try:
             import urllib.request
-            with urllib.request.urlopen("http://127.0.0.1:8011/expense/", timeout=1.0) as resp:
+            # 1. Probe if demo server is already serving /expense/ directly
+            try:
+                with urllib.request.urlopen("http://127.0.0.1:8011/expense/", timeout=1.0) as resp:
+                    if resp.status == 200:
+                        yield "http://127.0.0.1:8011"
+                        return
+            except Exception:
+                pass
+            # 2. Probe if StepProof companion app is running on :8011
+            with urllib.request.urlopen("http://127.0.0.1:8011/api/v2/health", timeout=1.0) as resp:
                 if resp.status == 200:
-                    yield "http://127.0.0.1:8011"
-                    return
+                    pytest.skip("Running StepProof companion app detected on port 8011 (stop app to run isolated demo server)")
         except Exception:
             pass
         pytest.skip("Port 8011 already occupied by an unrecognized service; stop server on :8011 to run demo server fixture")

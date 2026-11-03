@@ -92,7 +92,24 @@ class ClusterNode:
                     start_url = steps[0].arg.get("url") or steps[0].arg.get("site")
                 if start_url:
                     base = self.base_url or ("http://localhost:8011" if self.node_type == "local" else None)
-                    tb.start_site(start_url, base=base)
+                    nav = tb.start_site(start_url, base=base)
+                    if isinstance(nav, dict) and not nav.get("ok", True):
+                        elapsed = time.time() - t0
+                        self.metrics.total_runs += 1
+                        self.metrics.failed_runs += 1
+                        err_msg = nav.get("error", "navigation refused")
+                        self.metrics.last_error = err_msg
+                        self.status = "idle"
+                        self.current_job_id = None
+                        return {
+                            "node_id": self.node_id,
+                            "ok": False,
+                            "verdict": "INFRA_ERROR",
+                            "steps_run": 0,
+                            "healed_steps": [],
+                            "error": err_msg,
+                            "duration_sec": round(elapsed, 3),
+                        }
 
                 res = execute_procedure(tb, proc)
                 elapsed = time.time() - t0
