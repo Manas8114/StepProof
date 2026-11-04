@@ -67,16 +67,30 @@ class Procedure:
         steps = []
         for s in d.get("steps", []):
             s_dict = dict(s)
-            s_dict.setdefault("vision_concept", "")
+            concept = s_dict.pop("concept", "")
+            if concept and not s_dict.get("vision_concept"):
+                s_dict["vision_concept"] = concept
             locs = [Locator(**l) for l in s_dict.pop("locators", [])]
-            steps.append(Step(**s_dict, locators=locs))
+            step_kwargs = {
+                "id": s_dict.get("id", ""),
+                "description": s_dict.get("description", ""),
+                "action": s_dict.get("action", "click"),
+                "arg": s_dict.get("arg", {}),
+                "locators": locs,
+                "success": s_dict.get("success", []),
+                "note": s_dict.get("note", ""),
+                "vision_concept": s_dict.get("vision_concept", ""),
+            }
+            steps.append(Step(**step_kwargs))
         d["steps"] = steps
         d["success_checks"] = d.get("success_checks", [])
         manifest = d.get("manifest", {})
         signature = d.get("signature", "")
         provenance = d.get("provenance", {})
 
-        proc = cls(**{k: d.get(k, DEFAULTS[k]) for k in ("goal", "site", "parameters", "source")},
+        goal = d.get("goal") or d.get("name") or ""
+        proc = cls(goal=goal, site=d.get("site", ""),
+                   parameters=d.get("parameters", {}), source=d.get("source", "manual"),
                    steps=d["steps"], success_checks=d["success_checks"],
                    manifest=manifest, signature=signature, provenance=provenance)
 

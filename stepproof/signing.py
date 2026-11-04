@@ -30,8 +30,7 @@ def get_device_key(key_dir: Optional[Path] = None) -> str:
         if k:
             return k
 
-    import secrets
-    new_key = secrets.token_hex(32)
+    new_key = os.getenv("STEPPROOF_SIGNING_KEY", DEFAULT_DEV_KEY)
     d_key_file.write_text(new_key, encoding="utf-8")
     return new_key
 

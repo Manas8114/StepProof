@@ -18,7 +18,10 @@ from typing import Optional, Any
 
 from .. import config as cfg
 from ..proc import Procedure
+from ..signing import DEFAULT_DEV_KEY
 from ..agent.executor import execute_procedure
+
+os.environ.setdefault("STEPPROOF_SIGNING_KEY", DEFAULT_DEV_KEY)
 from ..audit import AuditSpine
 from ..budget import BudgetConfig, BudgetTripwire, estimate_procedure_cost, CostEstimate
 from ..harness.reports import generate_junit_xml, generate_html_report

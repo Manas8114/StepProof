@@ -5,12 +5,14 @@
       "id": "s1",
       "description": "Snap the blue clip into place",
       "concept": "blue clip",
+      "vision_concept": "blue clip",
       "min_count": 1
     },
     {
       "id": "s2",
       "description": "Engage the gold latch",
       "concept": "gold latch",
+      "vision_concept": "gold latch",
       "min_count": 1,
       "after": [
         "s1"

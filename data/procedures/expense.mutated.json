@@ -106,12 +106,14 @@
       "4dca5f029549ef7534f1869c6591b078ad9b6b8734b066f3d91754a168438287"
     ]
   },
-  "signature": "7e10049bff24ec4df9436c77cf3f327c9ba21da0c654781a286d5dca0eca93bc",
+  "signature": "af4a7649a0f9012d2e29b98bd95ac9e739e8781d96928c42a1a6dacaa6b2d4d5",
   "provenance": {
     "compiler_version": "stepproof-v2.1",
     "model_used": "compiler",
     "source": "monitor",
     "device_id": "0ef0c839bfaa205e",
-    "recorded_ts": 1793660201.619
+    "recorded_ts": 1793660201.619,
+    "signing_key_id": "dev-default",
+    "ts": 1793752698.562
   }
 }

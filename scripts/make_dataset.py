@@ -93,16 +93,16 @@ def main(out: str = "data") -> None:
 
     # ---- procedure 1: board assembly ----
     p1 = {"name": "Board assembly", "steps": [
-        {"id": "s1", "description": "Attach the red connector to the board", "concept": "red connector", "min_count": 1},
-        {"id": "s2", "description": "Close the black cover", "concept": "black cover", "min_count": 1, "after": ["s1"]},
-        {"id": "s3", "description": "Insert two silver screws", "concept": "silver screw", "min_count": 2, "after": ["s2"]},
+        {"id": "s1", "description": "Attach the red connector to the board", "concept": "red connector", "vision_concept": "red connector", "min_count": 1},
+        {"id": "s2", "description": "Close the black cover", "concept": "black cover", "vision_concept": "black cover", "min_count": 1, "after": ["s1"]},
+        {"id": "s3", "description": "Insert two silver screws", "concept": "silver screw", "vision_concept": "silver screw", "min_count": 2, "after": ["s2"]},
     ]}
     (root / "procedures" / "board.json").write_text(json.dumps(p1, indent=2))
 
     # ---- procedure 2: fastening (second, unrelated domain) ----
     p2 = {"name": "Module fastening", "steps": [
-        {"id": "s1", "description": "Snap the blue clip into place", "concept": "blue clip", "min_count": 1},
-        {"id": "s2", "description": "Engage the gold latch", "concept": "gold latch", "min_count": 1, "after": ["s1"],
+        {"id": "s1", "description": "Snap the blue clip into place", "concept": "blue clip", "vision_concept": "blue clip", "min_count": 1},
+        {"id": "s2", "description": "Engage the gold latch", "concept": "gold latch", "vision_concept": "gold latch", "min_count": 1, "after": ["s1"],
          "state_question": "Is the gold latch engaged?"},
     ]}
     (root / "procedures" / "fastening.json").write_text(json.dumps(p2, indent=2))

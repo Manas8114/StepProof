@@ -56,6 +56,23 @@ def test_all_five_enterprise_presets_exist_and_verify():
         assert proc.manifest.get("step_count") == len(proc.steps)
 
 
+def test_all_procedure_fixtures_load_and_verify():
+    """All procedure files in data/procedures/ must load cleanly without schema errors,
+    and all signed fixtures must cryptographically verify."""
+    base_dir = Path(__file__).resolve().parent.parent / "data" / "procedures"
+    assert base_dir.exists()
+    files = list(base_dir.glob("*.json"))
+    assert len(files) >= 10, f"Expected at least 10 procedure files, found {len(files)}"
+    for p_path in files:
+        data = json.loads(p_path.read_text(encoding="utf-8"))
+        proc = Procedure.from_dict(data)
+        assert proc.goal, f"{p_path.name} must resolve a goal"
+        assert len(proc.steps) > 0, f"{p_path.name} must have steps"
+        if proc.signature and proc.manifest:
+            ok, reason = verify_procedure(proc)
+            assert ok is True, f"{p_path.name} signature failed verification: {reason}"
+
+
 def test_procedure_list_and_get_api(client):
     """Test /api/v2/procedure/list and /api/v2/procedure/get endpoints."""
     r_list = client.get("/api/v2/procedure/list")
