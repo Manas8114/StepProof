@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from ..proc import Procedure
+from ..agent import executor
 from ..agent.executor import execute_procedure
 from ..audit import AuditSpine
 
@@ -111,7 +112,7 @@ class ClusterNode:
                             "duration_sec": round(elapsed, 3),
                         }
 
-                res = execute_procedure(tb, proc)
+                res = executor.execute_procedure(tb, proc)
                 elapsed = time.time() - t0
                 self.metrics.total_runs += 1
                 self.metrics.total_duration_sec += elapsed

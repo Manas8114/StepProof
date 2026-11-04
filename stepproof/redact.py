@@ -27,6 +27,17 @@ class RedactionResult:
     matches_by_type: dict[str, int] = field(default_factory=dict)
 
 
+def _make_fully_masked_jpeg(width: int = 640, height: int = 480,
+                            fill_color: tuple[int, int, int] = (24, 24, 27)) -> str:
+    """Generate a fail-closed solid masked JPEG when decoding or masking fails,
+    guaranteeing no unmasked PII ever leaks to model endpoints."""
+    blank = np.full((height, width, 3), fill_color, dtype=np.uint8)
+    cv2.putText(blank, "REDACTED - FAIL CLOSED", (int(width * 0.15), int(height * 0.5)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
+    _, enc = cv2.imencode(".jpg", blank, [cv2.IMWRITE_JPEG_QUALITY, 80])
+    return f"data:image/jpeg;base64,{base64.b64encode(enc).decode('ascii')}"
+
+
 class PIIRedactor:
     """Configurable, local, irreversible redaction engine."""
 
@@ -114,7 +125,8 @@ class PIIRedactor:
             nparr = np.frombuffer(img_bytes, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             if img is None:
-                return shot_b64
+                # Fail closed: never return raw unmasked screenshot when sensitive boxes were detected
+                return _make_fully_masked_jpeg(fill_color=fill_color)
 
             h, w = img.shape[:2]
             for b in boxes:
@@ -134,12 +146,12 @@ class PIIRedactor:
             # Encode back to JPEG base64
             success, enc = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 85])
             if not success:
-                return shot_b64
+                return _make_fully_masked_jpeg(w, h, fill_color=fill_color)
             res_b64 = base64.b64encode(enc).decode("ascii")
             return f"data:image/jpeg;base64,{res_b64}"
         except Exception:
-            # On any image processing failure, fallback safely to original
-            return shot_b64
+            # Fail closed: on any decode/encode/CV error, return fully masked frame; never raw PII
+            return _make_fully_masked_jpeg(fill_color=fill_color)
 
     def dry_run(self, obs: dict, screenshot_b64: str = "") -> dict:
         """'Show what you'd send' dry-run audit inspection without modifying session state."""

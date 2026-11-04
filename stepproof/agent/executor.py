@@ -21,10 +21,12 @@ class ExecResult:
     check_results: list = field(default_factory=list)
     wall_s: float = 0.0
     error: str = ""
+    billed_frames: int = 0
 
     def metrics(self) -> dict:
         return {"success": self.success, "steps": self.steps_run, "model_calls": 0,
                 "wall_s": self.wall_s, "takeovers": 0, "approvals": len(self.healed_steps),
+                "billed_frames": self.billed_frames,
                 "actions": [s.get("action") for s in self.healed_steps] + [],
                 "result": {"success": self.success, "error": self.error}}
 
@@ -103,6 +105,7 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
         return res
 
     params = getattr(proc, "parameters", {}) or {}
+    run_billed_frames = 0
     for i, step in enumerate(proc.steps[:max_steps]):
         step_arg = _fill_slots(step.arg, params)
         irrev, ext = classify_action(step.action, step_arg, tb=tb)
@@ -124,11 +127,14 @@ def execute_procedure(tb, proc, human_demo: dict | None = None,
                                         "note": f"locator[{used}] used (self-heal from broken primary)"})
         if not worked and vision_selfheal is not None:
             # Tripwire check BEFORE invoking any billing SAM / vision model call
-            ok_v, v_err = tripwire.check_before_vision_call(expected_frames=50)
+            ok_v, v_err = tripwire.check_before_vision_call(current_run_frames=run_billed_frames, expected_frames=50)
             if not ok_v:
                 res.error = f"step {i} vision call blocked: {v_err}"
                 BUS.publish("exec_blocked", {"step": step.id, "reason": "budget_tripwire"})
                 break
+
+            run_billed_frames += 50
+            res.billed_frames = run_billed_frames
 
             healed = vision_selfheal(step)
             if healed:

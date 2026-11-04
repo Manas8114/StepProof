@@ -39,9 +39,9 @@ class CostEstimate:
 
 @dataclass
 class BudgetConfig:
-    cap_frames_per_run: int = 100       # Meta bills 50 frames min per video call
+    cap_frames_per_run: int = 300       # Meta bills 50 frames min per video call (supports up to 6 self-heals per run)
     cap_tokens_per_run: int = 40000
-    cap_frames_session: int = 500
+    cap_frames_session: int = 1500
     cap_tokens_session: int = 150000
     unlimited: bool = False
 
@@ -61,9 +61,9 @@ class BudgetConfig:
             except ValueError:
                 return default
 
-        cap_f_run = _int_env("STEPPROOF_COST_CAP_FRAMES", 100)
+        cap_f_run = _int_env("STEPPROOF_COST_CAP_FRAMES", 300)
         cap_t_run = _int_env("STEPPROOF_COST_CAP_TOKENS", 40000)
-        cap_f_sess = _int_env("STEPPROOF_COST_CAP_FRAMES_SESSION", 500)
+        cap_f_sess = _int_env("STEPPROOF_COST_CAP_FRAMES_SESSION", 1500)
         cap_t_sess = _int_env("STEPPROOF_COST_CAP_TOKENS_SESSION", 150000)
 
         if cap_f_run <= 0 and cap_t_run <= 0:

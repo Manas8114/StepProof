@@ -19,14 +19,20 @@ def _js(tb, sel: str, prop: str) -> object:
 
 
 def url_contains(tb, spec: dict) -> CheckResult:
-    want, got = spec.get("url", ""), tb.observe().get("url", "")
+    want = (spec.get("url") or "").strip()
+    if not want:
+        return CheckResult("url_contains", False, "empty url substring specified (vacuous check rejected)")
+    got = tb.observe().get("url", "")
     return CheckResult("url_contains", want in got, f"url={got!r} (wanted substring {want!r})")
 
 
 def text_visible(tb, spec: dict) -> CheckResult:
+    want_raw = (spec.get("text") or "").strip()
+    if not want_raw:
+        return CheckResult("text_visible", False, "empty text specified (vacuous check rejected)")
     hay = tb.observe().get("body_text", "").lower()
-    want = spec.get("text", "").lower()
-    return CheckResult("text_visible", want in hay, f"body contains {want!r}: {want in hay}")
+    want = want_raw.lower()
+    return CheckResult("text_visible", want in hay, f"body contains {want_raw!r}: {want in hay}")
 
 
 def element_state(tb, spec: dict) -> CheckResult:
@@ -70,8 +76,11 @@ def run_check(tb, check: dict) -> CheckResult:
 
 def all_pass(tb, checks: list[dict], shoot=None, prefix: str = "check") -> tuple[bool, list[CheckResult]]:
     """The run passes only when ALL checks pass (conjunctive).
+    Requires at least one check to pass (vacuous zero-check runs are rejected).
     With `shoot(tag)->path` supplied, every verdict links to an evidence screenshot
     (master-prompt requirement: verdicts + evidence)."""
+    if not checks:
+        return False, [CheckResult("empty_checks", False, "procedure has no success checks (vacuous pass rejected)")]
     results = []
     for i, c in enumerate(checks):
         r = run_check(tb, c)

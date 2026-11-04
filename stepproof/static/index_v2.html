@@ -1034,6 +1034,7 @@ label {
         <img id="kiosk-shot" style="width:100%;height:330px;object-fit:contain;background:#000;display:block;" alt="Live browser view">
         <span id="kiosk-state-badge" class="state-IDLE" style="position:absolute;top:12px;right:12px;font-size:11px;padding:4px 10px;border-radius:12px;font-weight:700;">IDLE</span>
       </div>
+      <div id="kiosk-gate" class="gate hide" style="margin-top:12px;"></div>
     </div>
 
     <!-- Quick Run & Enterprise Presets Selection -->
@@ -1081,7 +1082,7 @@ label {
         <div style="color:#34d399;font-weight:700;font-size:14px;">✓ Deterministic Audit Proof Verified</div>
         <div class="note mono" style="color:#a7f3d0;font-size:11px;margin-top:3px;" id="kiosk-proof-hash">Zero Model API Calls | Cryptographic Hash Intact | Tamper-Proof</div>
       </div>
-      <button class="primary" onclick="exportKioskProof()" style="background:#059669;border-color:#10b981;padding:8px 16px;font-size:12px;font-weight:700;">📥 Download Signed Audit Bundle</button>
+      <button class="primary" onclick="exportKioskProof()" style="background:#059669;border-color:#10b981;padding:8px 16px;font-size:12px;font-weight:700;">📥 Export Audit Proof (Markdown)</button>
     </div>
   </div>
 </div>
@@ -1694,33 +1695,61 @@ document.addEventListener('keydown', e => {
   }
 });
 
+let gateInFlight = false;
+let autoApproveTimer = null;
+
 // Approval Gate & Ask Human UI
 function showGate(d) {
+  if (autoApproveTimer) { clearTimeout(autoApproveTimer); autoApproveTimer = null; }
   if ($('#chk-auto-approve') && $('#chk-auto-approve').checked) {
-    setTimeout(() => gateApprove(true), 150);
+    autoApproveTimer = setTimeout(() => {
+      autoApproveTimer = null;
+      gateApprove(true);
+    }, 150);
     return;
   }
-  const g = $('#gate');
-  g.classList.remove('hide');
-  g.innerHTML = `
+  const html = `
     <div class="q">⚠️ Safety Gate Prompted — ${d.tool} is ${d.irreversible ? 'irreversible' : ''}${d.external ? ' external' : ''}</div>
     <div class="note mono" style="margin:4px 0 8px">${JSON.stringify(d.args)}</div>
     <div class="btnrow">
-      <button class="primary" onclick="gateApprove(true)">Allow Action</button>
-      <button class="danger" onclick="gateApprove(false)">Deny</button>
+      <button class="primary gate-btn" onclick="gateApprove(true)">Allow Action</button>
+      <button class="danger gate-btn" onclick="gateApprove(false)">Deny</button>
     </div>
   `;
-  g.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const g = $('#gate');
+  if (g) {
+    g.classList.remove('hide');
+    g.innerHTML = html;
+  }
+  const kg = $('#kiosk-gate');
+  if (kg) {
+    kg.classList.remove('hide');
+    kg.innerHTML = html;
+  }
+  const isKiosk = $('#kiosk-container') && !$('#kiosk-container').classList.contains('hide');
+  const activeGate = isKiosk ? kg : g;
+  if (activeGate) activeGate.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
+
 async function gateApprove(allow) {
+  if (gateInFlight) return;
+  gateInFlight = true;
+  if (autoApproveTimer) { clearTimeout(autoApproveTimer); autoApproveTimer = null; }
+  document.querySelectorAll('.gate-btn').forEach(b => b.disabled = true);
   try {
     await japi('/api/v2/agent/approve', { allow: allow });
     hideGate();
   } catch (e) {
     err('Gate response failed: ' + e.message);
+  } finally {
+    gateInFlight = false;
   }
 }
-function hideGate() { $('#gate').classList.add('hide'); }
+
+function hideGate() {
+  if ($('#gate')) $('#gate').classList.add('hide');
+  if ($('#kiosk-gate')) $('#kiosk-gate').classList.add('hide');
+}
 
 function showAsk(d) {
   const a = $('#ask');

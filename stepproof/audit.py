@@ -116,8 +116,18 @@ class AuditSpine:
                steps: list[dict] | None = None, evidence_paths: list[str] | None = None,
                model_disclosure: dict | None = None, cost: dict | None = None) -> AuditEntry:
         """Append a new verified entry to the hash chain."""
-        seq = len(self._entries)
-        prev_h = self.last_hash
+        if self.use_global_db:
+            from . import store
+            last = store.get_last_audit_entry()
+            if last and "seq" in last:
+                seq = max(len(self._entries), last["seq"] + 1)
+                prev_h = last.get("entry_hash", self.last_hash)
+            else:
+                seq = len(self._entries)
+                prev_h = self.last_hash
+        else:
+            seq = len(self._entries)
+            prev_h = self.last_hash
         entry = AuditEntry(
             seq=seq,
             run_id=run_id,
@@ -190,25 +200,28 @@ class AuditSpine:
             zf.writestr("audit_entries.json", entries_json)
             manifest_files["audit_entries.json"] = sha256_text(entries_json)
 
-            # 2. Embed all referenced evidence files
+            # 2. Embed all referenced evidence files (fail closed if missing, disambiguate arcnames)
             for entry in entries:
-                for rel_path in entry.evidence_paths:
+                for idx, rel_path in enumerate(entry.evidence_paths):
                     p = Path(rel_path)
                     # Resolve if relative
                     if not p.is_absolute():
                         candidates = [
                             cfg.DATA_DIR / rel_path,
-                            cfg.BASE / rel_path,
+                            cfg.DATA_DIR.parent / rel_path,
                             Path(rel_path)
                         ]
                         for c in candidates:
                             if c.exists() and c.is_file():
                                 p = c
                                 break
-                    if p.exists() and p.is_file():
-                        arcname = f"evidence/{p.name}"
-                        zf.write(p, arcname=arcname)
-                        manifest_files[arcname] = sha256_file(p)
+                    if not p.exists() or not p.is_file():
+                        raise FileNotFoundError(f"Missing referenced evidence file for run {run_id}: {rel_path}")
+                    arcname = f"evidence/{p.name}"
+                    if arcname in manifest_files:
+                        arcname = f"evidence/seq_{entry.seq}_{idx}_{p.name}"
+                    zf.write(p, arcname=arcname)
+                    manifest_files[arcname] = sha256_file(p)
 
             # 2b. Embed self-contained verify_bundle.py script into bundle
             vscript_path = Path(__file__).parent / "verify_bundle.py"

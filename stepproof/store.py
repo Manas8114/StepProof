@@ -17,10 +17,15 @@ def init() -> None:
         c.execute("CREATE TABLE IF NOT EXISTS audit_chain(seq INTEGER PRIMARY KEY, run_id TEXT, prev_hash TEXT, entry_hash TEXT, data TEXT, created REAL DEFAULT (strftime('%s','now')))")
 
 
-def append_audit_entry(entry: dict) -> None:
+def append_audit_entry(entry: dict) -> int:
     with _c() as c:
-        c.execute("INSERT OR REPLACE INTO audit_chain(seq, run_id, prev_hash, entry_hash, data) VALUES(?,?,?,?,?)",
-                  (entry["seq"], entry["run_id"], entry["prev_hash"], entry["entry_hash"], json.dumps(entry)))
+        row = c.execute("SELECT MAX(seq) as max_seq FROM audit_chain").fetchone()
+        max_seq = row["max_seq"] if row and row["max_seq"] is not None else -1
+        seq = max(entry.get("seq", 0), max_seq + 1)
+        entry["seq"] = seq
+        c.execute("INSERT INTO audit_chain(seq, run_id, prev_hash, entry_hash, data) VALUES(?,?,?,?,?)",
+                  (seq, entry["run_id"], entry["prev_hash"], entry["entry_hash"], json.dumps(entry)))
+        return seq
 
 
 def get_audit_entries(run_id: str | None = None) -> list[dict]:

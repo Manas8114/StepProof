@@ -23,16 +23,13 @@ from .signing import (
 )
 
 
-def sign_procedure(proc: Any, device_key: Optional[str] = None, model_name: str = "compiler") -> dict:
+def sign_procedure(proc: Any, device_key: Optional[str] = None, model_name: str = "compiler", key: Optional[str] = None) -> dict:
     """Sign a procedure in-place and return the manifest dictionary.
     Manifest contains procedure SHA-256 and per-step hashes.
     Provenance records timestamp, compiler version, and fallback disclosure.
     HMAC is generated over the canonical manifest JSON.
     """
-    k = device_key or get_signing_key()
-    manifest = build_manifest(proc)
-    proc.manifest = manifest
-
+    k = key or device_key or get_signing_key()
     prov = dict(getattr(proc, "provenance", {}) or {})
     prov.setdefault("compiler_version", "stepproof-v2.1")
     prov.setdefault("model_used", model_name)
@@ -41,9 +38,16 @@ def sign_procedure(proc: Any, device_key: Optional[str] = None, model_name: str 
     prov["recorded_ts"] = round(time.time(), 3)
     proc.provenance = prov
 
+    manifest = build_manifest(proc)
+    manifest["provenance_hash"] = hashlib.sha256(canonical_json(prov).encode("utf-8")).hexdigest()
+    proc.manifest = manifest
+
     manifest_bytes = canonical_json(manifest).encode("utf-8")
     proc.signature = hmac.new(k.encode("utf-8"), manifest_bytes, hashlib.sha256).hexdigest()
     return manifest
+
+
+sign_artifact = sign_procedure
 
 
 def verify_artifact(payload: Union[dict, Any], device_key: Optional[str] = None) -> tuple[bool, Optional[str]]:
@@ -56,7 +60,8 @@ def verify_artifact(payload: Union[dict, Any], device_key: Optional[str] = None)
     if isinstance(payload, dict):
         manifest = payload.get("manifest")
         sig = payload.get("signature")
-        raw_proc = payload
+        from .proc import Procedure
+        raw_proc = Procedure.from_dict(payload, verify_signature=False)
     else:
         manifest = getattr(payload, "manifest", None)
         sig = getattr(payload, "signature", None)
@@ -87,6 +92,13 @@ def verify_artifact(payload: Union[dict, Any], device_key: Optional[str] = None)
         if s_hash != computed_s_hash:
             return False, f"Tampered step {i}: manifest hash {s_hash} does not match computed {computed_s_hash}"
 
+    # Verify provenance integrity if present in manifest
+    if "provenance_hash" in manifest:
+        prov = getattr(raw_proc, "provenance", {}) or {}
+        computed_prov_hash = hashlib.sha256(canonical_json(prov).encode("utf-8")).hexdigest()
+        if manifest["provenance_hash"] != computed_prov_hash:
+            return False, "Tampered provenance: manifest provenance hash does not match computed provenance"
+
     # HMAC signature check
     k = device_key or get_signing_key()
     manifest_bytes = canonical_json(manifest).encode("utf-8")
@@ -100,7 +112,7 @@ def verify_artifact(payload: Union[dict, Any], device_key: Optional[str] = None)
 
 def save_artifact(proc: Any, out_path: Union[str, Path], device_key: Optional[str] = None) -> Path:
     """Sign procedure and save as a portable .artifact JSON file."""
-    sign_procedure(proc, device_key=device_key)
+    sign_procedure(proc, key=device_key)
     p = Path(out_path)
     p.parent.mkdir(parents=True, exist_ok=True)
     if hasattr(proc, "to_dict"):

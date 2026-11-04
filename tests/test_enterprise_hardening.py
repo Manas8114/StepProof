@@ -211,3 +211,144 @@ def test_dev_default_key_fallback_is_scoped():
     assert "Tampered procedure body" in err
 
 
+def test_pii_redaction_fails_closed_on_decode_or_cv_error():
+    """Redaction must NEVER fail open: corrupt or un-decodable images with sensitive boxes
+    must return a fail-closed solid masked image, never the original input."""
+    from stepproof.redact import PIIRedactor
+    redactor = PIIRedactor()
+    redactor.enabled = True
+
+    sensitive_boxes = [{"x": 10, "y": 10, "w": 100, "h": 30, "field": "password"}]
+    raw_corrupt_b64 = "data:image/jpeg;base64,corrupt_invalid_jpeg_payload_with_pii_12345"
+
+    masked = redactor.redact_screenshot(raw_corrupt_b64, sensitive_boxes)
+    # Must NOT return raw input
+    assert masked != raw_corrupt_b64
+    assert masked.startswith("data:image/jpeg;base64,")
+    # Must be a valid JPEG byte payload (the fail-closed placeholder)
+    import base64
+    payload = base64.b64decode(masked.split(",", 1)[1])
+    assert len(payload) > 100
+    assert payload[:2] == b"\xff\xd8"  # JPEG SOI marker
+
+
+def test_deterministic_checks_reject_vacuous_conditions():
+    """Empty strings and empty checks lists must reject rather than vacuously pass."""
+    from stepproof.checks import url_contains, text_visible, all_pass
+    from unittest.mock import MagicMock
+
+    tb = MagicMock()
+    tb.observe.return_value = {"url": "http://example.com/dashboard", "body_text": "Hello World"}
+
+    # 1. Empty URL substring -> rejected
+    r1 = url_contains(tb, {"url": ""})
+    assert r1.passed is False
+    assert "vacuous" in r1.detail
+
+    # 2. Empty visible text -> rejected
+    r2 = text_visible(tb, {"text": ""})
+    assert r2.passed is False
+    assert "vacuous" in r2.detail
+
+    # 3. Empty checks list -> rejected
+    ok, results = all_pass(tb, [])
+    assert ok is False
+    assert len(results) == 1
+    assert results[0].name == "empty_checks"
+    assert results[0].passed is False
+
+
+def test_frame_budget_cap_threads_and_enforces_across_loop():
+    """Per-run budget cap must accumulate across multiple vision calls and trip when breached."""
+    from stepproof.budget import BudgetConfig, BudgetTripwire
+    from stepproof.agent.executor import execute_procedure
+    from stepproof.proc import Procedure, Step, Locator
+    from unittest.mock import MagicMock, patch
+
+    cfg = BudgetConfig(cap_frames_per_run=100)
+    tripwire = BudgetTripwire(cfg)
+
+    # 1. Direct tripwire accumulation check
+    ok1, _ = tripwire.check_before_vision_call(current_run_frames=0, expected_frames=50)
+    assert ok1 is True
+    ok2, _ = tripwire.check_before_vision_call(current_run_frames=50, expected_frames=50)
+    assert ok2 is True
+    ok3, err3 = tripwire.check_before_vision_call(current_run_frames=100, expected_frames=50)
+    assert ok3 is False
+    assert "exceeds per-run cap 100" in err3
+
+    # 2. Executor loop accumulation check
+    tb = MagicMock()
+    tb.observe.return_value = {"url": "http://127.0.0.1:8011/expense/"}
+    def mock_act(tool, args=None):
+        if tool == "click_sel":
+            raise RuntimeError("locator broken")
+        if tool == "eval":
+            return "submit button"
+        return {"ok": True}
+    tb.act.side_effect = mock_act
+
+    steps = [
+        Step(id="s1", description="step 1", action="click", locators=[Locator("css", "#broken1")]),
+        Step(id="s2", description="step 2", action="click", locators=[Locator("css", "#broken2")]),
+        Step(id="s3", description="step 3", action="click", locators=[Locator("css", "#broken3")]),
+    ]
+    proc = Procedure(goal="Budget trip test", steps=steps)
+
+    with patch("stepproof.budget.get_tripwire", return_value=tripwire):
+        vision_mock = MagicMock(return_value={"x": 50, "y": 50})
+        res = execute_procedure(tb, proc, approve_fn=lambda a, x: True, vision_selfheal=vision_mock)
+        # Should have run 2 vision calls (100 frames) and blocked on the 3rd
+        assert res.success is False
+        assert "vision call blocked" in res.error
+        assert "exceeds per-run cap 100" in res.error
+        assert res.billed_frames == 100
+
+
+def test_audit_evidence_packaging_fails_on_missing_file_and_disambiguates():
+    """Evidence packaging must fail closed on missing evidence and disambiguate arcnames."""
+    from stepproof.audit import AuditSpine
+    import tempfile, zipfile
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        sink_p = Path(tmpdir)
+        spine = AuditSpine(sink_dir=sink_p, use_global_db=False)
+
+        real_ev = sink_p / "shot.jpg"
+        real_ev.write_bytes(b"\xff\xd8\xff\xe0test")
+
+        # 1. Missing evidence path must raise FileNotFoundError
+        spine.append(run_id="run_bad", verdict="PASS", evidence_paths=["nonexistent_shot.jpg"])
+        with pytest.raises(FileNotFoundError):
+            spine.package_run("run_bad")
+
+        # 2. Valid evidence packaging must succeed and disambiguate on collision
+        spine2 = AuditSpine(sink_dir=sink_p / "sub", use_global_db=False)
+        spine2.append(run_id="run_ok", verdict="PASS", evidence_paths=[str(real_ev), str(real_ev)])
+        zip_path = spine2.package_run("run_ok")
+        assert zip_path.exists()
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            namelist = zf.namelist()
+            assert "evidence/shot.jpg" in namelist
+            assert any(name.startswith("evidence/seq_0_1_") for name in namelist)
+
+
+def test_artifact_provenance_tamper_detection():
+    """Tampering with provenance in a signed artifact must fail verification."""
+    from stepproof.artifact import sign_artifact, verify_artifact
+    from stepproof.proc import Procedure, Step
+
+    proc = Procedure(goal="Artifact tamper test", steps=[Step(id="s1", description="step 1")])
+    sign_artifact(proc, device_key="test-key-12345", model_name="trusted-compiler")
+
+    # Valid artifact verifies
+    ok, err = verify_artifact(proc, device_key="test-key-12345")
+    assert ok is True
+
+    # Tamper with model_used in provenance
+    proc.provenance["model_used"] = "untrusted-hacked-model"
+    ok, err = verify_artifact(proc, device_key="test-key-12345")
+    assert ok is False
+    assert "Tampered provenance" in err
+
+
