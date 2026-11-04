@@ -28,10 +28,12 @@ from .learn import Recorder, compile_to_procedure
 from .learn.compile import sanitize
 from .coach import run_detectors, compare_runs, VoiceCompanion, browser_speak, phrase
 from .proc import Procedure
+from .signing import DEFAULT_DEV_KEY
 from .events import BUS
 from demo import Tour, replay as tour_replay, TOUR_DIR
 
 import os
+os.environ.setdefault("STEPPROOF_SIGNING_KEY", DEFAULT_DEV_KEY)
 BASE = Path(__file__).parent.parent
 DEMO = BASE / "demo_sites"
 # env-parametrized so the button audit can boot an isolated instance on 8012 alongside

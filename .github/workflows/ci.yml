@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      STEPPROOF_SIGNING_KEY: dev-insecure-key-stepproof-v2-local
     steps:
       - uses: actions/checkout@v4
 

@@ -165,29 +165,31 @@ def test_anti_stagnation_detection():
 
 
 def test_dev_default_key_fallback_is_scoped():
-    """Verify that DEFAULT_DEV_KEY is only accepted when provenance explicitly declares dev-default."""
+    """Verify cryptographic integrity: no unauthenticated backdoor fallback exists,
+    and verifying against a custom/production key strictly rejects DEFAULT_DEV_KEY even if stamped."""
     from stepproof.signing import verify_procedure, sign_procedure, DEFAULT_DEV_KEY
 
-    # 1. Procedure signed with DEFAULT_DEV_KEY and declared dev-default -> verifies
+    # 1. Procedure signed with active key (DEFAULT_DEV_KEY) -> verifies against matching key
     p1 = Procedure(goal="Dev test", site="http://localhost:8011", steps=[])
     sign_procedure(p1, key=DEFAULT_DEV_KEY)
-    assert p1.provenance.get("signing_key_id") == "dev-default"
-    ok, _ = verify_procedure(p1)
+    ok, _ = verify_procedure(p1, key=DEFAULT_DEV_KEY)
     assert ok is True
 
-    # 2. Procedure signed with DEFAULT_DEV_KEY but claiming custom key -> REJECTED
+    # 2. Forgery attack test: Attacker signs with public DEFAULT_DEV_KEY and stamps
+    #    signing_key_id="dev-default". In an enterprise environment with a real production key,
+    #    this MUST be rejected (no fallback backdoor).
     p2 = Procedure(goal="Dev test", site="http://localhost:8011", steps=[])
     sign_procedure(p2, key=DEFAULT_DEV_KEY)
-    p2.provenance["signing_key_id"] = "custom"
-    ok, err = verify_procedure(p2, key="secret-prod-key-12345")
+    p2.provenance["signing_key_id"] = "dev-default"
+    ok, err = verify_procedure(p2, key="corp-prod-auth-key-999")
     assert ok is False
     assert "Signature mismatch" in err
 
-    # 3. Tampered step in dev-default procedure -> REJECTED as tampered
+    # 3. Tampered step in procedure -> REJECTED as tampered
     p3 = Procedure(goal="Dev test", site="http://localhost:8011", steps=[])
     sign_procedure(p3, key=DEFAULT_DEV_KEY)
     p3.steps.append(Step(id="s99", description="tampered", action="click", arg={}))
-    ok, err = verify_procedure(p3)
+    ok, err = verify_procedure(p3, key=DEFAULT_DEV_KEY)
     assert ok is False
     assert "Tampered procedure body" in err
 
