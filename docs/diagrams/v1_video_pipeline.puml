@@ -1,0 +1,20 @@
+@startuml v1_video_pipeline
+title StepProof v1 — physical procedure verification (frozen engine)
+left to right direction
+skinparam shadowing false
+[Filmed clip\nMP4 / MOV] as CLIP
+[OpenCV probe\nfps · frames] as PROBE
+[ProcedureSpec\nconcepts · counts · order] as SPEC
+[SAM 3.1 video\n1 request per concept\nparallel · cached] as SAM
+[Wire parser\nper-frame boxes · conf · object_id] as WIRE
+[Deterministic rules\nstable count · persistence\nordering · flicker → review] as RULES
+[Muse Spark state check\nyes / no / uncertain\n(only if needed)] as MS
+[Report\nverdict · timestamp\nevidence frames · reasons] as REP
+[Eval harness\nstrict + escalated P/R\nreview rate · latency] as EVAL
+CLIP --> PROBE --> SAM
+SPEC --> SAM
+SAM --> WIRE --> RULES
+RULES --> MS
+MS --> RULES
+RULES --> REP --> EVAL
+@enduml

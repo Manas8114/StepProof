@@ -6,6 +6,14 @@ StepProof operates on a core safety invariant: **Models perceive, code decides.*
 
 ---
 
+## Architecture & Method
+
+- **[Architecture Diagrams](docs/ARCHITECTURE_DIAGRAMS.md)** — 9 Mermaid diagrams (system overview, agent step sequence, procedure lifecycle, heal cascade, data model, trust boundary, v1 pipeline, eval protocol, model fallback) — all render inline on GitHub.
+- **[Method](docs/METHOD.md)** — how StepProof works and why each design choice exists.
+- **[PlantUML sources](docs/diagrams/)** — slide-ready `.puml` versions for presentations and video.
+
+---
+
 ## Quick Start (v2 Companion)
 
 One command boots the v2 companion app, local demo sites, and the sandboxed browser:
@@ -69,7 +77,7 @@ StepProof includes an interactive multimodal copilot for live web exploration:
 
 ## Real Mode: Tripwire, Signed Artifacts, Audit Spine & Three Leads
 
-StepProof "Real Mode" elevates the system from an experimental prototype to enterprise-ready production:
+StepProof "Real Mode" provides enterprise-ready production capabilities:
 
 ### 1. Pre-Flight PII Redaction
 - **Irreversible local sanitization**: outbound screenshots and DOM accessibility trees pass through regex-based PII redaction (`stepproof/redact.py`) before touching SAM or Muse Spark.

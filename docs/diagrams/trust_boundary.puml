@@ -1,0 +1,32 @@
+@startuml trust_boundary
+title Trust boundary — page text cannot steer control flow
+skinparam shadowing false
+rectangle "TRUSTED (sets control flow)" as T {
+  [Human goal / demonstration] as G0
+  [Compiled Procedure] as P0
+  [Allowlist · risk classes · budgets] as AL
+}
+rectangle "UNTRUSTED (data only)" as UT {
+  [Page content\nincl. injected instructions] as PG
+  [Model output] as MO
+}
+rectangle "DETERMINISTIC CODE" as C {
+  [Safety gate] as GATE
+  [Executor] as EXEC
+  [Verifier] as VER
+}
+G0 --> GATE
+P0 --> EXEC
+AL --> GATE
+PG --> MO : observed
+MO --> GATE : proposal only
+GATE --> EXEC
+EXEC --> VER
+PG ..> AL : cannot modify
+MO ..> AL : cannot modify
+note bottom of C
+  Control flow is fixed from trusted inputs before untrusted
+  data is read (CaMeL pattern). A learned Procedure has no
+  path from page text to its plan.
+end note
+@enduml

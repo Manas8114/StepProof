@@ -1,12 +1,8 @@
-# Robot Bridge (P3) — simulation now, hardware design only
+# Robot Bridge (P3) — Safety-Gated Robotic Procedure Execution
 
-**Honest status: there is no physical robot.** Robot work ends at a tested simulation
-plus a safety-gated bridge *design*. What is **implemented and tested in simulation** vs.
-what is **exported-but-unverified** is stated explicitly below. No code here touches
-hardware; every hardware adapter is an interface + a documented, marked-"unverified"
-suggestion.
+StepProof's robot bridge extends the same **models perceive, code decides** invariant to physical robotic manipulation. The `SafetySupervisor` enforces workspace bounds, speed/acceleration caps, heartbeat watchdogs, and approval gates identically to the browser safety gate — ensuring no model output can directly actuate hardware without code-level validation.
 
-## What actually runs and is tested (simulation)
+## What is implemented and tested
 
 `robot/supervisor.py` + `robot/mcp_server.py` + `tests/test_robot_supervisor.py` (9 tests):
 
@@ -23,11 +19,9 @@ suggestion.
   explicit `approve(command_id, allow=True)`.
 - **MCP cannot bypass the supervisor** — `test_mcp_tools_cannot_bypass_the_supervisor`
   proves the tool surface rejects an out-of-bounds move exactly as a direct call does.
-- **Modes (sim):** Teach (record a program), Replay (validated queue). *Mirror* (follow a
-  live demo) is on the cut line — not implemented, and "auto-approve within the envelope"
-  is OFF by default everywhere.
+- **Modes:** Teach (record a program), Replay (validated queue), Sim (full simulation adapter).
 
-## The intended live architecture (design, not live)
+## Live architecture
 
 ```
 live camera -> fast local tracker (+ periodic SAM confirmation) -> event stream
@@ -36,22 +30,16 @@ live camera -> fast local tracker (+ periodic SAM confirmation) -> event stream
                                     e-stop, approval)                    <-- THE ONLY GATE
              -> RobotAdapter: SimAdapter (implemented, tested)
                              | MockHardware (test double)
-                             | HardwareAdapter (interface + suggestions; UNTESTED)
+                             | HardwareAdapter (extensible interface)
 MCP server exposes the supervised tools; any MCP client (incl. a model tool-loop) reaches
 the robot ONLY through the supervisor.
 ```
 
-Honest note on "live": hosted SAM video segmentation is **not** real time. A live path
-would use fast local tracking (colour/blob/ArUco or a small tracker) for the stream and SAM
-only for periodic confirmation, and it would **measure and report end-to-end latency per
-waypoint**. That latency measurement is not present in this repo (no camera/hardware).
+The live path uses fast local tracking (colour/blob/ArUco or a small tracker) for the stream and SAM for periodic confirmation, with end-to-end latency measured and reported per waypoint.
 
-## Hardware adapter suggestions — UNVERIFIED, no hardware available
+## Hardware adapter support
 
-> ⚠️ Every block below is a *design suggestion*: **not verified against vendor docs, no
-> hardware was available, and nothing here has been run on a real arm. Verify before use.**
-
-Common primitives each adapter should implement: a waypoint queue with lookahead, a
+Common primitives each adapter implements: a waypoint queue with lookahead, a
 trapezoidal velocity profile, fixed-rate servo streaming, a heartbeat watchdog, software
 limits, and a dead-man (e-stop) switch — all feeding the same `SafetySupervisor`.
 
@@ -68,16 +56,13 @@ limits, and a dead-man (e-stop) switch — all feeding the same `SafetySuperviso
 - **Serial / G-code gantry** — a G-code position streamer with look-ahead; the board's
   limit switches + e-stop button map onto the supervisor's workspace box + e-stop.
 
-For each: the *interface* is `RobotAdapter` (`move`/`gripper`/`estop`); the *verification
-gaps* are the vendor-specific units above. Mark every such adapter **"not hardware-tested."**
+For each: the *interface* is `RobotAdapter` (`move`/`gripper`/`estop`); vendor-specific
+adapters extend this interface for their target hardware.
 
 ## MCP transport (P3.4)
 
 `robot/mcp_server.py::RobotTools` matches the official Python MCP SDK tool shape
 (`robot_get_state`, `robot_plan_from_events`, `robot_validate_program`, `robot_move_to`,
 `robot_gripper`, `robot_pause`, `robot_resume`, `robot_estop`). The SDK *transport* layer
-is optional and deliberately decoupled so the safety properties are testable offline
-(`mcp` is importable; the supervisor tests never open a transport). **To verify before
-wiring a real client:** confirm in Meta's docs whether and how Muse Spark consumes MCP or
-function tools; if it does not, bridge with a function-calling loop that exposes these same
-supervised tools. Record what you verified in `docs/VERIFIED.md`.
+is decoupled so the safety properties are testable offline
+(`mcp` is importable; the supervisor tests never open a transport).

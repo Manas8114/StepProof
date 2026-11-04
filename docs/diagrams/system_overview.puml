@@ -1,0 +1,45 @@
+@startuml system_overview
+title StepProof — System Overview (models perceive, code decides)
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+actor Human
+package "LEARN" {
+  [Monitor recorder\nclicks · inputs · narration] as REC
+  [Agent trace\n(successful run)] as TR
+  [Compiler\nMuse Spark 1.3\nschema-constrained JSON] as COMP
+  [Sanitise + validate\n(code)] as SAN
+}
+database "Procedure\nsteps · locators · slots · checks\nsigned" as PROC
+package "EXECUTE" {
+  [Deterministic executor\n0 model calls] as EXEC
+  [Goal agent loop\nMuse Spark 1.3 proposes] as AGENT
+  [Safety gate (code)\nallowlist · risk class\napproval · budget · kill switch] as GATE
+  [Sandboxed browser\nPlaywright Chromium] as BR
+}
+package "HEAL" {
+  [Locator fall-through] as H1
+  [Muse Spark visual grounding] as H2
+  [SAM 3.1 segmentation fallback] as H3
+}
+package "PROVE" {
+  [Deterministic checks\nurl · text · element · value] as VER
+  [Evidence\nbefore/after · hash-chained audit] as EV
+  [Report + usage\ntokens · frames · latency] as REP
+}
+
+Human --> REC : demonstrate
+REC --> COMP
+TR --> COMP
+COMP --> SAN --> PROC
+PROC --> EXEC
+EXEC --> GATE
+AGENT --> GATE
+GATE --> BR
+BR --> H1 : element missing
+H1 --> H2 --> H3 --> BR
+BR --> VER --> EV --> REP
+GATE ..> Human : needs approval
+Human ..> GATE : approve / take over / stop
+AGENT ..> TR : compile own run
+@enduml

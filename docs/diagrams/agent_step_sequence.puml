@@ -1,0 +1,32 @@
+@startuml agent_step_sequence
+title One agent step — observe → propose → gate → act → verify
+autonumber
+actor Human as U
+participant "Agent loop (code)" as L
+participant "Muse Spark 1.3" as M
+participant "Safety gate (code)" as G
+participant "Browser (Playwright)" as B
+participant "Verifier (code)" as V
+
+L -> B : observe()
+B --> L : compact element list\n(no raw DOM, no screenshot)
+L -> M : goal + elements + tool schemas
+M --> L : ONE tool call\n(navigate | click | type | select | finish)
+L -> G : classify(action)
+alt off allowlist or malformed
+  G --> L : DENY (logged, not executed)
+else irreversible class
+  G -> U : AWAITING_APPROVAL
+  U --> G : approve / take over / abort
+else safe class
+  G --> L : ALLOW
+end
+L -> B : act(action)
+B --> L : result + screenshot
+L -> V : success checks
+V --> L : pass / fail (never asks the model)
+note over M, G
+  The model can only escalate (ask for approval).
+  It can never widen the allowlist or downgrade a risk class.
+end note
+@enduml

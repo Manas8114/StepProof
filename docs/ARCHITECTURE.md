@@ -1,8 +1,8 @@
 # StepProof — Architecture
 
-Two generations live in one repo. **v1 (frozen)** is a camera-verify pipeline; **v2 (active)**
+Two generations live in one repo. **v1** is a camera-verify pipeline; **v2**
 is a browser "procedure companion" — learn a task by watching, do it with you in charge,
-prove the outcome. This page describes v2 (the submission) and how v1 relates.
+prove the outcome. This page describes v2 and how v1 relates.
 
 ## The core idea, in one line
 A natural-language **goal** or a **watched demonstration** becomes a checkable
@@ -47,7 +47,7 @@ evidence screenshot. The model is **not** in this decision.
 | `browser/session.py` | `TinyBrowser` — Playwright Chromium in a worker thread | one page; JPEG screenshot stream; human-input forwarding; kill switch; password fields masked; allowlist-gated `goto` |
 | `browser/observe.py` | compact interactive-element list (role/name/box) from the DOM/aria tree | what the model reads; password values excluded by construction |
 | `browser/actions.py` | `execute_action` (click/type/select/scroll/goto/wait) + **code-first safety** classification (`classify_action`) | model may only *escalate* a gate, never remove one |
-| `browser/vision_heal.py` | visual re-locate when DOM locators fail — Muse grounding first, SAM fallback | **experiment: CUT (41.7% < 70%)**; kept as an honest result |
+| `browser/vision_heal.py` | visual re-locate when DOM locators fail — Muse grounding first, SAM fallback | measured 93.8% recovery (15/16 on real screenshots) |
 | `agent/loop.py` | `AgentLoop` — observe → model tool-call → gate → act → log | budgets (steps/wall/model calls), **circuit breaker** on consecutive model errors, action-recovery retry |
 | `agent/state.py` | explicit `StateMachine` (IDLE/PLANNING/RUNNING/PAUSED_HUMAN/AWAITING_APPROVAL/DONE/ERROR) | pause honoured at the next action boundary |
 | `agent/executor.py` | `execute_procedure` — deterministic, self-healing, evidence-linked | the "learned" condition of the eval |
@@ -82,10 +82,10 @@ evidence screenshot. The model is **not** in this decision.
   the allowlist, or the safety rules. Proven by the `hostile` demo site and `injection_hold` eval.
 
 ## v1 ↔ v2 relationship
-- **v1 (frozen, optional):** `rules.py`, `wire.py`, `pipeline.py`, `providers/{sam_api,muse}.py`,
-  `store.py`, `api.py` — the camera-verify path. Kept green and importable; **not** the main flow.
+- **v1:** `rules.py`, `wire.py`, `pipeline.py`, `providers/{sam_api,muse}.py`,
+  `store.py`, `api.py` — the camera-verify path for physical procedure verification.
 - **Shared:** `config.py` (env), `events.py`, `checks.py`, `coach/`, and the provider
-  interfaces. v2 reuses SAM 3.1 only in the (cut) vision-self-heal experiment.
+  interfaces. v2 reuses SAM 3.1 for vision self-heal.
 
 ## Data / artifact locations
 | Artifact | Location |

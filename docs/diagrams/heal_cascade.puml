@@ -1,0 +1,23 @@
+@startuml heal_cascade
+title Heal cascade — cost rises, code re-checks at every tier
+start
+:Step needs element;
+if (stored locators hit?) then (yes)
+  :act + verify (code);
+else (all miss)
+  :Muse Spark visual grounding\nscreenshot → coordinates (1 call);
+  if (code re-check: role/text match?) then (yes)
+    :act + verify (code);
+  else (no)
+    :SAM 3.1 segmentation\ntext-prompted mask → box;
+    if (code re-check) then (yes)
+      :act + verify (code);
+    else (no)
+      :escalate to human review\n(never guess);
+      stop
+    endif
+  endif
+endif
+:append new locator to Procedure\n(self-improving);
+stop
+@enduml
